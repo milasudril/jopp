@@ -17,29 +17,57 @@ namespace jopp
 	class array;
 	class object;
 	using number = double;
-	using value = std::variant<
-		std::unique_ptr<object>,
-		std::unique_ptr<array>,
-		number,
-		bool,
-		std::monostate>;
 
 	template<class T>
 	inline constexpr auto is_object_or_array_v = is_same_without_cvref_v<T, array>
 		|| is_same_without_cvref_v<T, object>;
 
-	class array
+	class value
 	{
 	public:
 		template<class T>
 		requires(!is_object_or_array_v<T>)
-		void push_back(T&& val)
-		{ m_values.push_back(std::forward<T>(val)); }
+		explicit value(T&& val):m_value{std::forward<T>(val)}
+		{}
 
 		template<class T>
 		requires(is_object_or_array_v<T>)
+		explicit value(T&& val):m_value{std::make_unique<T>(std::forward<T>(val))}
+		{}
+
+		template<class T>
+		decltype(auto) get() const
+		{
+			if constexpr(is_object_or_array_v<T>)
+			{ return *std::get<T>(m_value); }
+			else
+			{ return std::get<T>(m_value); }
+		}
+
+		template<class T>
+		decltype(auto) get()
+		{
+			if constexpr(is_object_or_array_v<T>)
+			{ return *std::get<T>(m_value); }
+			else
+			{ return std::get<T>(m_value); }
+		}
+
+	private:
+		std::variant<
+			std::unique_ptr<object>,
+			std::unique_ptr<array>,
+			number,
+			bool,
+			std::monostate> m_value;
+	};
+
+	class array
+	{
+	public:
+		template<class T>
 		void push_back(T&& val)
-		{ m_values.push_back(std::make_unique<T>(std::forward<T>(val))); }
+		{ m_values.push_back(value{std::forward<T>(val)}); }
 
 		auto begin() const
 		{ return std::begin(m_values); }
