@@ -45,7 +45,7 @@ namespace jopp
 		{}
 
 		template<class T>
-		decltype(auto) get_if() const
+		auto get_if() const
 		{
 			if constexpr(is_object_or_array_v<T>)
 			{ return std::get_if<T>(&m_value).get(); }
@@ -54,7 +54,7 @@ namespace jopp
 		}
 
 		template<class T>
-		decltype(auto) get_if()
+		auto get_if()
 		{
 			if constexpr(is_object_or_array_v<T>)
 			{ return std::get_if<T>(&m_value).get(); }
@@ -87,6 +87,46 @@ namespace jopp
 			> m_value;
 	};
 
+	class object
+	{
+	public:
+		using key_type = std::string;
+		using mapped_type = value;
+		using value_type = std::pair<key_type const, mapped_type>;
+
+		auto begin() const
+		{ return std::begin(m_values); }
+
+		auto end() const
+		{ return std::end(m_values); }
+
+		auto begin()
+		{ return std::begin(m_values); }
+
+		auto end()
+		{ return std::end(m_values); }
+
+		auto size() const
+		{ return std::size(m_values); }
+
+		auto find(std::string_view key) const
+		{ return m_values.find(key); }
+
+		auto find(std::string_view key)
+		{ return m_values.find(key); }
+
+		template<class T>
+		auto insert(key_type&& key, T&& value)
+		{ return m_values.insert(std::pair{std::move(key), mapped_type{std::forward<T>(value)}}); }
+
+		template<class T>
+		auto insert_or_assign(key_type&& key, T&& value)
+		{ return m_values.insert_or_assign(std::move(key), mapped_type{std::forward<T>(value)}); }
+
+	private:
+		std::map<key_type, mapped_type, std::less<>> m_values;
+	};
+
 	class array
 	{
 	public:
@@ -113,16 +153,7 @@ namespace jopp
 		std::vector<value> m_values;
 	};
 
-	class object
-	{
-	public:
-		using key_type = std::string;
-		using mapped_type = value;
-		using value_type = std::pair<key_type const, mapped_type>;
 
-	private:
-		std::map<key_type, mapped_type> properties;
-	};
 }
 
 #endif
