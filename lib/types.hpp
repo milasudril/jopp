@@ -22,6 +22,12 @@ namespace jopp
 	inline constexpr auto is_object_or_array_v = is_same_without_cvref_v<T, array>
 		|| is_same_without_cvref_v<T, object>;
 
+	template<class T>
+	concept dereferenceable = requires(T x)
+	{
+		{*x};
+	};
+
 	class value
 	{
 	public:
@@ -36,21 +42,35 @@ namespace jopp
 		{}
 
 		template<class T>
-		decltype(auto) get() const
+		decltype(auto) get_if() const
 		{
 			if constexpr(is_object_or_array_v<T>)
-			{ return *std::get<T>(m_value); }
+			{ return std::get_if<T>(&m_value).get(); }
 			else
-			{ return std::get<T>(m_value); }
+			{ return std::get_if<T>(&m_value); }
 		}
 
 		template<class T>
-		decltype(auto) get()
+		decltype(auto) get_if()
 		{
 			if constexpr(is_object_or_array_v<T>)
-			{ return *std::get<T>(m_value); }
+			{ return std::get<T>(&m_value).get(); }
 			else
-			{ return std::get<T>(m_value); }
+			{ return std::get<T>(&m_value); }
+		}
+
+		template<class Visitor>
+		decltype(auto) visit(Visitor&& v) const
+		{
+			return std::visit([v = std::forward<Visitor>(v)]<class T>(T&& x) {
+				if constexpr(dereferenceable<T>)
+				{
+					using referenced_type = std::decay_t<decltype(*x)>;
+					return v(std::forward<referenced_type>(*x));
+				}
+				else
+				{ return v(std::forward<T>(x)); }
+			});
 		}
 
 	private:
@@ -59,7 +79,7 @@ namespace jopp
 			std::unique_ptr<array>,
 			number,
 			bool,
-			std::monostate> m_value;
+			std::nullptr_t> m_value;
 	};
 
 	class array
