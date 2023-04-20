@@ -75,6 +75,28 @@ TESTCASE(jopp_value_store_object)
 	});
 }
 
+TESTCASE(jopp_value_store_array)
+{
+	jopp::array array;
+	array.push_back(1.25);
+	jopp::value a{std::move(array)};
+
+	auto array_retrieved = a.get_if<jopp::array>();
+	REQUIRE_NE(array_retrieved, nullptr);
+	auto i = array_retrieved->begin();
+	REQUIRE_NE(i, std::end(*array_retrieved));
+	REQUIRE_NE(i->get_if<jopp::number>(), nullptr);
+	EXPECT_EQ(*i->get_if<jopp::number>(), 1.25);
+
+	a.visit([]<class T>(T const&){
+		EXPECT_EQ((std::is_same_v<T, jopp::array>), true);
+	});
+
+	std::as_const(a).visit([]<class T>(T const&){
+		EXPECT_EQ((std::is_same_v<T, jopp::array>), true);
+	});
+}
+
 TESTCASE(jopp_value_store_number)
 {
 	jopp::value a{1.25};
