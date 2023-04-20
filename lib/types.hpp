@@ -15,7 +15,15 @@ namespace jopp
 		std::remove_cvref_t<B>>;
 
 	using boolean = bool;
-	using null = nullptr_t;
+	struct null
+	{
+		constexpr bool operator==(null) const
+		{ return true; }
+
+		constexpr bool operator!=(null) const
+		{ return false; }
+	};
+
 	class object;
 	class array;
 	using number = double;
@@ -48,16 +56,10 @@ namespace jopp
 		auto get_if() const
 		{
 			if constexpr(is_object_or_array_v<T>)
-			{ return std::get_if<T>(&m_value).get(); }
-			else
-			{ return std::get_if<T>(&m_value); }
-		}
-
-		template<class T>
-		auto get_if()
-		{
-			if constexpr(is_object_or_array_v<T>)
-			{ return std::get_if<T>(&m_value).get(); }
+			{
+				auto ptr = std::get_if<std::unique_ptr<T>>(&m_value);
+				return ptr != nullptr ? ptr->get() : nullptr;
+			}
 			else
 			{ return std::get_if<T>(&m_value); }
 		}

@@ -30,18 +30,18 @@ TESTCASE(jopp_value_store_bool)
 
 TESTCASE(jopp_value_store_null)
 {
-	jopp::value a{nullptr};
+	jopp::value a{jopp::null{}};
 	REQUIRE_NE(a.get_if<jopp::null>(), nullptr);
-	EXPECT_EQ(*a.get_if<jopp::null>(), nullptr);
-	EXPECT_EQ(*std::as_const(a).get_if<jopp::null>(), nullptr);
+	EXPECT_EQ(*a.get_if<jopp::null>(), jopp::null{});
+	EXPECT_EQ(*std::as_const(a).get_if<jopp::null>(), jopp::null{});
 
 	auto x = *a.get_if<jopp::null>();
 	EXPECT_EQ((std::is_same_v<decltype(x), jopp::null>), true);
-	EXPECT_EQ(x, nullptr);
+	EXPECT_EQ(x, jopp::null{});
 
 	auto y = *std::as_const(a).get_if<jopp::null>();
  	EXPECT_EQ((std::is_same_v<decltype(y), jopp::null>), true);
-	EXPECT_EQ(y, nullptr);
+	EXPECT_EQ(y, jopp::null{});
 
 	a.visit([]<class T>(T const&){
 		EXPECT_EQ((std::is_same_v<T, jopp::null>), true);
@@ -49,6 +49,29 @@ TESTCASE(jopp_value_store_null)
 
 	std::as_const(a).visit([]<class T>(T const&){
 		EXPECT_EQ((std::is_same_v<T, jopp::null>), true);
+	});
+}
+
+TESTCASE(jopp_value_store_object)
+{
+	jopp::object obj;
+	obj.insert("Foo", 1.25);
+	jopp::value a{std::move(obj)};
+
+	auto obj_retrieved = a.get_if<jopp::object>();
+	REQUIRE_NE(obj_retrieved, nullptr);
+	auto i = obj_retrieved->find("Foo");
+	REQUIRE_NE(i, std::end(*obj_retrieved));
+	EXPECT_EQ(i->first, "Foo");
+	REQUIRE_NE(i->second.get_if<jopp::number>(), nullptr);
+	EXPECT_EQ(*i->second.get_if<jopp::number>(), 1.25);
+
+	a.visit([]<class T>(T const&){
+		EXPECT_EQ((std::is_same_v<T, jopp::object>), true);
+	});
+
+	std::as_const(a).visit([]<class T>(T const&){
+		EXPECT_EQ((std::is_same_v<T, jopp::object>), true);
 	});
 }
 
