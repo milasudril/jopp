@@ -14,11 +14,12 @@ namespace jopp
 	inline constexpr auto is_same_without_cvref_v = std::is_same_v<std::remove_cvref_t<A>,
 		std::remove_cvref_t<B>>;
 
-	class array;
-	class object;
-	using number = double;
 	using boolean = bool;
 	using null = nullptr_t;
+	class object;
+	class array;
+	using number = double;
+	using string = std::string;
 
 	template<class T>
 	inline constexpr auto is_object_or_array_v = is_same_without_cvref_v<T, array>
@@ -77,11 +78,13 @@ namespace jopp
 
 	private:
 		std::variant<
+			boolean,
+			null,
 			std::unique_ptr<object>,
 			std::unique_ptr<array>,
 			number,
-			boolean,
-			null> m_value;
+			string
+			> m_value;
 	};
 
 	class array
