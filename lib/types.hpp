@@ -17,6 +17,8 @@ namespace jopp
 	class array;
 	class object;
 	using number = double;
+	using boolean = bool;
+	using null = nullptr_t;
 
 	template<class T>
 	inline constexpr auto is_object_or_array_v = is_same_without_cvref_v<T, array>
@@ -78,8 +80,8 @@ namespace jopp
 			std::unique_ptr<object>,
 			std::unique_ptr<array>,
 			number,
-			bool,
-			std::nullptr_t> m_value;
+			boolean,
+			null> m_value;
 	};
 
 	class array
