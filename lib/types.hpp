@@ -54,9 +54,9 @@ namespace jopp
 		decltype(auto) get_if()
 		{
 			if constexpr(is_object_or_array_v<T>)
-			{ return std::get<T>(&m_value).get(); }
+			{ return std::get_if<T>(&m_value).get(); }
 			else
-			{ return std::get<T>(&m_value); }
+			{ return std::get_if<T>(&m_value); }
 		}
 
 		template<class Visitor>
@@ -70,7 +70,7 @@ namespace jopp
 				}
 				else
 				{ return v(std::forward<T>(x)); }
-			});
+			}, m_value);
 		}
 
 	private:
@@ -106,6 +106,17 @@ namespace jopp
 
 	private:
 		std::vector<value> m_values;
+	};
+
+	class object
+	{
+	public:
+		using key_type = std::string;
+		using mapped_type = value;
+		using value_type = std::pair<key_type const, mapped_type>;
+
+	private:
+		std::map<key_type, mapped_type> properties;
 	};
 }
 
