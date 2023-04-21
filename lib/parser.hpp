@@ -1,7 +1,11 @@
 #ifndef JOPP_PARSER_HPP
 #define JOPP_PARSER_HPP
 
+#include "./types.hpp"
+
 #include <string_view>
+#include <stack>
+#include <span>
 
 namespace jopp
 {
@@ -34,6 +38,53 @@ namespace jopp
 		inline constexpr auto linefeed = 'n';
 		inline constexpr auto tab = 't';
 	}
+
+	enum class error_code
+	{
+		completed,
+		more_data_needed,
+		duplicate_key_value,
+		character_must_be_escaped,
+		unsupported_escape_sequence,
+		illegal_character_outside_string
+	};
+
+	struct parse_result
+	{
+		char const* ptr;
+		error_code ec;
+	};
+
+	class parser
+	{
+	public:
+		parse_result parse(std::span<char const> input_seq);
+
+	private:
+		enum class state
+		{
+			init,
+			array,
+			object,
+			before_key,
+			key,
+			value,
+			string,
+			read_other_value
+		};
+
+		using value_factory = value (*)(std::string&& buffer);
+
+		struct node
+		{
+			state current_state;
+			std::variant<array, object> container;
+		};
+
+		std::stack<node> m_nodes;
+
+		value_factory m_value_factory;
+	};
 };
 
 #endif
