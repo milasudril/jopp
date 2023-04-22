@@ -66,17 +66,33 @@ namespace jopp
 			{ return std::get_if<T>(&m_value); }
 		}
 
-		template<class Visitor>
-		decltype(auto) visit(Visitor&& v) const
+		template<class Visitor, class ... Args>
+		decltype(auto) visit(Visitor&& v, Args&& ... args) const
 		{
-			return std::visit([v = std::forward<Visitor>(v)]<class T>(T&& x) {
+			return std::visit([v = std::forward<Visitor>(v),
+				...args = std::forward<Args>(args)]<class T>(T&& x) mutable {
 				if constexpr(dereferenceable<T>)
 				{
-					using referenced_type = std::decay_t<decltype(*x)>;
-					return v(std::forward<referenced_type>(*x));
+					using referenced_type = decltype(*x);
+					return v(std::forward<referenced_type>(*x), std::forward<Args>(args)...);
 				}
 				else
-				{ return v(std::forward<T>(x)); }
+				{ return v(std::forward<T>(x), std::forward<Args>(args)...); }
+			}, m_value);
+		}
+
+		template<class Visitor, class ... Args>
+		decltype(auto) visit(Visitor&& v, Args&& ... args)
+		{
+			return std::visit([v = std::forward<Visitor>(v),
+				...args = std::forward<Args>(args)]<class T>(T&& x) mutable {
+				if constexpr(dereferenceable<T>)
+				{
+					using referenced_type = decltype(*x);
+					return v(std::forward<referenced_type>(*x), std::forward<Args>(args)...);
+				}
+				else
+				{ return v(std::forward<T>(x), std::forward<Args>(args)...); }
 			}, m_value);
 		}
 
@@ -90,6 +106,10 @@ namespace jopp
 			string
 			> m_value;
 	};
+
+	template<class ... Ts>
+	struct overload : Ts ...
+	{ using Ts::operator() ...; };
 
 	inline bool is_null(value const& val)
 	{ return val.get_if<null>() != nullptr; }

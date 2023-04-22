@@ -8,6 +8,7 @@
 #include <span>
 #include <optional>
 #include <charconv>
+#include <cassert>
 
 namespace jopp
 {
@@ -134,11 +135,11 @@ namespace jopp
 		{
 			enum state state = state::value;
 			class value value{null{}};
-			string key{};
 		};
 
 		context m_current_context;
 		std::stack<context> m_contexts;
+		std::string m_key;
 		std::string m_buffer;
 
 		value_factory m_value_factory;
@@ -208,19 +209,29 @@ namespace jopp
 							};
 						}
 
-						if(std::size(m_contexts) == 0)
-						{
-							root = std::move(*val);
-							return parse_result{
-								.ptr = ptr - 1,
-								.ec = error_code::completed,
-								.line = 0,  // TODO: count lines
-								.col = 0  // TODO: count cols
-							};
-						}
-
-						// If reading object, go to state::after_value_object
-						// If reading array, go to state::after_value_array
+						(void)m_current_context.value.visit(
+							overload{
+								[](object& item, string&& key, value&& val) {
+									if(!item.insert(std::move(key), std::move(val)).second)
+									{ return error_code::key_already_exists; }
+									return error_code::completed;
+								},
+								[](array& item, string&&, value&& val) {
+									item.push_back(std::move(val));
+									return error_code::completed;
+								},
+								[&root](null&, string&&, value&& val) {
+									root = std::move(val);
+									return error_code::completed;
+								},
+								[](auto&, string&&, value&&) {
+									assert(false);
+									return error_code::completed;
+								}
+							},
+							std::move(m_key),
+							std::move(*val)
+						);
 					}
 					else
 					{ m_buffer += ch_in; }
@@ -230,19 +241,29 @@ namespace jopp
 					switch(ch_in)
 					{
 						case delimiters::string_begin_end:
-							if(std::size(m_contexts) == 0)
-							{
-								root = value{std::move(m_buffer)};
-								return parse_result{
-									.ptr = ptr - 1,
-									.ec = error_code::completed,
-									.line = 0,  // TODO: count lines
-									.col = 0  // TODO: count cols
-								};
-							}
-
-							// If reading object, go to state::after_value_object
-							// If reading array, go to state::after_value_array
+							(void)m_current_context.value.visit(
+								overload{
+									[](object& item, string&& key, value&& val) {
+										if(!item.insert(std::move(key), std::move(val)).second)
+										{ return error_code::key_already_exists; }
+										return error_code::completed;
+									},
+									[](array& item, string&&, value&& val) {
+										item.push_back(std::move(val));
+										return error_code::completed;
+									},
+									[&root](null&, string&&, value&& val) {
+										root = std::move(val);
+										return error_code::completed;
+									},
+									[](auto&, string&&, value&&) {
+										assert(false);
+										return error_code::completed;
+									}
+								},
+								std::move(m_key),
+								value{std::move(m_buffer)}
+							);
 							break;
 
 						case begin_esc_seq:
@@ -304,7 +325,7 @@ namespace jopp
 					switch(ch_in)
 					{
 						case delimiters::string_begin_end:
-							m_current_context.key = std::move(m_buffer);
+							m_key = std::move(m_buffer);
 							m_buffer.clear();
 							m_current_context.state = state::before_value;
 							break;
