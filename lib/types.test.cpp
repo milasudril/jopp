@@ -145,4 +145,11 @@ TESTCASE(jopp_value_store_string)
 	});
 }
 
+TESTCASE(jopp_value_default_is_null)
+{
+	jopp::value a{};
+	REQUIRE_NE(a.get_if<jopp::null>(), nullptr);
+	EXPECT_EQ(*a.get_if<jopp::null>(), jopp::null{});
+}
+
 

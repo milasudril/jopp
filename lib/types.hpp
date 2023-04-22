@@ -42,6 +42,8 @@ namespace jopp
 	class value
 	{
 	public:
+		explicit value():m_value{}{}
+
 		template<class T>
 		requires(!is_object_or_array_v<T>)
 		explicit value(T&& val):m_value{std::forward<T>(val)}
@@ -80,8 +82,8 @@ namespace jopp
 
 	private:
 		std::variant<
-			boolean,
 			null,
+			boolean,
 			std::unique_ptr<object>,
 			std::unique_ptr<array>,
 			number,
