@@ -95,7 +95,7 @@ namespace jopp
 	{
 		completed,
 		more_data_needed,
-		duplicate_key_value,
+		key_already_exists,
 		character_must_be_escaped,
 		unsupported_escape_sequence,
 		illegal_delimiter,
@@ -113,7 +113,11 @@ namespace jopp
 	class parser
 	{
 	public:
-		parser(): m_state{state::value}{}
+		parser(): m_current_context{
+			.state = state::value,
+			.value = value{},
+			.key = string{}
+		}{}
 		parse_result parse(std::span<char const> input_seq, value& root);
 
 	private:
@@ -127,25 +131,22 @@ namespace jopp
 
 		using value_factory = value (*)(std::string&& buffer);
 
-		struct node
+		struct context
 		{
-			state current_state;
-			std::variant<array, object> container;
+			enum state state;
+			class value value;
+			string key;
 		};
 
-		std::stack<node> m_nodes;
-
+		context m_current_context;;
+		std::stack<context> m_contexts;
 		std::string m_buffer;
-		state m_state;
 
 		value_factory m_value_factory;
 	};
 
 	parse_result parser::parse(std::span<char const> input_seq, value& root)
 	{
-		auto current_state = m_state;
-		auto buffer = std::move(m_buffer);
-
 		auto ptr = std::data(input_seq);
 		while(true)
 		{
@@ -153,7 +154,7 @@ namespace jopp
 			{
 				return parse_result{
 					.ptr = ptr,
-					.ec = std::size(m_nodes) == 0 ?
+					.ec = std::size(m_contexts) == 0 ?
 						error_code::completed : error_code::more_data_needed,
 					.line = 0,  // TODO: count lines
 					.col = 0  // TODO: count cols
@@ -163,7 +164,7 @@ namespace jopp
 			auto ch_in = *ptr;
 			++ptr;
 
-			switch(current_state)
+			switch(m_current_context.state)
 			{
 				case state::value:
 					switch(ch_in)
@@ -175,13 +176,13 @@ namespace jopp
 							// Start reading object
 							break;
 						case delimiters::string_begin_end:
-							current_state = state::string_value;
+							m_current_context.state = state::string_value;
 							break;
 						default:
 							if(!is_whitespace(ch_in))
 							{
-								buffer += ch_in;
-								current_state = state::literal;
+								m_buffer += ch_in;
+								m_current_context.state = state::literal;
 							}
 					}
 					break;
@@ -189,8 +190,8 @@ namespace jopp
 				case state::literal:
 					if(is_whitespace(ch_in))
 					{
-						auto val = make_value(buffer);
-						buffer.clear();
+						auto val = make_value(m_buffer);
+						m_buffer.clear();
 						if(!val.has_value())
 						{
 							return parse_result{
@@ -201,7 +202,7 @@ namespace jopp
 							};
 						}
 
-						if(std::size(m_nodes) == 0)
+						if(std::size(m_contexts) == 0)
 						{
 							root = std::move(*val);
 							return parse_result{
@@ -216,16 +217,16 @@ namespace jopp
 						// If reading array, go to state::after_value_array
 					}
 					else
-					{ buffer += ch_in; }
+					{ m_buffer += ch_in; }
 					break;
 
 				case state::string_value:
 					switch(ch_in)
 					{
 						case delimiters::string_begin_end:
-							if(std::size(m_nodes) == 0)
+							if(std::size(m_contexts) == 0)
 							{
-								root = value{std::move(buffer)};
+								root = value{std::move(m_buffer)};
 								return parse_result{
 									.ptr = ptr - 1,
 									.ec = error_code::completed,
@@ -239,7 +240,7 @@ namespace jopp
 							break;
 
 						case begin_esc_seq:
-							current_state = state::string_value_esc_seq;
+							m_current_context.state = state::string_value_esc_seq;
 							break;
 
 						default:
@@ -253,15 +254,15 @@ namespace jopp
 								};
 							}
 							else
-							{ buffer += ch_in; }
+							{ m_buffer += ch_in; }
 					}
 					break;
 
 				case state::string_value_esc_seq:
 					if(auto val = unescape(ch_in); val.has_value())
 					{
-						buffer += *val;
-						current_state = state::string_value;
+						m_buffer += *val;
+						m_current_context.state = state::string_value;
 					}
 					else
 					{
