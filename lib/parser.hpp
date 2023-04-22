@@ -18,18 +18,19 @@ namespace jopp
 		inline constexpr auto name_separator = ':';
 		inline constexpr auto value_separator = ',';
 		inline constexpr auto string_begin_end = '"';
-		inline constexpr auto begin_esc_seq = '\\';
 	}
 
-	inline constexpr bool is_whitespace(char ch)
+	inline constexpr auto is_whitespace(char ch)
 	{ return ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r'; }
 
-	inline constexpr bool char_should_be_escaped(char ch)
+	inline constexpr auto char_should_be_escaped(char ch)
 	{ return (ch >= '\0' && ch <= '\x1f') || ch == '"'; }
 
 	inline constexpr std::string_view false_literal{"false"};
 	inline constexpr std::string_view null_literal{"null"};
 	inline constexpr std::string_view true_literal{"true"};
+
+	inline constexpr auto begin_esc_seq = '\\';
 
 	namespace esc_chars
 	{
@@ -46,7 +47,7 @@ namespace jopp
 		duplicate_key_value,
 		character_must_be_escaped,
 		unsupported_escape_sequence,
-		illegal_character_outside_string
+		illegal_delimiter
 	};
 
 	struct parse_result
