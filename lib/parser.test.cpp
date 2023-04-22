@@ -56,3 +56,15 @@ TESTCASE(jopp_parser_make_value)
 	auto const empty = jopp::make_value("");
 	EXPECT_EQ(empty.has_value(), false);
 }
+
+TESTCASE(jopp_parser_parse_single_value)
+{
+	jopp::parser parser{};
+	std::string_view buffer{"       true   "};
+	jopp::value val;
+	auto res = parser.parse(std::span{std::data(buffer), std::size(buffer)}, val);
+	EXPECT_EQ(res.ec, jopp::error_code::completed);
+	REQUIRE_NE(val.get_if<jopp::boolean>(), nullptr);
+	EXPECT_EQ(*val.get_if<jopp::boolean>(), true);
+	EXPECT_EQ(*(res.ptr - 1), 'e');
+}
