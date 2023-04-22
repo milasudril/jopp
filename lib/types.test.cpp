@@ -10,6 +10,7 @@ TESTCASE(jopp_value_store_bool)
 	REQUIRE_NE(a.get_if<jopp::boolean>(), nullptr);
 	EXPECT_EQ(*a.get_if<jopp::boolean>(), true);
 	EXPECT_EQ(*std::as_const(a).get_if<jopp::boolean>(), true);
+	EXPECT_EQ(is_null(a), false);
 
 	auto x = *a.get_if<jopp::boolean>();
 	EXPECT_EQ((std::is_same_v<decltype(x), jopp::boolean>), true);
@@ -34,6 +35,7 @@ TESTCASE(jopp_value_store_null)
 	REQUIRE_NE(a.get_if<jopp::null>(), nullptr);
 	EXPECT_EQ(*a.get_if<jopp::null>(), jopp::null{});
 	EXPECT_EQ(*std::as_const(a).get_if<jopp::null>(), jopp::null{});
+	EXPECT_EQ(is_null(a), true);
 
 	auto x = *a.get_if<jopp::null>();
 	EXPECT_EQ((std::is_same_v<decltype(x), jopp::null>), true);
@@ -65,6 +67,7 @@ TESTCASE(jopp_value_store_object)
 	EXPECT_EQ(i->first, "Foo");
 	REQUIRE_NE(i->second.get_if<jopp::number>(), nullptr);
 	EXPECT_EQ(*i->second.get_if<jopp::number>(), 1.25);
+	EXPECT_EQ(is_null(a), false);
 
 	a.visit([]<class T>(T const&){
 		EXPECT_EQ((std::is_same_v<T, jopp::object>), true);
@@ -87,6 +90,7 @@ TESTCASE(jopp_value_store_array)
 	REQUIRE_NE(i, std::end(*array_retrieved));
 	REQUIRE_NE(i->get_if<jopp::number>(), nullptr);
 	EXPECT_EQ(*i->get_if<jopp::number>(), 1.25);
+	EXPECT_EQ(is_null(a), false);
 
 	a.visit([]<class T>(T const&){
 		EXPECT_EQ((std::is_same_v<T, jopp::array>), true);
@@ -103,6 +107,7 @@ TESTCASE(jopp_value_store_number)
 	REQUIRE_NE(a.get_if<jopp::number>(), nullptr);
 	EXPECT_EQ(*a.get_if<jopp::number>(), 1.25);
 	EXPECT_EQ(*std::as_const(a).get_if<jopp::number>(), 1.25);
+	EXPECT_EQ(is_null(a), false);
 
 	auto x = *a.get_if<jopp::number>();
 	EXPECT_EQ((std::is_same_v<decltype(x), jopp::number>), true);
@@ -127,6 +132,7 @@ TESTCASE(jopp_value_store_string)
 	REQUIRE_NE(a.get_if<jopp::string>(), nullptr);
 	EXPECT_EQ(*a.get_if<jopp::string>(), "Hello, Wolrd");
 	EXPECT_EQ(*std::as_const(a).get_if<jopp::string>(), "Hello, Wolrd");
+	EXPECT_EQ(is_null(a), false);
 
 	auto x = *a.get_if<jopp::string>();
 	EXPECT_EQ((std::is_same_v<decltype(x), jopp::string>), true);
@@ -148,8 +154,7 @@ TESTCASE(jopp_value_store_string)
 TESTCASE(jopp_value_default_is_null)
 {
 	jopp::value a{};
-	REQUIRE_NE(a.get_if<jopp::null>(), nullptr);
-	EXPECT_EQ(*a.get_if<jopp::null>(), jopp::null{});
+	EXPECT_EQ(is_null(a), true);
 }
 
 

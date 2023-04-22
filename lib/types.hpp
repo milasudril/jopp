@@ -91,6 +91,9 @@ namespace jopp
 			> m_value;
 	};
 
+	inline bool is_null(value const& val)
+	{ return val.get_if<null>() != nullptr; }
+
 	class object
 	{
 	public:
