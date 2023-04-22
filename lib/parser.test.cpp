@@ -57,6 +57,24 @@ TESTCASE(jopp_parser_make_value)
 	EXPECT_EQ(empty.has_value(), false);
 }
 
+TESTCASE(jopp_parser_unescape_char)
+{
+	auto const quotation_mark = jopp::unescape(jopp::esc_chars::quotation_mark);
+	EXPECT_EQ(quotation_mark, '"');
+
+	auto const rev_sollidus = jopp::unescape(jopp::esc_chars::rev_sollidus);
+	EXPECT_EQ(rev_sollidus, '\\');
+
+	auto const linefeed = jopp::unescape(jopp::esc_chars::linefeed);
+	EXPECT_EQ(linefeed, '\n');
+
+	auto const tab = jopp::unescape(jopp::esc_chars::tab);
+	EXPECT_EQ(tab, '\t');
+
+	auto const other = jopp::unescape('0');
+	EXPECT_EQ(other.has_value(), false);
+}
+
 TESTCASE(jopp_parser_parse_single_value)
 {
 	jopp::parser parser{};

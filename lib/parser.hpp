@@ -28,6 +28,33 @@ namespace jopp
 	inline constexpr auto char_should_be_escaped(char ch)
 	{ return (ch >= '\0' && ch <= '\x1f') || ch == '"'; }
 
+	inline constexpr auto begin_esc_seq = '\\';
+
+	namespace esc_chars
+	{
+		inline constexpr auto quotation_mark = '"';
+		inline constexpr auto rev_sollidus = '\\';
+		inline constexpr auto linefeed = 'n';
+		inline constexpr auto tab = 't';
+	}
+
+	inline constexpr std::optional<char> unescape(char esc_char)
+	{
+		switch(esc_char)
+		{
+			case esc_chars::quotation_mark:
+				return '"';
+			case esc_chars::rev_sollidus:
+				return '\\';
+			case esc_chars::linefeed:
+				return '\n';
+			case esc_chars::tab:
+				return '\t';
+			default:
+				return std::nullopt;
+		}
+	}
+
 	inline constexpr std::string_view false_literal{"false"};
 	inline constexpr std::string_view null_literal{"null"};
 	inline constexpr std::string_view true_literal{"true"};
@@ -64,16 +91,6 @@ namespace jopp
 		return std::nullopt;
 	}
 
-	inline constexpr auto begin_esc_seq = '\\';
-
-	namespace esc_chars
-	{
-		inline constexpr auto quotation_mark = '"';
-		inline constexpr auto rev_sollidus = '\\';
-		inline constexpr auto linefeed = 'n';
-		inline constexpr auto tab = 't';
-	}
-
 	enum class error_code
 	{
 		completed,
@@ -103,7 +120,9 @@ namespace jopp
 		enum class state
 		{
 			value,
-			literal
+			literal,
+			string_value,
+			string_value_esc_seq
 		};
 
 		using value_factory = value (*)(std::string&& buffer);
@@ -156,7 +175,7 @@ namespace jopp
 							// Start reading object
 							break;
 						case delimiters::string_begin_end:
-							// Start reading string
+							current_state = state::string_value;
 							break;
 						default:
 							if(!is_whitespace(ch_in))
@@ -171,6 +190,7 @@ namespace jopp
 					if(is_whitespace(ch_in))
 					{
 						auto val = make_value(buffer);
+						buffer.clear();
 						if(!val.has_value())
 						{
 							return parse_result{
@@ -197,10 +217,65 @@ namespace jopp
 					}
 					else
 					{ buffer += ch_in; }
+					break;
 
+				case state::string_value:
+					switch(ch_in)
+					{
+						case delimiters::string_begin_end:
+							if(std::size(m_nodes) == 0)
+							{
+								root = value{std::move(buffer)};
+								return parse_result{
+									.ptr = ptr - 1,
+									.ec = error_code::completed,
+									.line = 0,  // TODO: count lines
+									.col = 0  // TODO: count cols
+								};
+							}
+
+							// If reading object, go to state::after_value_object
+							// If reading array, go to state::after_value_array
+							break;
+
+						case begin_esc_seq:
+							current_state = state::string_value_esc_seq;
+							break;
+
+						default:
+							if(char_should_be_escaped(ch_in))
+							{
+								return parse_result{
+									.ptr = ptr - 1,
+									.ec = error_code::character_must_be_escaped,
+									.line = 0,
+									.col = 0
+								};
+							}
+							else
+							{ buffer += ch_in; }
+					}
+					break;
+
+				case state::string_value_esc_seq:
+					if(auto val = unescape(ch_in); val.has_value())
+					{
+						buffer += *val;
+						current_state = state::string_value;
+					}
+					else
+					{
+						return parse_result{
+							.ptr = ptr - 1,
+							.ec = error_code::unsupported_escape_sequence,
+							.line = 0,
+							.col = 0
+						};
+					}
+					break;
 			}
 		}
 	}
-};
+}
 
 #endif
