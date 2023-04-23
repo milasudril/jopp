@@ -219,7 +219,7 @@ namespace jopp
 	public:
 		parser():
 			m_line{1},
-			m_col{0},
+			m_col{1},
 			m_current_state{parser_state::value}
 		{}
 
@@ -247,12 +247,6 @@ jopp::parse_result jopp::parser::parse(std::span<char const> input_seq, value& r
 		{ return parse_result{ptr, error_code::more_data_needed, m_line, m_col}; }
 
 		auto ch_in = *ptr;
-		if(ch_in == '\n')
-		{
-			m_col = 0;
-			++m_line;
-		}
-		++m_col;
 
 		++ptr;
 
@@ -301,8 +295,6 @@ jopp::parse_result jopp::parser::parse(std::span<char const> input_seq, value& r
 					|| ch_in == delimiters::end_object
 					|| is_whitespace(ch_in))
 				{
-					printf("Key: (%s), Input buffer (%s)\n", m_contexts.top().key.c_str(), m_buffer.c_str());
-					fflush(stdout);
 					auto res = store_value(m_contexts.top().value,
 						std::move(m_contexts.top().key),
 						literal_view{m_buffer});
@@ -323,7 +315,6 @@ jopp::parse_result jopp::parser::parse(std::span<char const> input_seq, value& r
 				{
 					case delimiters::string_begin_end:
 					{
-						printf("Key: (%s), Input buffer (%s)\n", m_contexts.top().key.c_str(), m_buffer.c_str());
 						auto res = store_value(m_contexts.top().value,
 							std::move(m_contexts.top().key),
 							value{m_buffer});
@@ -372,14 +363,7 @@ jopp::parse_result jopp::parser::parse(std::span<char const> input_seq, value& r
 
 					default:
 						if(!is_whitespace(ch_in))
-						{
-							return parse_result{
-								.ptr = ptr,
-								.ec = error_code::illegal_delimiter,
-								.line = 0,  // TODO: count lines
-								.col = 0  // TODO: count cols
-							};
-						}
+						{ return parse_result{ptr, error_code::illegal_delimiter, m_line, m_col}; }
 				}
 				break;
 
@@ -399,12 +383,7 @@ jopp::parse_result jopp::parser::parse(std::span<char const> input_seq, value& r
 					default:
 						if(char_should_be_escaped(ch_in))
 						{
-							return parse_result{
-								.ptr = ptr,
-								.ec = error_code::character_must_be_escaped,
-								.line = 0,
-								.col = 0
-							};
+							return parse_result{ptr, error_code::character_must_be_escaped, m_line, m_col};
 						}
 						else
 						{ m_buffer += ch_in; }
@@ -418,14 +397,7 @@ jopp::parse_result jopp::parser::parse(std::span<char const> input_seq, value& r
 					m_current_state = parser_state::key;
 				}
 				else
-				{
-					return parse_result{
-						.ptr = ptr - 1,
-						.ec = error_code::unsupported_escape_sequence,
-						.line = 0,
-						.col = 0
-					};
-				}
+				{ return parse_result{ptr, error_code::unsupported_escape_sequence, m_line, m_col}; }
 				break;
 
 			case parser_state::before_value:
@@ -450,14 +422,9 @@ jopp::parse_result jopp::parser::parse(std::span<char const> input_seq, value& r
 						m_contexts.pop();
 						if(std::size(m_contexts) == 0)
 						{
-							printf("Last object read\n");
+							printf("Last object read %zu %zu\n", m_line, m_col);
 							root = std::move(current_context.value);
-							return parse_result{
-								.ptr = ptr,
-								.ec = error_code::completed,
-								.line = 0,
-								.col = 0
-							};
+							return parse_result{ptr, error_code::completed, m_line, m_col};
 						}
 
 						// TODO: error handling
@@ -473,14 +440,7 @@ jopp::parse_result jopp::parser::parse(std::span<char const> input_seq, value& r
 
 					default:
 						if(!is_whitespace(ch_in))
-						{
-							return parse_result{
-								.ptr = ptr,
-								.ec = error_code::illegal_delimiter,
-								.line = 0,  // TODO: count lines
-								.col = 0  // TODO: count cols
-							};
-						}
+						{ return parse_result{ptr, error_code::illegal_delimiter, m_line, m_col}; }
 				}
 				break;
 
@@ -489,18 +449,12 @@ jopp::parse_result jopp::parser::parse(std::span<char const> input_seq, value& r
 				{
 					case delimiters::end_array:
 					{
-						printf("End array\n");
 						auto current_context = std::move(m_contexts.top());
 						m_contexts.pop();
 						if(std::size(m_contexts) == 0)
 						{
 							root = std::move(current_context.value);
-							return parse_result{
-								.ptr = ptr,
-								.ec = error_code::completed,
-								.line = 0,
-								.col = 0
-							};
+							return parse_result{ptr, error_code::completed, m_line, m_col};
 						}
 
 						// TODO: error handling
@@ -516,17 +470,18 @@ jopp::parse_result jopp::parser::parse(std::span<char const> input_seq, value& r
 
 					default:
 						if(!is_whitespace(ch_in))
-						{
-							return parse_result{
-								.ptr = ptr,
-								.ec = error_code::illegal_delimiter,
-								.line = 0,  // TODO: count lines
-								.col = 0  // TODO: count cols
-							};
-						}
+						{ return parse_result{ptr, error_code::illegal_delimiter, m_line, m_col}; }
 				}
 				break;
 		}
+
+		if(ch_in == '\n')
+		{
+			m_col = 0;
+			++m_line;
+			printf("Parsing line %zu %s\n", m_line, ptr);
+		}
+		++m_col;
 	}
 }
 

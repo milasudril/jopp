@@ -261,6 +261,8 @@ TESTCASE(jopp_parser_parse_data_one_block)
 		std::span{std::data(json_test_data), std::size(json_test_data)}, val);
 	EXPECT_EQ(res.ec, jopp::error_code::completed);
 	EXPECT_EQ(*res.ptr, 'S');
+	EXPECT_EQ(res.line, 32);
+//?	EXPECT_EQ(res.col, 2);
 
 	debug_print(val);
 }
@@ -318,4 +320,16 @@ TESTCASE(jopp_parser_leaf_at_top_level)
 		EXPECT_EQ(res.ec, jopp::error_code::no_top_level_node);
 		EXPECT_EQ(res.ptr, std::data(data) + 1);
 	}
+}
+
+TESTCASE(jopp_parser_invalid_literal)
+{
+	jopp::parser parser;
+	std::string_view data{"[foobar]"};
+
+	jopp::value val;
+	auto const res = parser.parse(data, val);
+	EXPECT_EQ(res.line, 1);
+	EXPECT_EQ(res.col, 8);
+	EXPECT_EQ(res.ptr, std::data(data) + 8);
 }
