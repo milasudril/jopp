@@ -98,6 +98,9 @@ namespace jopp
 			}, m_value);
 		}
 
+		bool operator==(value const&) const = default;
+		bool operator!=(value const&) const = default;
+
 	private:
 		std::variant<
 			null,
@@ -177,6 +180,12 @@ namespace jopp
 
 		auto size() const
 		{ return std::size(m_values); }
+
+		decltype(auto) operator[](size_t k)
+		{ return m_values[k]; }
+
+		decltype(auto) operator[](size_t k) const
+		{ return m_values[k]; }
 
 	private:
 		std::vector<value> m_values;

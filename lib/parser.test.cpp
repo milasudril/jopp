@@ -138,6 +138,50 @@ TESTCASE(jopp_parser_unescape_char)
 	EXPECT_EQ(other.has_value(), false);
 }
 
+TESTCASE(jopp_parser_store_value_in_object)
+{
+	jopp::value val{jopp::object{}};
+
+	{
+		auto const res = store_value(val, "key", jopp::value{2.5});
+		EXPECT_EQ(res.next_state, jopp::parser_state::after_value_object);
+		EXPECT_EQ(res.err, jopp::error_code::more_data_needed);
+		auto& obj = *val.get_if<jopp::object>();
+		EXPECT_EQ(obj.find("key")->second, jopp::value{2.5});
+	}
+
+	{
+		auto const res = store_value(val, "key", jopp::value{2.0});
+		EXPECT_EQ(res.err, jopp::error_code::key_already_exists);
+		auto& obj = *val.get_if<jopp::object>();
+		EXPECT_EQ(obj.find("key")->second, jopp::value{2.5});
+	}
+}
+
+TESTCASE(jopp_parser_store_value_in_array)
+{
+	jopp::value val{jopp::array{}};
+
+	{
+		auto const res = store_value(val, "key", jopp::value{2.5});
+		EXPECT_EQ(res.next_state, jopp::parser_state::after_value_array);
+		EXPECT_EQ(res.err, jopp::error_code::more_data_needed);
+	}
+
+	{
+		auto const res = store_value(val, "key", jopp::value{1.0});
+		EXPECT_EQ(res.next_state, jopp::parser_state::after_value_array);
+		EXPECT_EQ(res.err, jopp::error_code::more_data_needed);
+	}
+
+	{
+		auto& array = *val.get_if<jopp::array>();
+		EXPECT_EQ(std::size(array), 2);
+		EXPECT_EQ(array[0], jopp::value{2.5});
+		EXPECT_EQ(array[1], jopp::value{1.0});
+	}
+}
+
 #if 0
 
 namespace
