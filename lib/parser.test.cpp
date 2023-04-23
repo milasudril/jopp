@@ -77,30 +77,6 @@ TESTCASE(jopp_parser_unescape_char)
 
 namespace
 {
-#if 0
-	constexpr std::string_view json_test_data{R"({
-	"had": {
-		"tightly": [
-			"feet",
-			true,
-			2145719840.4312375,
-			-286229488,
-			true,
-			true
-		],
-		"sound": false,
-		"eaten": false,
-		"pull": 1285774482.782745,
-		"long": -1437168945.8634152,
-		"independent": -1451031326
-	},
-	"fireplace": 720535269,
-	"refused": "better",
-	"wood": "involved",
-	"without": true,
-	"it": false
-})"};
-#else
 	constexpr std::string_view json_test_data{R"({
 	"empty object": { },
 	"empty array": [ ],
@@ -113,12 +89,13 @@ namespace
 			-286229488,
 			true,
 			true,
-			{"foo": "bar"}
+			{"object in array": "bar"},
+			{"object with literal last" : null}
 		],
 		"sound": false,
 		"eaten": false,
-		"pull": 1285774482.782745,
-		"long": -1437168945.8634152,
+		"pull" : 1285774482.782745,
+		"long" : -1437168945.8634152,
 		"independent": -1451031326,
 		"repeated end": {
 			"value": 46
@@ -132,7 +109,6 @@ namespace
 	"testing null": null,
 	"a key with esc seq\n\t\\foo\"": "A value with esc seq\n\t\\foo\""
 })"};
-#endif
 }
 
 TESTCASE(jopp_parser_parse_data)
