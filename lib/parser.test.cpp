@@ -75,10 +75,10 @@ TESTCASE(jopp_parser_unescape_char)
 	EXPECT_EQ(other.has_value(), false);
 }
 
-TESTCASE(jopp_parser_parse_data)
+namespace
 {
-	jopp::parser parser{};
-	std::string_view buffer{R"({
+#if 0
+	constexpr std::string_view json_test_data{R"({
 	"had": {
 		"tightly": [
 			"feet",
@@ -100,8 +100,76 @@ TESTCASE(jopp_parser_parse_data)
 	"without": true,
 	"it": false
 })"};
-	jopp::value val;
-	auto res = parser.parse(std::span{std::data(buffer), std::size(buffer)}, val);
-	EXPECT_EQ(res.ec, jopp::error_code::completed);
+#else
+	constexpr std::string_view json_test_data{R"({
+	"fireplace": 720535269,
+	"refused": "better",
+	"wood": "involved",
+	"without": true,
+	"it": false
+})"};
+#endif
 
+	void print(jopp::object const& obj);
+	void print(jopp::array const&);
+	void print(jopp::number x);
+	void print(jopp::string const& x);
+	void print(jopp::boolean x);
+	void print(jopp::null);
+	void print(jopp::value const& x);
+
+	void print(jopp::value const& x)
+	{ x.visit([](auto const& item){ print(item); }); }
+
+	void print(jopp::object const& obj)
+	{
+		puts("«object»");
+		for(auto& item : obj)
+		{
+			printf("%s: ", item.first.c_str());
+			print(item.second);
+		}
+	}
+
+	void print(jopp::array const& obj)
+	{
+		puts("«array»");
+		for(auto& item : obj)
+		{
+			print(item);
+		}
+	}
+
+	void print(jopp::number x)
+	{
+		printf("%.8g\n", x);
+	}
+
+	void print(jopp::string const& x)
+	{
+		puts(x.c_str());
+	}
+
+	void print(jopp::boolean x)
+	{
+		printf("%s\n", x?"true":"false");
+	}
+
+	void print(jopp::null)
+	{
+		puts("null\n");
+	}
+}
+
+TESTCASE(jopp_parser_parse_data)
+{
+	jopp::parser parser{};
+
+	jopp::value val;
+	auto res = parser.parse(
+		std::span{std::data(json_test_data), std::size(json_test_data)}, val);
+	EXPECT_EQ(res.ec, jopp::error_code::completed);
+	EXPECT_EQ(res.ptr, std::end(json_test_data));
+
+	print(val);
 }
