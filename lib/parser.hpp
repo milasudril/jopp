@@ -129,6 +129,7 @@ namespace jopp
 		class value value{null{}};
 	};
 
+	inline
 	auto store_value(parser_context& context, string&& key, class value&& value, class value& root)
 	{
 		return context.value.visit(
@@ -156,6 +157,7 @@ namespace jopp
 		);
 	}
 
+	inline
 	auto store_value(parser_context& context, string&& key, std::string_view buffer, value& root)
 	{
 		auto val = make_value(buffer);
