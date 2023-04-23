@@ -102,6 +102,7 @@ namespace
 })"};
 #else
 	constexpr std::string_view json_test_data{R"({
+	"empty object": { },
 	"had": {
 		"tightly": [
 			"feet",
@@ -109,21 +110,24 @@ namespace
 			2145719840.4312375,
 			-286229488,
 			true,
-			true
+			true,
+			{"foo": "bar"}
 		],
 		"sound": false,
 		"eaten": false,
 		"pull": 1285774482.782745,
 		"long": -1437168945.8634152,
-		"independent": -1451031326
+		"independent": -1451031326,
+		"repeated end": {
+			"value": 46
+		}
 	},
-	"empty_object": {},
 	"fireplace": 720535269,
 	"refused": "better",
 	"wood": "involved",
 	"without": true,
 	"it": false,
-	"this_is_a_null_object": null
+	"testing null": null
 })"};
 #endif
 }
