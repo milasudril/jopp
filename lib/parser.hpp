@@ -122,6 +122,7 @@ namespace jopp
 		key_esc_seq,
 		before_value,
 		after_value_object,
+		after_value_array
 	};
 
 	struct parser_context
@@ -131,29 +132,48 @@ namespace jopp
 		class value value{null{}};
 	};
 
-	inline
-	auto store_value(parser_context& context, string&& key, class value&& value, class value& root)
+	struct store_value_result
 	{
-		return context.value.visit(
+		parser_state next_state;
+		error_code err;
+	};
+
+	inline
+	auto store_value(class value& parent_value, string&& key, class value&& value, class value& root)
+	{
+		return parent_value.visit(
 			overload{
-				[&context](object& item, string&& key, class value&& val) {
+				[](object& item, string&& key, class value&& val) {
 					if(!item.insert(std::move(key), std::move(val)).second)
-					{ return error_code::key_already_exists; }
-					context.state = parser_state::after_value_object;
-					return error_code::more_data_needed;
+					{
+						return store_value_result{
+							parser_state::after_value_object,
+							error_code::key_already_exists
+						};
+					}
+
+					return store_value_result{
+						parser_state::after_value_object,
+						error_code::more_data_needed
+					};
 				},
 				[](array& item, string&&, class value&& val) {
 					item.push_back(std::move(val));
-				//	context.state = parser_state::after_value_array;
-					return error_code::more_data_needed;
+					return store_value_result{
+						parser_state::after_value_array,
+						error_code::more_data_needed
+					};
 				},
 				[&root](null&, string&&, class value&& val) {
 					root = std::move(val);
-					return error_code::completed;
+					return store_value_result{
+						parser_state::value,
+						error_code::completed
+					};
 				},
 				[](auto&, string&&, class value&&) {
 					assert(false);
-					return error_code::completed;
+					return store_value_result{};
 				}
 			},
 			std::move(key),
@@ -162,13 +182,18 @@ namespace jopp
 	}
 
 	inline
-	auto store_value(parser_context& context, string&& key, std::string_view buffer, value& root)
+	auto store_value(class value& parent_value, string&& key, std::string_view buffer, value& root)
 	{
 		auto val = make_value(buffer);
 		if(!val.has_value())
-		{ return error_code::invalid_value; }
+		{
+			return store_value_result{
+				parser_state::value,
+				error_code::more_data_needed
+			};
+		}
 
-		return store_value(context, std::move(key), std::move(*val), root);
+		return store_value(parent_value, std::move(key), std::move(*val), root);
 	}
 
 	class parser
@@ -179,6 +204,7 @@ namespace jopp
 	private:
 		using value_factory = value (*)(std::string&& buffer);
 
+		parser_state m_current_state;
 		parser_context m_current_context;
 		std::stack<parser_context> m_contexts;
 		string m_buffer;
@@ -238,18 +264,21 @@ namespace jopp
 				case parser_state::literal:
 					if(is_whitespace(ch_in))
 					{
-						if(auto res = store_value(m_current_context,
+						auto res = store_value(m_current_context.value,
 							std::move(m_current_context.key),
 							m_buffer,
-							root); res != error_code::more_data_needed)
+							root);
+						if(res.err != error_code::more_data_needed)
 						{
 							return parse_result{
 									.ptr = ptr,
-									.ec = res,
+									.ec = res.err,
 									.line = 0,  // TODO: count lines
 									.col = 0  // TODO: count cols
 								};
 						}
+
+						m_current_state = res.next_state;
 						m_buffer = string{};
 						m_current_context.key = string{};
 					}
@@ -261,22 +290,26 @@ namespace jopp
 					switch(ch_in)
 					{
 						case delimiters::string_begin_end:
-							if(auto res = store_value(m_current_context,
+						{
+							auto res = store_value(m_current_context.value,
 								std::move(m_current_context.key),
-								value{std::move(m_buffer)},
-								root); res != error_code::more_data_needed)
+								m_buffer,
+								root);
+							if(res.err != error_code::more_data_needed)
 							{
 								return parse_result{
 										.ptr = ptr,
-										.ec = res,
+										.ec = res.err,
 										.line = 0,  // TODO: count lines
 										.col = 0  // TODO: count cols
 									};
 							}
 
+							m_current_state = res.next_state;
 							m_current_context.key = string{};
 							m_buffer = string{};
 							break;
+						}
 
 						case begin_esc_seq:
 							m_current_context.state = parser_state::string_value_esc_seq;
@@ -404,7 +437,7 @@ namespace jopp
 						case delimiters::end_object:
 						{
 							auto& parent_ctxt = m_contexts.top();
-							(void)store_value(parent_ctxt,
+							(void)store_value(parent_ctxt.value,
 								std::move(m_current_context.key),
 								std::move(m_current_context.value),
 								root);
@@ -437,6 +470,9 @@ namespace jopp
 								};
 							}
 					}
+					break;
+
+				case parser_state::after_value_array:
 					break;
 			}
 		}
