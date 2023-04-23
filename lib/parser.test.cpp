@@ -102,6 +102,13 @@ namespace
 })"};
 #else
 	constexpr std::string_view json_test_data{R"({
+	"had": {
+		"sound": false,
+		"eaten": false,
+		"pull": 1285774482.782745,
+		"long": -1437168945.8634152,
+		"independent": -1451031326},
+	"empty_object": {},
 	"fireplace": 720535269,
 	"refused": "better",
 	"wood": "involved",

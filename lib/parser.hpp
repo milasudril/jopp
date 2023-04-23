@@ -357,8 +357,19 @@ namespace jopp
 					switch(ch_in)
 					{
 						case delimiters::string_begin_end:
-							m_current_state= parser_state::key;
+							m_current_state = parser_state::key;
 							break;
+
+						case delimiters::end_object:
+							m_current_state = parser_state::after_value_object;
+							--ptr;
+							break;
+
+						case delimiters::end_array:
+							m_current_state = parser_state::after_value_array;
+							--ptr;
+							break;
+
 						default:
 							if(!is_whitespace(ch_in))
 							{
@@ -460,7 +471,6 @@ namespace jopp
 								std::move(m_contexts.top().key),
 								std::move(current_context.value),
 								root);
-							m_contexts.pop();
 							break;
 						}
 
@@ -503,7 +513,6 @@ namespace jopp
 								std::move(m_contexts.top().key),
 								std::move(current_context.value),
 								root);
-							m_contexts.pop();
 							break;
 						}
 
