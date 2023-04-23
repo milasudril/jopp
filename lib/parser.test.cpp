@@ -182,7 +182,37 @@ TESTCASE(jopp_parser_store_value_in_array)
 	}
 }
 
-#if 0
+TESTCASE(jopp_parser_store_value_litral_in_array)
+{
+	jopp::value val{jopp::array{}};
+
+	{
+		auto const res = store_value(val, "key", jopp::literal_view{"null"});
+		EXPECT_EQ(res.next_state, jopp::parser_state::after_value_array);
+		EXPECT_EQ(res.err, jopp::error_code::more_data_needed);
+	}
+
+	{
+		auto& array = *val.get_if<jopp::array>();
+		EXPECT_EQ(std::size(array), 1);
+		EXPECT_EQ(array[0], jopp::value{jopp::null{}});
+	}
+}
+
+TESTCASE(jopp_parser_store_value_unknown_litral_in_array)
+{
+	jopp::value val{jopp::array{}};
+
+	{
+		auto const res = store_value(val, "key", jopp::literal_view{"foobar"});
+		EXPECT_EQ(res.err, jopp::error_code::invalid_value);
+	}
+
+	{
+		auto& array = *val.get_if<jopp::array>();
+		EXPECT_EQ(std::size(array), 0);
+	}
+}
 
 namespace
 {
@@ -263,4 +293,3 @@ TESTCASE(jopp_parser_parse_data_multiple_blocks)
 
 	debug_print(val);
 }
-#endif

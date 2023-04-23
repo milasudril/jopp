@@ -204,7 +204,7 @@ namespace jopp
 		{
 			return store_value_result{
 				parser_state::value,
-				error_code::more_data_needed
+				error_code::invalid_value
 			};
 		}
 
