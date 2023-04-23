@@ -100,7 +100,8 @@ namespace jopp
 		character_must_be_escaped,
 		unsupported_escape_sequence,
 		illegal_delimiter,
-		invalid_value
+		invalid_value,
+		no_top_level_node
 	};
 
 	inline constexpr char const* to_string(error_code ec)
@@ -121,6 +122,8 @@ namespace jopp
 				return "Illegal delimiter";
 			case error_code::invalid_value:
 				return "Invalid value";
+			case error_code::no_top_level_node:
+				return "No top level node";
 		}
 		__builtin_unreachable();
 	}
@@ -276,10 +279,14 @@ jopp::parse_result jopp::parser::parse(std::span<char const> input_seq, value& r
 						break;
 
 					case delimiters::string_begin_end:
+						if(std::size(m_contexts) == 0)
+						{ return parse_result{ptr, error_code::no_top_level_node, m_line, m_col}; }
 						m_current_state = parser_state::string_value;
 						break;
 
 					default:
+						if(std::size(m_contexts) == 0)
+						{ return parse_result{ptr, error_code::no_top_level_node, m_line, m_col}; }
 						if(!is_whitespace(ch_in))
 						{
 							m_buffer += ch_in;
@@ -295,6 +302,7 @@ jopp::parse_result jopp::parser::parse(std::span<char const> input_seq, value& r
 					|| is_whitespace(ch_in))
 				{
 					printf("Key: (%s), Input buffer (%s)\n", m_contexts.top().key.c_str(), m_buffer.c_str());
+					fflush(stdout);
 					auto res = store_value(m_contexts.top().value,
 						std::move(m_contexts.top().key),
 						literal_view{m_buffer});

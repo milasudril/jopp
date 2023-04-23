@@ -65,6 +65,8 @@ TESTCASE(jopp_error_code_to_string)
 				 std::string_view{"Unsupported escape sequence"});
 	EXPECT_EQ(to_string(jopp::error_code::illegal_delimiter), std::string_view{"Illegal delimiter"});
 	EXPECT_EQ(to_string(jopp::error_code::invalid_value), std::string_view{"Invalid value"});
+	EXPECT_EQ(to_string(jopp::error_code::no_top_level_node), std::string_view{"No top level node"});
+
 }
 
 TESTCASE(jopp_parser_to_number)
@@ -263,7 +265,6 @@ TESTCASE(jopp_parser_parse_data_one_block)
 	debug_print(val);
 }
 
-
 TESTCASE(jopp_parser_parse_data_multiple_blocks)
 {
 	jopp::parser parser{};
@@ -292,4 +293,29 @@ TESTCASE(jopp_parser_parse_data_multiple_blocks)
 	}
 
 	debug_print(val);
+}
+
+TESTCASE(jopp_parser_leaf_at_top_level)
+{
+	{
+		jopp::parser parser{};
+		std::string_view data{"\"lorem ipsum\""};
+		jopp::value val;
+		auto const res = parser.parse(data, val);
+		EXPECT_EQ(res.line, 1);
+		EXPECT_EQ(res.col, 1);
+		EXPECT_EQ(res.ec, jopp::error_code::no_top_level_node);
+		EXPECT_EQ(res.ptr, std::data(data) + 1);
+	}
+
+	{
+		jopp::parser parser{};
+		std::string_view data{"false "};
+		jopp::value val;
+		auto const res = parser.parse(data, val);
+		EXPECT_EQ(res.line, 1);
+		EXPECT_EQ(res.col, 1);
+		EXPECT_EQ(res.ec, jopp::error_code::no_top_level_node);
+		EXPECT_EQ(res.ptr, std::data(data) + 1);
+	}
 }
