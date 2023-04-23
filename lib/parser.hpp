@@ -127,7 +127,6 @@ namespace jopp
 
 	struct parser_context
 	{
-		parser_state state = parser_state::value;
 		string key;
 		class value value{null{}};
 	};
@@ -231,7 +230,7 @@ namespace jopp
 			auto ch_in = *ptr;
 			++ptr;
 
-			switch(m_current_context.state)
+			switch(m_current_state)
 			{
 				case parser_state::value:
 					switch(ch_in)
@@ -240,27 +239,29 @@ namespace jopp
 							if(!is_null(m_current_context.value))
 							{m_contexts.push(std::move(m_current_context));}
 
+							m_current_context.value = value{array{}};
 							m_current_context = parser_context{};
-							m_current_context.state = parser_state::value;
+							m_current_state = parser_state::value;
 							break;
 
 						case delimiters::begin_object:
 							if(!is_null(m_current_context.value))
 							{ m_contexts.push(std::move(m_current_context)); }
 
+							m_current_context.value = value{object{}};
 							m_current_context = parser_context{};
-							m_current_context.state = parser_state::before_key;
+							m_current_state = parser_state::before_key;
 							break;
 
 						case delimiters::string_begin_end:
-							m_current_context.state = parser_state::string_value;
+							m_current_state = parser_state::string_value;
 							break;
 
 						default:
 							if(!is_whitespace(ch_in))
 							{
 								m_buffer += ch_in;
-								m_current_context.state = parser_state::literal;
+								m_current_state = parser_state::literal;
 							}
 					}
 					break;
@@ -316,7 +317,7 @@ namespace jopp
 						}
 
 						case begin_esc_seq:
-							m_current_context.state = parser_state::string_value_esc_seq;
+							m_current_state = parser_state::string_value_esc_seq;
 							break;
 
 						default:
@@ -338,7 +339,7 @@ namespace jopp
 					if(auto val = unescape(ch_in); val.has_value())
 					{
 						m_buffer += *val;
-						m_current_context.state = parser_state::string_value;
+						m_current_state = parser_state::string_value;
 					}
 					else
 					{
@@ -355,7 +356,7 @@ namespace jopp
 					switch(ch_in)
 					{
 						case delimiters::string_begin_end:
-							m_current_context.state = parser_state::key;
+							m_current_state= parser_state::key;
 							break;
 						default:
 							if(!is_whitespace(ch_in))
@@ -376,11 +377,11 @@ namespace jopp
 						case delimiters::string_begin_end:
 							m_current_context.key = std::move(m_buffer);
 							m_buffer = string{};
-							m_current_context.state = parser_state::before_value;
+							m_current_state = parser_state::before_value;
 							break;
 
 						case begin_esc_seq:
-							m_current_context.state = parser_state::key_esc_seq;
+							m_current_state = parser_state::key_esc_seq;
 							break;
 
 						default:
@@ -402,7 +403,7 @@ namespace jopp
 					if(auto val = unescape(ch_in); val.has_value())
 					{
 						m_buffer += *val;
-						m_current_context.state = parser_state::key;
+						m_current_state = parser_state::key;
 					}
 					else
 					{
@@ -419,7 +420,7 @@ namespace jopp
 					switch(ch_in)
 					{
 						case delimiters::name_separator:
-							m_current_context.state = parser_state::value;
+							m_current_state = parser_state::value;
 							break;
 
 						default:
@@ -461,7 +462,7 @@ namespace jopp
 						}
 
 						case delimiters::value_separator:
-							m_current_context.state = parser_state::before_key;
+							m_current_state = parser_state::before_key;
 							break;
 
 						default:
@@ -503,7 +504,7 @@ namespace jopp
 						}
 
 						case delimiters::value_separator:
-							m_current_context.state = parser_state::value;
+							m_current_state = parser_state::value;
 							break;
 
 						default:

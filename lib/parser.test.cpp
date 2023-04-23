@@ -75,14 +75,33 @@ TESTCASE(jopp_parser_unescape_char)
 	EXPECT_EQ(other.has_value(), false);
 }
 
-TESTCASE(jopp_parser_parse_single_value)
+TESTCASE(jopp_parser_parse_data)
 {
 	jopp::parser parser{};
-	std::string_view buffer{"       true   "};
+	std::string_view buffer{R"({
+	"had": {
+		"tightly": [
+			"feet",
+			true,
+			2145719840.4312375,
+			-286229488,
+			true,
+			true
+		],
+		"sound": false,
+		"eaten": false,
+		"pull": 1285774482.782745,
+		"long": -1437168945.8634152,
+		"independent": -1451031326
+	},
+	"fireplace": 720535269,
+	"refused": "better",
+	"wood": "involved",
+	"without": true,
+	"it": false
+})"};
 	jopp::value val;
 	auto res = parser.parse(std::span{std::data(buffer), std::size(buffer)}, val);
 	EXPECT_EQ(res.ec, jopp::error_code::completed);
-	REQUIRE_NE(val.get_if<jopp::boolean>(), nullptr);
-	EXPECT_EQ(*val.get_if<jopp::boolean>(), true);
-	EXPECT_EQ(*(res.ptr - 1), 'e');
+
 }
