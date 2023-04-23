@@ -106,59 +106,10 @@ namespace
 	"refused": "better",
 	"wood": "involved",
 	"without": true,
-	"it": false
+	"it": false,
+	"last is a string": "foobar"
 })"};
 #endif
-
-	void print(jopp::object const& obj);
-	void print(jopp::array const&);
-	void print(jopp::number x);
-	void print(jopp::string const& x);
-	void print(jopp::boolean x);
-	void print(jopp::null);
-	void print(jopp::value const& x);
-
-	void print(jopp::value const& x)
-	{ x.visit([](auto const& item){ print(item); }); }
-
-	void print(jopp::object const& obj)
-	{
-		puts("«object»");
-		for(auto& item : obj)
-		{
-			printf("%s: ", item.first.c_str());
-			print(item.second);
-		}
-	}
-
-	void print(jopp::array const& obj)
-	{
-		puts("«array»");
-		for(auto& item : obj)
-		{
-			print(item);
-		}
-	}
-
-	void print(jopp::number x)
-	{
-		printf("%.8g\n", x);
-	}
-
-	void print(jopp::string const& x)
-	{
-		puts(x.c_str());
-	}
-
-	void print(jopp::boolean x)
-	{
-		printf("%s\n", x?"true":"false");
-	}
-
-	void print(jopp::null)
-	{
-		puts("null\n");
-	}
 }
 
 TESTCASE(jopp_parser_parse_data)
@@ -171,5 +122,5 @@ TESTCASE(jopp_parser_parse_data)
 	EXPECT_EQ(res.ec, jopp::error_code::completed);
 	EXPECT_EQ(res.ptr, std::end(json_test_data));
 
-	print(val);
+	debug_print(val);
 }

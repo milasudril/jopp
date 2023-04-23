@@ -8,6 +8,8 @@
 #include <memory>
 #include <type_traits>
 
+#include <cstdio>
+
 namespace jopp
 {
 	template<class A, class B>
@@ -180,7 +182,68 @@ namespace jopp
 		std::vector<value> m_values;
 	};
 
+	void debug_print(jopp::object const& obj, size_t level = 0);
+	void debug_print(jopp::array const&, size_t level = 0);
+	void debug_print(jopp::number x, size_t level = 0);
+	void debug_print(jopp::string const& x, size_t level = 0);
+	void debug_print(jopp::boolean x, size_t level = 0);
+	void debug_print(jopp::null, size_t level = 0);
+	void debug_print(jopp::value const& x, size_t level = 0);
 
+	void debug_indent(size_t level)
+	{
+		for(size_t k = 0; k != level; ++k)
+		{ printf("  "); }
+	}
+
+	void debug_print(jopp::value const& x, size_t level)
+	{ x.visit([level](auto const& item){ debug_print(item, level); }); }
+
+	void debug_print(jopp::object const& obj, size_t level)
+	{
+		debug_indent(level);
+		puts("«object»");
+		for(auto& item : obj)
+		{
+			debug_indent(level);
+			printf("%s:\n", item.first.c_str());
+			debug_print(item.second, level + 1);
+		}
+	}
+
+	void debug_print(jopp::array const& obj, size_t level)
+	{
+		debug_indent(level);
+		puts("«array»");
+		for(auto& item : obj)
+		{
+			debug_print(item, level);
+		}
+	}
+
+	void debug_print(jopp::number x, size_t level)
+	{
+		debug_indent(level);
+		printf("%.16g\n", x);
+	}
+
+	void debug_print(jopp::string const& x, size_t level)
+	{
+		debug_indent(level);
+		puts(x.c_str());
+	}
+
+	void debug_print(jopp::boolean x, size_t level)
+	{
+		debug_indent(level);
+		printf("%s\n", x?"true":"false");
+	}
+
+	void debug_print(jopp::null, size_t level)
+	{
+		debug_indent(level);
+		puts("null\n");
+	}
 }
 
 #endif

@@ -140,7 +140,6 @@ namespace jopp
 	inline
 	auto store_value(class value& parent_value, string&& key, class value&& value, class value& root)
 	{
-		printf("storing [%s]\n", key.c_str());
 		return parent_value.visit(
 			overload{
 				[](object& item, string&& key, class value&& val) {
@@ -265,9 +264,11 @@ namespace jopp
 					break;
 
 				case parser_state::literal:
-					if(ch_in == delimiters::value_separator)
+					if(ch_in == delimiters::value_separator
+						|| ch_in == delimiters::end_array
+						|| ch_in == delimiters::end_object)
 					{
-						printf("Input buffer %s\n", m_buffer.c_str());
+						printf("Key: (%s), Input buffer (%s)\n", m_contexts.top().key.c_str(), m_buffer.c_str());
 						auto res = store_value(m_contexts.top().value,
 							std::move(m_contexts.top().key),
 							m_buffer,
@@ -282,6 +283,7 @@ namespace jopp
 								};
 						}
 
+						--ptr;  // Because next state wants value_separator
 						m_current_state = res.next_state;
 						m_buffer = string{};
 						m_contexts.top().key = string{};
@@ -297,7 +299,7 @@ namespace jopp
 						{
 							auto res = store_value(m_contexts.top().value,
 								std::move(m_contexts.top().key),
-								m_buffer,
+								value{m_buffer},
 								root);
 							if(res.err != error_code::more_data_needed)
 							{
@@ -444,6 +446,7 @@ namespace jopp
 							m_contexts.pop();
 							if(std::size(m_contexts) == 0)
 							{
+								printf("Last object read\n");
 								root = std::move(current_context.value);
 								return parse_result{
 									.ptr = ptr,
