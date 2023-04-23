@@ -395,11 +395,6 @@ namespace jopp
 							--ptr;
 							break;
 
-						case delimiters::end_array:
-							m_current_state = parser_state::after_value_array;
-							--ptr;
-							break;
-
 						default:
 							if(!is_whitespace(ch_in))
 							{
