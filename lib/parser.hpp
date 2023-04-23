@@ -239,7 +239,7 @@ namespace jopp
 					{
 						if(auto res = store_value(m_current_context,
 							std::move(m_key),
-							value{std::move(m_buffer)},
+							m_buffer,
 							root); res != error_code::more_data_needed)
 						{
 							return parse_result{
