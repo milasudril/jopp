@@ -266,7 +266,8 @@ namespace jopp
 				case parser_state::literal:
 					if(ch_in == delimiters::value_separator
 						|| ch_in == delimiters::end_array
-						|| ch_in == delimiters::end_object)
+						|| ch_in == delimiters::end_object
+						|| is_whitespace(ch_in))
 					{
 						printf("Key: (%s), Input buffer (%s)\n", m_contexts.top().key.c_str(), m_buffer.c_str());
 						auto res = store_value(m_contexts.top().value,
