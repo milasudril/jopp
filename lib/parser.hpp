@@ -156,6 +156,15 @@ namespace jopp
 		);
 	}
 
+	auto store_value(parser_context& context, string&& key, std::string_view buffer, value& root)
+	{
+		auto val = make_value(buffer);
+		if(!val.has_value())
+		{ return error_code::invalid_value; }
+
+		return store_value(context, std::move(key), std::move(*val), root);
+	}
+
 	class parser
 	{
 	public:
@@ -224,22 +233,8 @@ namespace jopp
 				case parser_state::literal:
 					if(is_whitespace(ch_in))
 					{
-						auto val = make_value(m_buffer);
-						m_buffer.clear();
-						if(!val.has_value())
-						{
-							return parse_result{
-								.ptr = ptr - 1,
-								.ec = error_code::invalid_value,
-								.line = 0, // TODO: count lines
-								.col = 0  // TODO: count lines
-							};
-						}
-
-						(void)store_value(m_current_context,
-							std::move(m_key),
-							std::move(*val),
-							root);
+						(void)store_value(m_current_context, std::move(m_key), m_buffer, root);
+						m_buffer = string{};
 						m_key = string{};
 					}
 					else
