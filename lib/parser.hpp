@@ -273,6 +273,11 @@ namespace jopp
 							m_current_state = parser_state::before_key;
 							break;
 
+						case delimiters::end_array:
+							m_current_state = parser_state::after_value_array;
+							--ptr;
+							break;
+
 						case delimiters::string_begin_end:
 							m_current_state = parser_state::string_value;
 							break;

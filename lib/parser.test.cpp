@@ -103,6 +103,7 @@ namespace
 #else
 	constexpr std::string_view json_test_data{R"({
 	"empty object": { },
+	"empty array": [ ],
 	"had": {
 		"tightly": [
 			"feet",
