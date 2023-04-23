@@ -159,8 +159,7 @@ namespace jopp
 		error_code err;
 	};
 
-	inline
-	auto store_value(class value& parent_value, string&& key, class value&& value, class value& root)
+	inline auto store_value(class value& parent_value, string&& key, class value&& value)
 	{
 		return parent_value.visit(
 			overload{
@@ -179,18 +178,10 @@ namespace jopp
 					};
 				},
 				[](array& item, string&&, class value&& val) {
-					printf("Insert into array\n");
 					item.push_back(std::move(val));
 					return store_value_result{
 						parser_state::after_value_array,
 						error_code::more_data_needed
-					};
-				},
-				[&root](null&, string&&, class value&& val) {
-					root = std::move(val);
-					return store_value_result{
-						parser_state::value,
-						error_code::completed
 					};
 				},
 				[](auto&, string&&, class value&&) {
@@ -206,8 +197,7 @@ namespace jopp
 	struct literal_view
 	{ std::string_view value; };
 
-	inline
-	auto store_value(class value& parent_value, string&& key, literal_view buffer, value& root)
+	inline auto store_value(class value& parent_value, string&& key, literal_view buffer)
 	{
 		auto val = make_value(buffer.value);
 		if(!val.has_value())
@@ -218,7 +208,7 @@ namespace jopp
 			};
 		}
 
-		return store_value(parent_value, std::move(key), std::move(*val), root);
+		return store_value(parent_value, std::move(key), std::move(*val));
 	}
 
 	class parser
@@ -307,8 +297,7 @@ jopp::parse_result jopp::parser::parse(std::span<char const> input_seq, value& r
 					printf("Key: (%s), Input buffer (%s)\n", m_contexts.top().key.c_str(), m_buffer.c_str());
 					auto res = store_value(m_contexts.top().value,
 						std::move(m_contexts.top().key),
-						literal_view{m_buffer},
-						root);
+						literal_view{m_buffer});
 					if(res.err != error_code::more_data_needed)
 					{ return parse_result{ptr, res.err, m_line, m_col}; }
 
@@ -329,8 +318,7 @@ jopp::parse_result jopp::parser::parse(std::span<char const> input_seq, value& r
 						printf("Key: (%s), Input buffer (%s)\n", m_contexts.top().key.c_str(), m_buffer.c_str());
 						auto res = store_value(m_contexts.top().value,
 							std::move(m_contexts.top().key),
-							value{m_buffer},
-							root);
+							value{m_buffer});
 						if(res.err != error_code::more_data_needed)
 						{ return parse_result{ptr, res.err, m_line, m_col}; }
 
@@ -441,14 +429,7 @@ jopp::parse_result jopp::parser::parse(std::span<char const> input_seq, value& r
 
 					default:
 						if(!is_whitespace(ch_in))
-						{
-							return parse_result{
-								.ptr = ptr,
-								.ec = error_code::illegal_delimiter,
-								.line = 0,  // TODO: count lines
-								.col = 0  // TODO: count cols
-							};
-						}
+						{ return parse_result{ptr, error_code::illegal_delimiter, m_line, m_col}; }
 				}
 				break;
 
@@ -471,10 +452,10 @@ jopp::parse_result jopp::parser::parse(std::span<char const> input_seq, value& r
 							};
 						}
 
+						// TODO: error handling
 						m_current_state = store_value(m_contexts.top().value,
 							std::move(m_contexts.top().key),
-							std::move(current_context.value),
-							root).next_state;
+							std::move(current_context.value)).next_state;
 						break;
 					}
 
@@ -514,10 +495,10 @@ jopp::parse_result jopp::parser::parse(std::span<char const> input_seq, value& r
 							};
 						}
 
+						// TODO: error handling
 						m_current_state = store_value(m_contexts.top().value,
 							std::move(m_contexts.top().key),
-							std::move(current_context.value),
-							root).next_state;
+							std::move(current_context.value)).next_state;
 						break;
 					}
 
