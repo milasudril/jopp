@@ -301,7 +301,9 @@ jopp::parse_result jopp::parser::parse(std::span<char const> input_seq, value& r
 					if(res.err != error_code::more_data_needed)
 					{ return parse_result{ptr, res.err, m_line, m_col}; }
 
-					--ptr;  // Because next state wants value_separator
+					if(!is_whitespace(ch_in))
+					{ --ptr; }
+
 					m_current_state = res.next_state;
 					m_buffer = string{};
 					m_contexts.top().key = string{};
@@ -479,7 +481,6 @@ jopp::parse_result jopp::parser::parse(std::span<char const> input_seq, value& r
 		{
 			m_col = 0;
 			++m_line;
-			printf("Parsing line %zu %s\n", m_line, ptr);
 		}
 		++m_col;
 	}

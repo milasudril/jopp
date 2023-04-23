@@ -262,7 +262,7 @@ TESTCASE(jopp_parser_parse_data_one_block)
 	EXPECT_EQ(res.ec, jopp::error_code::completed);
 	EXPECT_EQ(*res.ptr, 'S');
 	EXPECT_EQ(res.line, 32);
-//?	EXPECT_EQ(res.col, 2);
+	EXPECT_EQ(res.col, 1);
 
 	debug_print(val);
 }
