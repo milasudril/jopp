@@ -111,29 +111,29 @@ namespace jopp
 		size_t col;
 	};
 
+	enum class parser_state
+	{
+		value,
+		literal,
+		string_value,
+		string_value_esc_seq,
+		before_key,
+		key,
+		key_esc_seq,
+		before_value
+	};
+
 	class parser
 	{
 	public:
 		parse_result parse(std::span<char const> input_seq, value& root);
 
 	private:
-		enum class state
-		{
-			value,
-			literal,
-			string_value,
-			string_value_esc_seq,
-			before_key,
-			key,
-			key_esc_seq,
-			before_value
-		};
-
 		using value_factory = value (*)(std::string&& buffer);
 
 		struct context
 		{
-			enum state state = state::value;
+			enum parser_state state = parser_state::value;
 			class value value{null{}};
 		};
 
@@ -166,7 +166,7 @@ namespace jopp
 
 			switch(m_current_context.state)
 			{
-				case state::value:
+				case parser_state::value:
 					switch(ch_in)
 					{
 						case delimiters::begin_array:
@@ -178,23 +178,23 @@ namespace jopp
 							{ m_contexts.push(std::move(m_current_context)); }
 
 							m_current_context = context{};
-							m_current_context.state = state::before_key;
+							m_current_context.state = parser_state::before_key;
 							break;
 
 						case delimiters::string_begin_end:
-							m_current_context.state = state::string_value;
+							m_current_context.state = parser_state::string_value;
 							break;
 
 						default:
 							if(!is_whitespace(ch_in))
 							{
 								m_buffer += ch_in;
-								m_current_context.state = state::literal;
+								m_current_context.state = parser_state::literal;
 							}
 					}
 					break;
 
-				case state::literal:
+				case parser_state::literal:
 					if(is_whitespace(ch_in))
 					{
 						auto val = make_value(m_buffer);
@@ -237,7 +237,7 @@ namespace jopp
 					{ m_buffer += ch_in; }
 					break;
 
-				case state::string_value:
+				case parser_state::string_value:
 					switch(ch_in)
 					{
 						case delimiters::string_begin_end:
@@ -267,7 +267,7 @@ namespace jopp
 							break;
 
 						case begin_esc_seq:
-							m_current_context.state = state::string_value_esc_seq;
+							m_current_context.state = parser_state::string_value_esc_seq;
 							break;
 
 						default:
@@ -285,11 +285,11 @@ namespace jopp
 					}
 					break;
 
-				case state::string_value_esc_seq:
+				case parser_state::string_value_esc_seq:
 					if(auto val = unescape(ch_in); val.has_value())
 					{
 						m_buffer += *val;
-						m_current_context.state = state::string_value;
+						m_current_context.state = parser_state::string_value;
 					}
 					else
 					{
@@ -302,11 +302,11 @@ namespace jopp
 					}
 					break;
 
-				case state::before_key:
+				case parser_state::before_key:
 					switch(ch_in)
 					{
 						case delimiters::string_begin_end:
-							m_current_context.state = state::key;
+							m_current_context.state = parser_state::key;
 							break;
 						default:
 							if(!is_whitespace(ch_in))
@@ -321,17 +321,17 @@ namespace jopp
 					}
 					break;
 
-				case state::key:
+				case parser_state::key:
 					switch(ch_in)
 					{
 						case delimiters::string_begin_end:
 							m_key = std::move(m_buffer);
 							m_buffer.clear();
-							m_current_context.state = state::before_value;
+							m_current_context.state = parser_state::before_value;
 							break;
 
 						case begin_esc_seq:
-							m_current_context.state = state::key_esc_seq;
+							m_current_context.state = parser_state::key_esc_seq;
 							break;
 
 						default:
@@ -349,11 +349,11 @@ namespace jopp
 					}
 					break;
 
-				case state::key_esc_seq:
+				case parser_state::key_esc_seq:
 					if(auto val = unescape(ch_in); val.has_value())
 					{
 						m_buffer += *val;
-						m_current_context.state = state::key;
+						m_current_context.state = parser_state::key;
 					}
 					else
 					{
@@ -366,11 +366,11 @@ namespace jopp
 					}
 					break;
 
-				case state::before_value:
+				case parser_state::before_value:
 					switch(ch_in)
 					{
 						case delimiters::name_separator:
-							m_current_context.state = state::value;
+							m_current_context.state = parser_state::value;
 							break;
 
 						default:
