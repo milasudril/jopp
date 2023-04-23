@@ -225,6 +225,8 @@ namespace jopp
 	{
 	public:
 		parser():
+			m_line{1},
+			m_col{0},
 			m_current_state{parser_state::value}
 		{}
 
@@ -233,334 +235,308 @@ namespace jopp
 	private:
 		using value_factory = value (*)(std::string&& buffer);
 
+		size_t m_line;
+		size_t m_col;
 		parser_state m_current_state;
 		std::stack<parser_context> m_contexts;
 		string m_buffer;
 
 		value_factory m_value_factory;
 	};
+}
 
-	parse_result parser::parse(std::span<char const> input_seq, value& root)
+jopp::parse_result jopp::parser::parse(std::span<char const> input_seq, value& root)
+{
+	auto ptr = std::data(input_seq);
+	while(true)
 	{
-		auto ptr = std::data(input_seq);
-		while(true)
+		if(ptr == std::data(input_seq) + std::size(input_seq))
+		{ return parse_result{ptr, error_code::more_data_needed, m_line, m_col}; }
+
+		auto ch_in = *ptr;
+		if(ch_in == '\n')
 		{
-			if(ptr == std::data(input_seq) + std::size(input_seq))
-			{
-				return parse_result{
-					.ptr = ptr,
-					.ec = error_code::more_data_needed,
-					.line = 0,  // TODO: count lines
-					.col = 0  // TODO: count cols
-				};
-			}
+			m_col = 0;
+			++m_line;
+		}
+		++m_col;
 
-			auto ch_in = *ptr;
-			++ptr;
+		++ptr;
 
-			switch(m_current_state)
-			{
-				case parser_state::value:
-					switch(ch_in)
-					{
-						case delimiters::begin_array:
-							m_contexts.push(parser_context{});
-							m_contexts.top().value = value{array{}};
-							m_current_state = parser_state::value;
-							break;
+		switch(m_current_state)
+		{
+			case parser_state::value:
+				switch(ch_in)
+				{
+					case delimiters::begin_array:
+						m_contexts.push(parser_context{});
+						m_contexts.top().value = value{array{}};
+						m_current_state = parser_state::value;
+						break;
 
-						case delimiters::begin_object:
-							m_contexts.push(parser_context{});
-							m_contexts.top().value = value{object{}};
-							m_current_state = parser_state::before_key;
-							break;
+					case delimiters::begin_object:
+						m_contexts.push(parser_context{});
+						m_contexts.top().value = value{object{}};
+						m_current_state = parser_state::before_key;
+						break;
 
-						case delimiters::end_array:
-							m_current_state = parser_state::after_value_array;
-							--ptr;
-							break;
+					case delimiters::end_array:
+						m_current_state = parser_state::after_value_array;
+						--ptr;
+						break;
 
-						case delimiters::string_begin_end:
-							m_current_state = parser_state::string_value;
-							break;
+					case delimiters::string_begin_end:
+						m_current_state = parser_state::string_value;
+						break;
 
-						default:
-							if(!is_whitespace(ch_in))
-							{
-								m_buffer += ch_in;
-								m_current_state = parser_state::literal;
-							}
-					}
-					break;
+					default:
+						if(!is_whitespace(ch_in))
+						{
+							m_buffer += ch_in;
+							m_current_state = parser_state::literal;
+						}
+				}
+				break;
 
-				case parser_state::literal:
-					if(ch_in == delimiters::value_separator
-						|| ch_in == delimiters::end_array
-						|| ch_in == delimiters::end_object
-						|| is_whitespace(ch_in))
+			case parser_state::literal:
+				if(ch_in == delimiters::value_separator
+					|| ch_in == delimiters::end_array
+					|| ch_in == delimiters::end_object
+					|| is_whitespace(ch_in))
+				{
+					printf("Key: (%s), Input buffer (%s)\n", m_contexts.top().key.c_str(), m_buffer.c_str());
+					auto res = store_value(m_contexts.top().value,
+						std::move(m_contexts.top().key),
+						literal_view{m_buffer},
+						root);
+					if(res.err != error_code::more_data_needed)
+					{ return parse_result{ptr, res.err, m_line, m_col}; }
+
+					--ptr;  // Because next state wants value_separator
+					m_current_state = res.next_state;
+					m_buffer = string{};
+					m_contexts.top().key = string{};
+				}
+				else
+				{ m_buffer += ch_in; }
+				break;
+
+			case parser_state::string_value:
+				switch(ch_in)
+				{
+					case delimiters::string_begin_end:
 					{
 						printf("Key: (%s), Input buffer (%s)\n", m_contexts.top().key.c_str(), m_buffer.c_str());
 						auto res = store_value(m_contexts.top().value,
 							std::move(m_contexts.top().key),
-							literal_view{m_buffer},
+							value{m_buffer},
 							root);
 						if(res.err != error_code::more_data_needed)
+						{ return parse_result{ptr, res.err, m_line, m_col}; }
+
+						m_current_state = res.next_state;
+						m_contexts.top().key = string{};
+						m_buffer = string{};
+						break;
+					}
+
+					case begin_esc_seq:
+						m_current_state = parser_state::string_value_esc_seq;
+						break;
+
+					default:
+						if(char_should_be_escaped(ch_in))
+						{ return parse_result{ptr, error_code::character_must_be_escaped, m_line, m_col}; }
+						else
+						{ m_buffer += ch_in; }
+				}
+				break;
+
+			case parser_state::string_value_esc_seq:
+				if(auto val = unescape(ch_in); val.has_value())
+				{
+					m_buffer += *val;
+					m_current_state = parser_state::string_value;
+				}
+				else
+				{ return parse_result{ptr, error_code::unsupported_escape_sequence, m_line, m_col}; }
+				break;
+
+			case parser_state::before_key:
+				switch(ch_in)
+				{
+					case delimiters::string_begin_end:
+						m_current_state = parser_state::key;
+						break;
+
+					case delimiters::end_object:
+						m_current_state = parser_state::after_value_object;
+						--ptr;
+						break;
+
+					default:
+						if(!is_whitespace(ch_in))
 						{
 							return parse_result{
-									.ptr = ptr,
-									.ec = res.err,
-									.line = 0,  // TODO: count lines
-									.col = 0  // TODO: count cols
-								};
+								.ptr = ptr,
+								.ec = error_code::illegal_delimiter,
+								.line = 0,  // TODO: count lines
+								.col = 0  // TODO: count cols
+							};
 						}
+				}
+				break;
 
-						--ptr;  // Because next state wants value_separator
-						m_current_state = res.next_state;
+			case parser_state::key:
+				switch(ch_in)
+				{
+					case delimiters::string_begin_end:
+						m_contexts.top().key = std::move(m_buffer);
 						m_buffer = string{};
-						m_contexts.top().key = string{};
-					}
-					else
-					{ m_buffer += ch_in; }
-					break;
+						m_current_state = parser_state::before_value;
+						break;
 
-				case parser_state::string_value:
-					switch(ch_in)
-					{
-						case delimiters::string_begin_end:
+					case begin_esc_seq:
+						m_current_state = parser_state::key_esc_seq;
+						break;
+
+					default:
+						if(char_should_be_escaped(ch_in))
 						{
-							printf("Key: (%s), Input buffer (%s)\n", m_contexts.top().key.c_str(), m_buffer.c_str());
-							auto res = store_value(m_contexts.top().value,
-								std::move(m_contexts.top().key),
-								value{m_buffer},
-								root);
-							if(res.err != error_code::more_data_needed)
-							{
-								return parse_result{
-										.ptr = ptr,
-										.ec = res.err,
-										.line = 0,  // TODO: count lines
-										.col = 0  // TODO: count cols
-									};
-							}
+							return parse_result{
+								.ptr = ptr,
+								.ec = error_code::character_must_be_escaped,
+								.line = 0,
+								.col = 0
+							};
+						}
+						else
+						{ m_buffer += ch_in; }
+				}
+				break;
 
-							m_current_state = res.next_state;
-							m_contexts.top().key = string{};
-							m_buffer = string{};
-							break;
+			case parser_state::key_esc_seq:
+				if(auto val = unescape(ch_in); val.has_value())
+				{
+					m_buffer += *val;
+					m_current_state = parser_state::key;
+				}
+				else
+				{
+					return parse_result{
+						.ptr = ptr - 1,
+						.ec = error_code::unsupported_escape_sequence,
+						.line = 0,
+						.col = 0
+					};
+				}
+				break;
+
+			case parser_state::before_value:
+				switch(ch_in)
+				{
+					case delimiters::name_separator:
+						m_current_state = parser_state::value;
+						break;
+
+					default:
+						if(!is_whitespace(ch_in))
+						{
+							return parse_result{
+								.ptr = ptr,
+								.ec = error_code::illegal_delimiter,
+								.line = 0,  // TODO: count lines
+								.col = 0  // TODO: count cols
+							};
+						}
+				}
+				break;
+
+			case parser_state::after_value_object:
+				switch(ch_in)
+				{
+					case delimiters::end_object:
+					{
+						auto current_context = std::move(m_contexts.top());
+						m_contexts.pop();
+						if(std::size(m_contexts) == 0)
+						{
+							printf("Last object read\n");
+							root = std::move(current_context.value);
+							return parse_result{
+								.ptr = ptr,
+								.ec = error_code::completed,
+								.line = 0,
+								.col = 0
+							};
 						}
 
-						case begin_esc_seq:
-							m_current_state = parser_state::string_value_esc_seq;
-							break;
-
-						default:
-							if(char_should_be_escaped(ch_in))
-							{
-								return parse_result{
-									.ptr = ptr,
-									.ec = error_code::character_must_be_escaped,
-									.line = 0,
-									.col = 0
-								};
-							}
-							else
-							{ m_buffer += ch_in; }
+						m_current_state = store_value(m_contexts.top().value,
+							std::move(m_contexts.top().key),
+							std::move(current_context.value),
+							root).next_state;
+						break;
 					}
-					break;
 
-				case parser_state::string_value_esc_seq:
-					if(auto val = unescape(ch_in); val.has_value())
-					{
-						m_buffer += *val;
-						m_current_state = parser_state::string_value;
-					}
-					else
-					{
-						return parse_result{
-							.ptr = ptr,
-							.ec = error_code::unsupported_escape_sequence,
-							.line = 0,
-							.col = 0
-						};
-					}
-					break;
+					case delimiters::value_separator:
+						m_current_state = parser_state::before_key;
+						break;
 
-				case parser_state::before_key:
-					switch(ch_in)
-					{
-						case delimiters::string_begin_end:
-							m_current_state = parser_state::key;
-							break;
-
-						case delimiters::end_object:
-							m_current_state = parser_state::after_value_object;
-							--ptr;
-							break;
-
-						default:
-							if(!is_whitespace(ch_in))
-							{
-								return parse_result{
-									.ptr = ptr,
-									.ec = error_code::illegal_delimiter,
-									.line = 0,  // TODO: count lines
-									.col = 0  // TODO: count cols
-								};
-							}
-					}
-					break;
-
-				case parser_state::key:
-					switch(ch_in)
-					{
-						case delimiters::string_begin_end:
-							m_contexts.top().key = std::move(m_buffer);
-							m_buffer = string{};
-							m_current_state = parser_state::before_value;
-							break;
-
-						case begin_esc_seq:
-							m_current_state = parser_state::key_esc_seq;
-							break;
-
-						default:
-							if(char_should_be_escaped(ch_in))
-							{
-								return parse_result{
-									.ptr = ptr,
-									.ec = error_code::character_must_be_escaped,
-									.line = 0,
-									.col = 0
-								};
-							}
-							else
-							{ m_buffer += ch_in; }
-					}
-					break;
-
-				case parser_state::key_esc_seq:
-					if(auto val = unescape(ch_in); val.has_value())
-					{
-						m_buffer += *val;
-						m_current_state = parser_state::key;
-					}
-					else
-					{
-						return parse_result{
-							.ptr = ptr - 1,
-							.ec = error_code::unsupported_escape_sequence,
-							.line = 0,
-							.col = 0
-						};
-					}
-					break;
-
-				case parser_state::before_value:
-					switch(ch_in)
-					{
-						case delimiters::name_separator:
-							m_current_state = parser_state::value;
-							break;
-
-						default:
-							if(!is_whitespace(ch_in))
-							{
-								return parse_result{
-									.ptr = ptr,
-									.ec = error_code::illegal_delimiter,
-									.line = 0,  // TODO: count lines
-									.col = 0  // TODO: count cols
-								};
-							}
-					}
-					break;
-
-				case parser_state::after_value_object:
-					switch(ch_in)
-					{
-						case delimiters::end_object:
+					default:
+						if(!is_whitespace(ch_in))
 						{
-							auto current_context = std::move(m_contexts.top());
-							m_contexts.pop();
-							if(std::size(m_contexts) == 0)
-							{
-								printf("Last object read\n");
-								root = std::move(current_context.value);
-								return parse_result{
-									.ptr = ptr,
-									.ec = error_code::completed,
-									.line = 0,
-									.col = 0
-								};
-							}
+							return parse_result{
+								.ptr = ptr,
+								.ec = error_code::illegal_delimiter,
+								.line = 0,  // TODO: count lines
+								.col = 0  // TODO: count cols
+							};
+						}
+				}
+				break;
 
-							m_current_state = store_value(m_contexts.top().value,
-								std::move(m_contexts.top().key),
-								std::move(current_context.value),
-								root).next_state;
-							break;
+			case parser_state::after_value_array:
+				switch(ch_in)
+				{
+					case delimiters::end_array:
+					{
+						printf("End array\n");
+						auto current_context = std::move(m_contexts.top());
+						m_contexts.pop();
+						if(std::size(m_contexts) == 0)
+						{
+							root = std::move(current_context.value);
+							return parse_result{
+								.ptr = ptr,
+								.ec = error_code::completed,
+								.line = 0,
+								.col = 0
+							};
 						}
 
-						case delimiters::value_separator:
-							m_current_state = parser_state::before_key;
-							break;
-
-						default:
-							if(!is_whitespace(ch_in))
-							{
-								return parse_result{
-									.ptr = ptr,
-									.ec = error_code::illegal_delimiter,
-									.line = 0,  // TODO: count lines
-									.col = 0  // TODO: count cols
-								};
-							}
+						m_current_state = store_value(m_contexts.top().value,
+							std::move(m_contexts.top().key),
+							std::move(current_context.value),
+							root).next_state;
+						break;
 					}
-					break;
 
-				case parser_state::after_value_array:
-					switch(ch_in)
-					{
-						case delimiters::end_array:
+					case delimiters::value_separator:
+						m_current_state = parser_state::value;
+						break;
+
+					default:
+						if(!is_whitespace(ch_in))
 						{
-							printf("End array\n");
-							auto current_context = std::move(m_contexts.top());
-							m_contexts.pop();
-							if(std::size(m_contexts) == 0)
-							{
-								root = std::move(current_context.value);
-								return parse_result{
-									.ptr = ptr,
-									.ec = error_code::completed,
-									.line = 0,
-									.col = 0
-								};
-							}
-
-							m_current_state = store_value(m_contexts.top().value,
-								std::move(m_contexts.top().key),
-								std::move(current_context.value),
-								root).next_state;
-							break;
+							return parse_result{
+								.ptr = ptr,
+								.ec = error_code::illegal_delimiter,
+								.line = 0,  // TODO: count lines
+								.col = 0  // TODO: count cols
+							};
 						}
-
-						case delimiters::value_separator:
-							m_current_state = parser_state::value;
-							break;
-
-						default:
-							if(!is_whitespace(ch_in))
-							{
-								return parse_result{
-									.ptr = ptr,
-									.ec = error_code::illegal_delimiter,
-									.line = 0,  // TODO: count lines
-									.col = 0  // TODO: count cols
-								};
-							}
-					}
-					break;
-			}
+				}
+				break;
 		}
 	}
 }
