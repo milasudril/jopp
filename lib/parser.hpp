@@ -237,7 +237,11 @@ namespace jopp
 					switch(ch_in)
 					{
 						case delimiters::begin_array:
-							// Start reading array
+							if(!is_null(m_current_context.value))
+							{m_contexts.push(std::move(m_current_context));}
+
+							m_current_context = parser_context{};
+							m_current_context.state = parser_state::value;
 							break;
 
 						case delimiters::begin_object:
@@ -445,6 +449,7 @@ namespace jopp
 							m_contexts.pop();
 							if(std::size(m_contexts) == 0)
 							{
+								root = std::move(m_current_context.value);
 								return parse_result{
 									.ptr = ptr,
 									.ec = error_code::completed,
@@ -486,6 +491,7 @@ namespace jopp
 							m_contexts.pop();
 							if(std::size(m_contexts) == 0)
 							{
+								root = std::move(m_current_context.value);
 								return parse_result{
 									.ptr = ptr,
 									.ec = error_code::completed,
