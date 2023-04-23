@@ -246,8 +246,7 @@ namespace jopp
 			{
 				return parse_result{
 					.ptr = ptr,
-					.ec = std::size(m_contexts) == 0 ?
-						error_code::completed : error_code::more_data_needed,
+					.ec = error_code::more_data_needed,
 					.line = 0,  // TODO: count lines
 					.col = 0  // TODO: count cols
 				};
