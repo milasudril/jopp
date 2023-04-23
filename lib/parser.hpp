@@ -384,9 +384,7 @@ jopp::parse_result jopp::parser::parse(std::span<char const> input_seq, value& r
 
 					default:
 						if(char_should_be_escaped(ch_in))
-						{
-							return parse_result{ptr, error_code::character_must_be_escaped, m_line, m_col};
-						}
+						{ return parse_result{ptr, error_code::character_must_be_escaped, m_line, m_col}; }
 						else
 						{ m_buffer += ch_in; }
 				}
