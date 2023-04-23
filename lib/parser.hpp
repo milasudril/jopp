@@ -103,6 +103,28 @@ namespace jopp
 		invalid_value
 	};
 
+	inline constexpr char const* to_string(error_code ec)
+	{
+		switch(ec)
+		{
+			case error_code::completed:
+				return "Completed";
+			case error_code::more_data_needed:
+				return "More data needed";
+			case error_code::key_already_exists:
+				return "Key already exists";
+			case error_code::character_must_be_escaped:
+				return "Character must be escaped";
+			case error_code::unsupported_escape_sequence:
+				return "Unsupported escape sequence";
+			case error_code::illegal_delimiter:
+				return "Illegal delimiter";
+			case error_code::invalid_value:
+				return "Invalid value";
+		}
+		__builtin_unreachable();
+	}
+
 	struct parse_result
 	{
 		char const* ptr;
@@ -157,6 +179,7 @@ namespace jopp
 					};
 				},
 				[](array& item, string&&, class value&& val) {
+					printf("Insert into array\n");
 					item.push_back(std::move(val));
 					return store_value_result{
 						parser_state::after_value_array,
@@ -298,6 +321,7 @@ namespace jopp
 					{
 						case delimiters::string_begin_end:
 						{
+							printf("Key: (%s), Input buffer (%s)\n", m_contexts.top().key.c_str(), m_buffer.c_str());
 							auto res = store_value(m_contexts.top().value,
 								std::move(m_contexts.top().key),
 								value{m_buffer},
@@ -468,10 +492,10 @@ namespace jopp
 								};
 							}
 
-							(void)store_value(m_contexts.top().value,
+							m_current_state = store_value(m_contexts.top().value,
 								std::move(m_contexts.top().key),
 								std::move(current_context.value),
-								root);
+								root).next_state;
 							break;
 						}
 
@@ -497,6 +521,7 @@ namespace jopp
 					{
 						case delimiters::end_array:
 						{
+							printf("End array\n");
 							auto current_context = std::move(m_contexts.top());
 							m_contexts.pop();
 							if(std::size(m_contexts) == 0)
@@ -510,10 +535,10 @@ namespace jopp
 								};
 							}
 
-							(void)store_value(m_contexts.top().value,
+							m_current_state = store_value(m_contexts.top().value,
 								std::move(m_contexts.top().key),
 								std::move(current_context.value),
-								root);
+								root).next_state;
 							break;
 						}
 

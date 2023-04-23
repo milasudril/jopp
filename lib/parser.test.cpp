@@ -103,6 +103,14 @@ namespace
 #else
 	constexpr std::string_view json_test_data{R"({
 	"had": {
+		"tightly": [
+			"feet",
+			true,
+			2145719840.4312375,
+			-286229488,
+			true,
+			true
+		],
 		"sound": false,
 		"eaten": false,
 		"pull": 1285774482.782745,
@@ -115,7 +123,7 @@ namespace
 	"wood": "involved",
 	"without": true,
 	"it": false,
-	"last is a string": "foobar"
+	"this_is_a_null_object": null
 })"};
 #endif
 }

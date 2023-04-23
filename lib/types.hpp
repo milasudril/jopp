@@ -242,7 +242,7 @@ namespace jopp
 	void debug_print(jopp::null, size_t level)
 	{
 		debug_indent(level);
-		puts("null\n");
+		puts("null");
 	}
 }
 
