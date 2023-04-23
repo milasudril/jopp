@@ -217,7 +217,7 @@ namespace jopp
 		puts("«array»");
 		for(auto& item : obj)
 		{
-			debug_print(item, level);
+			debug_print(item, level + 1);
 		}
 	}
 

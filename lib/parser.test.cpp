@@ -106,6 +106,7 @@ namespace
 	"empty array": [ ],
 	"had": {
 		"tightly": [
+			[1, 2, 3, 4],
 			"feet",
 			true,
 			2145719840.4312375,
