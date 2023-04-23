@@ -120,12 +120,14 @@ namespace jopp
 		before_key,
 		key,
 		key_esc_seq,
-		before_value
+		before_value,
+		after_value_object,
 	};
 
 	struct parser_context
 	{
 		parser_state state = parser_state::value;
+		string key;
 		class value value{null{}};
 	};
 
@@ -137,12 +139,12 @@ namespace jopp
 				[&context](object& item, string&& key, class value&& val) {
 					if(!item.insert(std::move(key), std::move(val)).second)
 					{ return error_code::key_already_exists; }
-				//	context.state = parser_state::after_value_object
+					context.state = parser_state::after_value_object;
 					return error_code::more_data_needed;
 				},
 				[](array& item, string&&, class value&& val) {
 					item.push_back(std::move(val));
-				//	context.state = parser_state::after_value_array
+				//	context.state = parser_state::after_value_array;
 					return error_code::more_data_needed;
 				},
 				[&root](null&, string&&, class value&& val) {
@@ -179,7 +181,6 @@ namespace jopp
 
 		parser_context m_current_context;
 		std::stack<parser_context> m_contexts;
-		string m_key;
 		string m_buffer;
 
 		value_factory m_value_factory;
@@ -238,7 +239,7 @@ namespace jopp
 					if(is_whitespace(ch_in))
 					{
 						if(auto res = store_value(m_current_context,
-							std::move(m_key),
+							std::move(m_current_context.key),
 							m_buffer,
 							root); res != error_code::more_data_needed)
 						{
@@ -250,7 +251,7 @@ namespace jopp
 								};
 						}
 						m_buffer = string{};
-						m_key = string{};
+						m_current_context.key = string{};
 					}
 					else
 					{ m_buffer += ch_in; }
@@ -261,7 +262,7 @@ namespace jopp
 					{
 						case delimiters::string_begin_end:
 							if(auto res = store_value(m_current_context,
-								std::move(m_key),
+								std::move(m_current_context.key),
 								value{std::move(m_buffer)},
 								root); res != error_code::more_data_needed)
 							{
@@ -273,7 +274,7 @@ namespace jopp
 									};
 							}
 
-							m_key = string{};
+							m_current_context.key = string{};
 							m_buffer = string{};
 							break;
 
@@ -336,7 +337,7 @@ namespace jopp
 					switch(ch_in)
 					{
 						case delimiters::string_begin_end:
-							m_key = std::move(m_buffer);
+							m_current_context.key = std::move(m_buffer);
 							m_buffer = string{};
 							m_current_context.state = parser_state::before_value;
 							break;
@@ -382,6 +383,47 @@ namespace jopp
 					{
 						case delimiters::name_separator:
 							m_current_context.state = parser_state::value;
+							break;
+
+						default:
+							if(!is_whitespace(ch_in))
+							{
+								return parse_result{
+									.ptr = ptr - 1,
+									.ec = error_code::illegal_delimiter,
+									.line = 0,  // TODO: count lines
+									.col = 0  // TODO: count cols
+								};
+							}
+					}
+					break;
+
+				case parser_state::after_value_object:
+					switch(ch_in)
+					{
+						case delimiters::end_object:
+						{
+							auto& parent_ctxt = m_contexts.top();
+							(void)store_value(parent_ctxt,
+								std::move(m_current_context.key),
+								std::move(m_current_context.value),
+								root);
+							m_current_context = std::move(parent_ctxt);
+							m_contexts.pop();
+							if(std::size(m_contexts) == 0)
+							{
+								return parse_result{
+									.ptr = ptr - 1,
+									.ec = error_code::completed,
+									.line = 0,
+									.col = 0
+								};
+							}
+							break;
+						}
+
+						case delimiters::value_separator:
+							m_current_context.state = parser_state::before_key;
 							break;
 
 						default:
