@@ -203,10 +203,13 @@ namespace jopp
 		);
 	}
 
+	struct literal_view
+	{ std::string_view value; };
+
 	inline
-	auto store_value(class value& parent_value, string&& key, std::string_view buffer, value& root)
+	auto store_value(class value& parent_value, string&& key, literal_view buffer, value& root)
 	{
-		auto val = make_value(buffer);
+		auto val = make_value(buffer.value);
 		if(!val.has_value())
 		{
 			return store_value_result{
@@ -299,7 +302,7 @@ namespace jopp
 						printf("Key: (%s), Input buffer (%s)\n", m_contexts.top().key.c_str(), m_buffer.c_str());
 						auto res = store_value(m_contexts.top().value,
 							std::move(m_contexts.top().key),
-							m_buffer,
+							literal_view{m_buffer},
 							root);
 						if(res.err != error_code::more_data_needed)
 						{
