@@ -204,7 +204,7 @@ namespace jopp
 	private:
 		using value_factory = value (*)(std::string&& buffer);
 
-		parser_state m_current_state;
+		parser_state m_current_state{parser_state::value};
 		parser_context m_current_context;
 		std::stack<parser_context> m_contexts;
 		string m_buffer;
