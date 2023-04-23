@@ -123,6 +123,12 @@ namespace jopp
 		before_value
 	};
 
+	struct parser_context
+	{
+		parser_state state = parser_state::value;
+		class value value{null{}};
+	};
+
 	class parser
 	{
 	public:
@@ -131,14 +137,8 @@ namespace jopp
 	private:
 		using value_factory = value (*)(std::string&& buffer);
 
-		struct context
-		{
-			enum parser_state state = parser_state::value;
-			class value value{null{}};
-		};
-
-		context m_current_context;
-		std::stack<context> m_contexts;
+		parser_context m_current_context;
+		std::stack<parser_context> m_contexts;
 		std::string m_key;
 		std::string m_buffer;
 
@@ -177,7 +177,7 @@ namespace jopp
 							if(!is_null(m_current_context.value))
 							{ m_contexts.push(std::move(m_current_context)); }
 
-							m_current_context = context{};
+							m_current_context = parser_context{};
 							m_current_context.state = parser_state::before_key;
 							break;
 
