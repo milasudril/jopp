@@ -129,7 +129,8 @@ namespace
 	"wood": "involved",
 	"without": true,
 	"it": false,
-	"testing null": null
+	"testing null": null,
+	"a key with esc seq\n\t\\foo\"": "A value with esc seq\n\t\\foo\""
 })"};
 #endif
 }
