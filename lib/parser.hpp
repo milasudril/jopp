@@ -134,13 +134,15 @@ namespace jopp
 	{
 		return context.value.visit(
 			overload{
-				[](object& item, string&& key, class value&& val) {
+				[&context](object& item, string&& key, class value&& val) {
 					if(!item.insert(std::move(key), std::move(val)).second)
 					{ return error_code::key_already_exists; }
+				//	context.state = parser_state::after_value_object
 					return error_code::more_data_needed;
 				},
 				[](array& item, string&&, class value&& val) {
 					item.push_back(std::move(val));
+				//	context.state = parser_state::after_value_array
 					return error_code::more_data_needed;
 				},
 				[&root](null&, string&&, class value&& val) {
@@ -215,7 +217,7 @@ namespace jopp
 							if(!is_null(m_current_context.value))
 							{ m_contexts.push(std::move(m_current_context)); }
 
-							m_current_context = parser_context	{};
+							m_current_context = parser_context{};
 							m_current_context.state = parser_state::before_key;
 							break;
 
@@ -235,7 +237,18 @@ namespace jopp
 				case parser_state::literal:
 					if(is_whitespace(ch_in))
 					{
-						(void)store_value(m_current_context, std::move(m_key), m_buffer, root);
+						if(auto res = store_value(m_current_context,
+							std::move(m_key),
+							value{std::move(m_buffer)},
+							root); res != error_code::more_data_needed)
+						{
+							return parse_result{
+									.ptr = ptr,
+									.ec = res,
+									.line = 0,  // TODO: count lines
+									.col = 0  // TODO: count cols
+								};
+						}
 						m_buffer = string{};
 						m_key = string{};
 					}
@@ -247,10 +260,19 @@ namespace jopp
 					switch(ch_in)
 					{
 						case delimiters::string_begin_end:
-							(void)store_value(m_current_context,
+							if(auto res = store_value(m_current_context,
 								std::move(m_key),
 								value{std::move(m_buffer)},
-								root);
+								root); res != error_code::more_data_needed)
+							{
+								return parse_result{
+										.ptr = ptr,
+										.ec = res,
+										.line = 0,  // TODO: count lines
+										.col = 0  // TODO: count cols
+									};
+							}
+
 							m_key = string{};
 							m_buffer = string{};
 							break;
