@@ -319,7 +319,7 @@ namespace jopp
 							if(char_should_be_escaped(ch_in))
 							{
 								return parse_result{
-									.ptr = ptr - 1,
+									.ptr = ptr,
 									.ec = error_code::character_must_be_escaped,
 									.line = 0,
 									.col = 0
@@ -339,7 +339,7 @@ namespace jopp
 					else
 					{
 						return parse_result{
-							.ptr = ptr - 1,
+							.ptr = ptr,
 							.ec = error_code::unsupported_escape_sequence,
 							.line = 0,
 							.col = 0
@@ -357,7 +357,7 @@ namespace jopp
 							if(!is_whitespace(ch_in))
 							{
 								return parse_result{
-									.ptr = ptr - 1,
+									.ptr = ptr,
 									.ec = error_code::illegal_delimiter,
 									.line = 0,  // TODO: count lines
 									.col = 0  // TODO: count cols
@@ -383,7 +383,7 @@ namespace jopp
 							if(char_should_be_escaped(ch_in))
 							{
 								return parse_result{
-									.ptr = ptr - 1,
+									.ptr = ptr,
 									.ec = error_code::character_must_be_escaped,
 									.line = 0,
 									.col = 0
@@ -422,7 +422,7 @@ namespace jopp
 							if(!is_whitespace(ch_in))
 							{
 								return parse_result{
-									.ptr = ptr - 1,
+									.ptr = ptr,
 									.ec = error_code::illegal_delimiter,
 									.line = 0,  // TODO: count lines
 									.col = 0  // TODO: count cols
@@ -446,7 +446,7 @@ namespace jopp
 							if(std::size(m_contexts) == 0)
 							{
 								return parse_result{
-									.ptr = ptr - 1,
+									.ptr = ptr,
 									.ec = error_code::completed,
 									.line = 0,
 									.col = 0
@@ -463,7 +463,7 @@ namespace jopp
 							if(!is_whitespace(ch_in))
 							{
 								return parse_result{
-									.ptr = ptr - 1,
+									.ptr = ptr,
 									.ec = error_code::illegal_delimiter,
 									.line = 0,  // TODO: count lines
 									.col = 0  // TODO: count cols
@@ -473,6 +473,44 @@ namespace jopp
 					break;
 
 				case parser_state::after_value_array:
+					switch(ch_in)
+					{
+						case delimiters::end_array:
+						{
+							auto& parent_ctxt = m_contexts.top();
+							(void)store_value(parent_ctxt.value,
+								std::move(m_current_context.key),
+								std::move(m_current_context.value),
+								root);
+							m_current_context = std::move(parent_ctxt);
+							m_contexts.pop();
+							if(std::size(m_contexts) == 0)
+							{
+								return parse_result{
+									.ptr = ptr,
+									.ec = error_code::completed,
+									.line = 0,
+									.col = 0
+								};
+							}
+							break;
+						}
+
+						case delimiters::value_separator:
+							m_current_context.state = parser_state::value;
+							break;
+
+						default:
+							if(!is_whitespace(ch_in))
+							{
+								return parse_result{
+									.ptr = ptr,
+									.ec = error_code::illegal_delimiter,
+									.line = 0,  // TODO: count lines
+									.col = 0  // TODO: count cols
+								};
+							}
+					}
 					break;
 			}
 		}
