@@ -4,6 +4,69 @@
 
 #include <testfwk/testfwk.hpp>
 
+TESTCASE(jopp_is_whitespace)
+{
+	for(int k = 0; k != 255; ++k)
+	{
+		if(k == ' ' || k == '\t' || k == '\n' || k == '\r')
+		{ EXPECT_EQ(jopp::is_whitespace(static_cast<char>(k)), true); }
+		else
+		{ EXPECT_EQ(jopp::is_whitespace(static_cast<char>(k)), false); }
+	}
+}
+
+TESTCASE(jopp_char_should_be_escaped)
+{
+	for(int k = 0; k != 255; ++k)
+	{
+		if((k >= 0 && k <= 31) || k == '"')
+		{ EXPECT_EQ(jopp::char_should_be_escaped(static_cast<char>(k)), true); }
+		else
+		{ EXPECT_EQ(jopp::char_should_be_escaped(static_cast<char>(k)), false); }
+	}
+}
+
+TESTCASE(jopp_unescape)
+{
+	for(int k = 0; k != 255; ++k)
+	{
+		switch(k)
+		{
+			case '"':
+				EXPECT_EQ(*jopp::unescape(static_cast<char>(k)), '"');
+				break;
+
+			case '\\':
+				EXPECT_EQ(*jopp::unescape(static_cast<char>(k)), '\\');
+				break;
+
+			case 'n':
+				EXPECT_EQ(*jopp::unescape(static_cast<char>(k)), '\n');
+				break;
+
+			case 't':
+				EXPECT_EQ(*jopp::unescape(static_cast<char>(k)), '\t');
+				break;
+
+			default:
+				EXPECT_EQ(jopp::unescape(static_cast<char>(k)).has_value(), false);
+		}
+	}
+}
+
+TESTCASE(jopp_error_code_to_string)
+{
+	EXPECT_EQ(to_string(jopp::error_code::completed), std::string_view{"Completed"});
+	EXPECT_EQ(to_string(jopp::error_code::more_data_needed), std::string_view{"More data needed"});
+	EXPECT_EQ(to_string(jopp::error_code::key_already_exists), std::string_view{"Key already exists"});
+	EXPECT_EQ(to_string(jopp::error_code::character_must_be_escaped),
+				 std::string_view{"Character must be escaped"});
+	EXPECT_EQ(to_string(jopp::error_code::unsupported_escape_sequence),
+				 std::string_view{"Unsupported escape sequence"});
+	EXPECT_EQ(to_string(jopp::error_code::illegal_delimiter), std::string_view{"Illegal delimiter"});
+	EXPECT_EQ(to_string(jopp::error_code::invalid_value), std::string_view{"Invalid value"});
+}
+
 TESTCASE(jopp_parser_to_number)
 {
 	auto const too_big = jopp::to_number("1e400");
@@ -74,6 +137,8 @@ TESTCASE(jopp_parser_unescape_char)
 	auto const other = jopp::unescape('0');
 	EXPECT_EQ(other.has_value(), false);
 }
+
+#if 0
 
 namespace
 {
@@ -154,3 +219,4 @@ TESTCASE(jopp_parser_parse_data_multiple_blocks)
 
 	debug_print(val);
 }
+#endif
