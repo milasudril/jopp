@@ -108,10 +108,10 @@ namespace
 	"it": false,
 	"testing null": null,
 	"a key with esc seq\n\t\\foo\"": "A value with esc seq\n\t\\foo\""
-})"};
+}Some data after blob)"};
 }
 
-TESTCASE(jopp_parser_parse_data)
+TESTCASE(jopp_parser_parse_data_one_block)
 {
 	jopp::parser parser{};
 
@@ -119,7 +119,38 @@ TESTCASE(jopp_parser_parse_data)
 	auto res = parser.parse(
 		std::span{std::data(json_test_data), std::size(json_test_data)}, val);
 	EXPECT_EQ(res.ec, jopp::error_code::completed);
-	EXPECT_EQ(res.ptr, std::end(json_test_data));
+	EXPECT_EQ(*res.ptr, 'S');
+
+	debug_print(val);
+}
+
+
+TESTCASE(jopp_parser_parse_data_multiple_blocks)
+{
+	jopp::parser parser{};
+
+	auto ptr = std::data(json_test_data);
+	auto const n = std::size(json_test_data);
+	auto bytes_left = n;
+	jopp::value val;
+
+	while(bytes_left != 0)
+	{
+		auto const bytes_to_process = std::min(bytes_left, static_cast<size_t>(13));
+		auto res = parser.parse(std::span{ptr, bytes_to_process}, val);
+		bytes_left -= bytes_to_process;
+		ptr += bytes_to_process;
+		if(res.ec == jopp::error_code::completed)
+		{
+			EXPECT_EQ(*res.ptr, 'S');
+			break;
+		}
+		else
+		{
+			EXPECT_EQ(ptr, res.ptr);
+			EXPECT_EQ(res.ec, jopp::error_code::more_data_needed);
+		}
+	}
 
 	debug_print(val);
 }
