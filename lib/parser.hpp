@@ -223,7 +223,7 @@ namespace jopp
 			m_current_state{parser_state::value}
 		{}
 
-		parse_result parse(std::span<char const> input_seq, value& root);
+		inline parse_result parse(std::span<char const> input_seq, value& root);
 
 	private:
 		using value_factory = value (*)(std::string&& buffer);
