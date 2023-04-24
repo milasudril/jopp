@@ -226,15 +226,11 @@ namespace jopp
 		inline parse_result parse(std::span<char const> input_seq, value& root);
 
 	private:
-		using value_factory = value (*)(std::string&& buffer);
-
 		size_t m_line;
 		size_t m_col;
 		parser_state m_current_state;
 		std::stack<parser_context> m_contexts;
 		string m_buffer;
-
-		value_factory m_value_factory;
 	};
 }
 
