@@ -305,7 +305,7 @@ TESTCASE(jopp_parser_top_level_is_array)
 	jopp::value val;
 	auto const res = parser.parse(data, val);
 	EXPECT_EQ(res.line, 1);
-	EXPECT_EQ(res.col, 10);
+	EXPECT_EQ(res.col, 9);
 	EXPECT_EQ(res.ec, jopp::error_code::completed);
 	EXPECT_EQ(*res.ptr, '\0');
 

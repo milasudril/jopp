@@ -247,7 +247,7 @@ jopp::parse_result jopp::parser::parse(std::span<char const> input_seq, value& r
 		{ return parse_result{ptr, error_code::more_data_needed, m_line, m_col}; }
 
 		auto ch_in = *ptr;
-
+		auto const old_pos = ptr;
 		++ptr;
 
 		switch(m_current_state)
@@ -475,12 +475,15 @@ jopp::parse_result jopp::parser::parse(std::span<char const> input_seq, value& r
 				break;
 		}
 
-		if(ch_in == '\n')
+		if(ptr != old_pos)
 		{
-			m_col = 0;
-			++m_line;
+			if(ch_in == '\n')
+			{
+				m_col = 0;
+				++m_line;
+			}
+			++m_col;
 		}
-		++m_col;
 	}
 }
 
