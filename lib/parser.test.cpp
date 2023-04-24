@@ -223,7 +223,7 @@ namespace
 	"empty array": [ ],
 	"had": {
 		"tightly": [
-			[1, 2, 3, 4],
+			[4, 2, 3, 1],
 			"feet",
 			true,
 			2145719840.4312375,
@@ -264,7 +264,70 @@ TESTCASE(jopp_parser_parse_data_one_block)
 	EXPECT_EQ(res.line, 32);
 	EXPECT_EQ(res.col, 1);
 
-	debug_print(val);
+	auto const& root = *val.get_if<jopp::object>();
+	EXPECT_EQ(std::size(root), 10);
+	{
+		auto const& obj = *root.find("empty object")->second.get_if<jopp::object>();
+		EXPECT_EQ(std::size(obj), 0);
+	}
+	{
+		auto const& array = *root.find("empty array")->second.get_if<jopp::array>();
+		EXPECT_EQ(std::size(array), 0);
+	}
+	{
+		auto const& obj = *root.find("had")->second.get_if<jopp::object>();
+		EXPECT_EQ(std::size(obj), 7);
+		{
+			auto const& array = *obj.find("tightly")->second.get_if<jopp::array>();
+			EXPECT_EQ(std::size(array), 9);
+			{
+				auto const& inner_array = *array[0].get_if<jopp::array>();
+				EXPECT_EQ(std::size(inner_array), 4);
+				EXPECT_EQ(inner_array[0], jopp::value{4.0});
+				EXPECT_EQ(inner_array[1], jopp::value{2.0});
+				EXPECT_EQ(inner_array[2], jopp::value{3.0});
+				EXPECT_EQ(inner_array[3], jopp::value{1.0});
+			}
+			{
+				EXPECT_EQ(array[1], jopp::value{"feet"});
+				EXPECT_EQ(array[2], jopp::value{true});
+				EXPECT_EQ(array[3], jopp::value{2145719840.4312375});
+				EXPECT_EQ(array[4], jopp::value{-286229488.0});
+				EXPECT_EQ(array[5], jopp::value{true});
+				EXPECT_EQ(array[6], jopp::value{true});
+			}
+			{
+				auto const& obj = *array[7].get_if<jopp::object>();
+				EXPECT_EQ(std::size(obj), 1);
+				EXPECT_EQ(obj.find("object in array")->second, jopp::value{jopp::string{"bar"}});
+			}
+			{
+				auto const& obj = *array[8].get_if<jopp::object>();
+				EXPECT_EQ(std::size(obj), 1);
+				EXPECT_EQ(obj.find("object with literal last")->second, jopp::value{jopp::null{}});
+			}
+		}
+		{
+			EXPECT_EQ(obj.find("sound")->second, jopp::value{false});
+			EXPECT_EQ(obj.find("eaten")->second, jopp::value{false});
+			EXPECT_EQ(obj.find("pull")->second, jopp::value{1285774482.782745});
+			EXPECT_EQ(obj.find("long")->second, jopp::value{-1437168945.8634152});
+			EXPECT_EQ(obj.find("independent")->second, jopp::value{-1451031326.0});
+		}
+		{
+			auto const& inner_obj = *obj.find("repeated end")->second.get_if<jopp::object>();
+			EXPECT_EQ(std::size(inner_obj), 1);
+			EXPECT_EQ(inner_obj.find("value")->second, jopp::value{46.0});
+		}
+	}
+	EXPECT_EQ(root.find("fireplace")->second, jopp::value{720535269.0});
+	EXPECT_EQ(root.find("refused")->second, jopp::value{jopp::string{"better"}});
+	EXPECT_EQ(root.find("wood")->second, jopp::value{jopp::string{"involved"}});
+	EXPECT_EQ(root.find("without")->second, jopp::value{true});
+	EXPECT_EQ(root.find("it")->second, jopp::value{false});
+	EXPECT_EQ(root.find("testing null")->second, jopp::value{jopp::null{}});
+	EXPECT_EQ(root.find("a key with esc seq\n\t\\foo\"")->second,
+		jopp::value{jopp::string{"A value with esc seq\n\t\\foo\""}});
 }
 
 TESTCASE(jopp_parser_parse_data_multiple_blocks)
@@ -294,7 +357,70 @@ TESTCASE(jopp_parser_parse_data_multiple_blocks)
 		}
 	}
 
-	debug_print(val);
+	auto const& root = *val.get_if<jopp::object>();
+	EXPECT_EQ(std::size(root), 10);
+	{
+		auto const& obj = *root.find("empty object")->second.get_if<jopp::object>();
+		EXPECT_EQ(std::size(obj), 0);
+	}
+	{
+		auto const& array = *root.find("empty array")->second.get_if<jopp::array>();
+		EXPECT_EQ(std::size(array), 0);
+	}
+	{
+		auto const& obj = *root.find("had")->second.get_if<jopp::object>();
+		EXPECT_EQ(std::size(obj), 7);
+		{
+			auto const& array = *obj.find("tightly")->second.get_if<jopp::array>();
+			EXPECT_EQ(std::size(array), 9);
+			{
+				auto const& inner_array = *array[0].get_if<jopp::array>();
+				EXPECT_EQ(std::size(inner_array), 4);
+				EXPECT_EQ(inner_array[0], jopp::value{4.0});
+				EXPECT_EQ(inner_array[1], jopp::value{2.0});
+				EXPECT_EQ(inner_array[2], jopp::value{3.0});
+				EXPECT_EQ(inner_array[3], jopp::value{1.0});
+			}
+			{
+				EXPECT_EQ(array[1], jopp::value{"feet"});
+				EXPECT_EQ(array[2], jopp::value{true});
+				EXPECT_EQ(array[3], jopp::value{2145719840.4312375});
+				EXPECT_EQ(array[4], jopp::value{-286229488.0});
+				EXPECT_EQ(array[5], jopp::value{true});
+				EXPECT_EQ(array[6], jopp::value{true});
+			}
+			{
+				auto const& obj = *array[7].get_if<jopp::object>();
+				EXPECT_EQ(std::size(obj), 1);
+				EXPECT_EQ(obj.find("object in array")->second, jopp::value{jopp::string{"bar"}});
+			}
+			{
+				auto const& obj = *array[8].get_if<jopp::object>();
+				EXPECT_EQ(std::size(obj), 1);
+				EXPECT_EQ(obj.find("object with literal last")->second, jopp::value{jopp::null{}});
+			}
+		}
+		{
+			EXPECT_EQ(obj.find("sound")->second, jopp::value{false});
+			EXPECT_EQ(obj.find("eaten")->second, jopp::value{false});
+			EXPECT_EQ(obj.find("pull")->second, jopp::value{1285774482.782745});
+			EXPECT_EQ(obj.find("long")->second, jopp::value{-1437168945.8634152});
+			EXPECT_EQ(obj.find("independent")->second, jopp::value{-1451031326.0});
+		}
+		{
+			auto const& inner_obj = *obj.find("repeated end")->second.get_if<jopp::object>();
+			EXPECT_EQ(std::size(inner_obj), 1);
+			EXPECT_EQ(inner_obj.find("value")->second, jopp::value{46.0});
+		}
+	}
+	EXPECT_EQ(root.find("fireplace")->second, jopp::value{720535269.0});
+	EXPECT_EQ(root.find("refused")->second, jopp::value{jopp::string{"better"}});
+	EXPECT_EQ(root.find("wood")->second, jopp::value{jopp::string{"involved"}});
+	EXPECT_EQ(root.find("without")->second, jopp::value{true});
+	EXPECT_EQ(root.find("it")->second, jopp::value{false});
+	EXPECT_EQ(root.find("testing null")->second, jopp::value{jopp::null{}});
+	EXPECT_EQ(root.find("a key with esc seq\n\t\\foo\"")->second,
+		jopp::value{jopp::string{"A value with esc seq\n\t\\foo\""}});
 }
 
 TESTCASE(jopp_parser_top_level_is_array)
