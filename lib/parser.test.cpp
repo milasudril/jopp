@@ -516,3 +516,32 @@ TESTCASE(jopp_parser_junk_after_value_array_other)
 	EXPECT_EQ(res.ec, jopp::error_code::illegal_delimiter);
 	EXPECT_EQ(*res.ptr, '5');
 }
+
+TESTCASE(jopp_parser_store_object_duplicate_key)
+{
+	jopp::parser parser;
+	std::string_view data{R"({"key a": 456,
+	"key a": {}
+})"};
+
+	jopp::value val;
+	auto const res = parser.parse(data, val);
+	EXPECT_EQ(res.line, 2);
+	EXPECT_EQ(res.col, 12);
+	EXPECT_EQ(*res.ptr, '\n');
+	EXPECT_EQ(res.ec, jopp::error_code::key_already_exists);
+}
+
+#if 0
+TESTCASE(jopp_parser_terminate_object_as_array)
+{
+	jopp::parser parser;
+	std::string_view data{R"({"key a": 456,
+	"key b": {}
+])"};
+
+	jopp::value val;
+	auto const res = parser.parse(data, val);
+	EXPECT_EQ(res.ec, jopp::error_code::illegal_delimiter);
+}
+#endif

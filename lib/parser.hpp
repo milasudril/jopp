@@ -422,15 +422,16 @@ jopp::parse_result jopp::parser::parse(std::span<char const> input_seq, value& r
 						m_contexts.pop();
 						if(std::size(m_contexts) == 0)
 						{
-							printf("Last object read %zu %zu\n", m_line, m_col);
 							root = std::move(current_context.value);
 							return parse_result{ptr, error_code::completed, m_line, m_col};
 						}
 
-						// TODO: error handling
-						m_current_state = store_value(m_contexts.top().value,
+						auto const res = store_value(m_contexts.top().value,
 							std::move(m_contexts.top().key),
-							std::move(current_context.value)).next_state;
+							std::move(current_context.value));
+						if(res.err != error_code::more_data_needed)
+						{ return parse_result{ptr, res.err, m_line, m_col}; }
+						m_current_state = res.next_state;
 						break;
 					}
 
@@ -457,7 +458,6 @@ jopp::parse_result jopp::parser::parse(std::span<char const> input_seq, value& r
 							return parse_result{ptr, error_code::completed, m_line, m_col};
 						}
 
-						// TODO: error handling
 						m_current_state = store_value(m_contexts.top().value,
 							std::move(m_contexts.top().key),
 							std::move(current_context.value)).next_state;
