@@ -490,3 +490,29 @@ TESTCASE(jopp_parser_junk_after_value_object_other_2)
 	EXPECT_EQ(res.ec, jopp::error_code::illegal_delimiter);
 	EXPECT_EQ(*res.ptr, 'u');
 }
+
+TESTCASE(jopp_parser_junk_after_value_array_string)
+{
+	jopp::parser parser;
+	std::string_view data{R"(["A string" 123])"};
+
+	jopp::value val;
+	auto const res = parser.parse(data, val);
+	EXPECT_EQ(res.line, 1);
+	EXPECT_EQ(res.col, 13);
+	EXPECT_EQ(res.ec, jopp::error_code::illegal_delimiter);
+	EXPECT_EQ(*res.ptr, '2');
+}
+
+TESTCASE(jopp_parser_junk_after_value_array_other)
+{
+	jopp::parser parser;
+	std::string_view data{R"([123 456])"};
+
+	jopp::value val;
+	auto const res = parser.parse(data, val);
+	EXPECT_EQ(res.line, 1);
+	EXPECT_EQ(res.col, 6);
+	EXPECT_EQ(res.ec, jopp::error_code::illegal_delimiter);
+	EXPECT_EQ(*res.ptr, '5');
+}
