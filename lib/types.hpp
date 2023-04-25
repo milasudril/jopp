@@ -31,6 +31,21 @@ namespace jopp
 	using number = double;
 	using string = std::string;
 
+	inline constexpr char const* false_literal{"false"};
+	inline constexpr char const* null_literal{"null"};
+	inline constexpr char const* true_literal{"true"};
+
+	inline constexpr char const* to_string(null)
+	{ return false_literal; }
+
+	inline constexpr char const* to_string(boolean x)
+	{ return x == true ? true_literal : false_literal; }
+
+	template<class T>
+	requires(std::is_same_v<T, string>)
+	inline constexpr decltype(auto) to_string(T&& val)
+	{ return val; }
+
 	inline std::optional<number> to_number(std::string_view val)
 	{
 		number ret{};
@@ -44,6 +59,13 @@ namespace jopp
 		}
 
 		return ret;
+	}
+
+	inline std::string to_string(jopp::number x)
+	{
+		std::array<char, 32> buffer{};
+		auto const res = std::to_chars(std::begin(buffer), std::end(buffer), x);
+		return std::string{std::data(buffer), res.ptr};
 	}
 
 	template<class T>
@@ -133,10 +155,6 @@ namespace jopp
 
 	inline bool is_null(value const& val)
 	{ return val.get_if<null>() != nullptr; }
-
-	inline constexpr std::string_view false_literal{"false"};
-	inline constexpr std::string_view null_literal{"null"};
-	inline constexpr std::string_view true_literal{"true"};
 
 	inline std::optional<value> make_value(std::string_view literal)
 	{
