@@ -36,15 +36,15 @@ namespace jopp
 	inline constexpr char const* true_literal{"true"};
 
 	inline constexpr char const* to_string(null)
-	{ return false_literal; }
+	{ return null_literal; }
 
 	inline constexpr char const* to_string(boolean x)
 	{ return x == true ? true_literal : false_literal; }
 
 	template<class T>
-	requires(std::is_same_v<T, string>)
-	inline constexpr decltype(auto) to_string(T&& val)
-	{ return val; }
+	requires(std::is_same_v<std::remove_cvref_t<T>, string>)
+	inline decltype(auto) to_string(T&& val)
+	{ return std::forward<T>(val); }
 
 	inline std::optional<number> to_number(std::string_view val)
 	{

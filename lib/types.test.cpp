@@ -157,7 +157,7 @@ TESTCASE(jopp_value_default_is_null)
 	EXPECT_EQ(is_null(a), true);
 }
 
-TESTCASE(joppr_make_value)
+TESTCASE(jopp_make_value)
 {
 	auto const null = jopp::make_value("null");
 	REQUIRE_EQ(null.has_value(), true);
@@ -210,3 +210,44 @@ TESTCASE(jopp_to_number)
 	EXPECT_EQ(empty_string.has_value(), false);
 }
 
+char const* (*test_to_string_null)(jopp::null) = jopp::to_string;
+
+TESTCASE(jopp_to_string_null)
+{
+	auto const str = test_to_string_null(jopp::null{});
+	EXPECT_EQ(str, std::string_view{"null"});
+}
+
+char const* (*test_to_string_bool)(jopp::boolean) = jopp::to_string;
+
+TESTCASE(jopp_to_string_boolean)
+{
+	{
+		auto const str = test_to_string_bool(true);
+		EXPECT_EQ(str, std::string_view{"true"});
+	}
+
+	{
+		auto const str = test_to_string_bool(false);
+		EXPECT_EQ(str, std::string_view{"false"});
+	}
+}
+
+TESTCASE(jopp_to_string_string_temporary)
+{
+	auto const str = jopp::to_string(jopp::string{"A long text that does not fit in sbo"});
+	EXPECT_EQ(str, "A long text that does not fit in sbo");
+}
+
+TESTCASE(jopp_to_string_string_non_temporary)
+{
+	jopp::string input{"A long text that does not fit in sbo"};
+	auto const str = jopp::to_string(input);
+	EXPECT_EQ(str, "A long text that does not fit in sbo");
+}
+
+TESTCASE(jopp_to_string_number)
+{
+	auto val = jopp::to_string(1.25);
+	EXPECT_EQ(val, "1.25");
+}
