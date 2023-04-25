@@ -2,6 +2,8 @@
 #define JOPP_DELIMITERS_HPP
 
 #include <optional>
+#include <string>
+#include <string_view>
 
 namespace jopp
 {
@@ -20,7 +22,7 @@ namespace jopp
 	{ return ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r'; }
 
 	inline constexpr auto char_should_be_escaped(char ch)
-	{ return (ch >= '\0' && ch <= '\x1f') || ch == '"'; }
+	{ return (ch >= '\0' && ch <= '\x1f') || ch == '"' || ch == '\\'; }
 
 	inline constexpr auto begin_esc_seq = '\\';
 
@@ -47,6 +49,45 @@ namespace jopp
 			default:
 				return std::nullopt;
 		}
+	}
+
+	inline constexpr std::optional<char> get_escape_char(char ch)
+	{
+		switch(ch)
+		{
+			case '"':
+				return esc_chars::quotation_mark;
+			case '\\':
+				return esc_chars::rev_sollidus;
+			case '\n':
+				return esc_chars::linefeed;
+			case '\t':
+				return esc_chars::tab;
+			default:
+				return std::nullopt;
+		}
+	}
+
+	inline std::optional<std::string> escape(std::string_view val)
+	{
+		std::string ret;
+		ret.reserve(std::size(val));
+		for(size_t k = 0; k != std::size(val); ++k)
+		{
+			if(char_should_be_escaped(val[k]))
+			{
+				auto const esc_char = get_escape_char(val[k]);
+				if(!esc_char.has_value())
+				{ return std::nullopt; }
+
+				ret.push_back(begin_esc_seq);
+				ret.push_back(*esc_char);
+			}
+			else
+			{ ret.push_back(val[k]); }
+		}
+
+		return ret;
 	}
 }
 #endif
