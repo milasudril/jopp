@@ -4,56 +4,6 @@
 
 #include <testfwk/testfwk.hpp>
 
-TESTCASE(jopp_is_whitespace)
-{
-	for(int k = 0; k != 255; ++k)
-	{
-		if(k == ' ' || k == '\t' || k == '\n' || k == '\r')
-		{ EXPECT_EQ(jopp::is_whitespace(static_cast<char>(k)), true); }
-		else
-		{ EXPECT_EQ(jopp::is_whitespace(static_cast<char>(k)), false); }
-	}
-}
-
-TESTCASE(jopp_char_should_be_escaped)
-{
-	for(int k = 0; k != 255; ++k)
-	{
-		if((k >= 0 && k <= 31) || k == '"')
-		{ EXPECT_EQ(jopp::char_should_be_escaped(static_cast<char>(k)), true); }
-		else
-		{ EXPECT_EQ(jopp::char_should_be_escaped(static_cast<char>(k)), false); }
-	}
-}
-
-TESTCASE(jopp_unescape)
-{
-	for(int k = 0; k != 255; ++k)
-	{
-		switch(k)
-		{
-			case '"':
-				EXPECT_EQ(*jopp::unescape(static_cast<char>(k)), '"');
-				break;
-
-			case '\\':
-				EXPECT_EQ(*jopp::unescape(static_cast<char>(k)), '\\');
-				break;
-
-			case 'n':
-				EXPECT_EQ(*jopp::unescape(static_cast<char>(k)), '\n');
-				break;
-
-			case 't':
-				EXPECT_EQ(*jopp::unescape(static_cast<char>(k)), '\t');
-				break;
-
-			default:
-				EXPECT_EQ(jopp::unescape(static_cast<char>(k)).has_value(), false);
-		}
-	}
-}
-
 TESTCASE(jopp_error_code_to_string)
 {
 	EXPECT_EQ(to_string(jopp::error_code::completed), std::string_view{"Completed"});
@@ -67,24 +17,6 @@ TESTCASE(jopp_error_code_to_string)
 	EXPECT_EQ(to_string(jopp::error_code::invalid_value), std::string_view{"Invalid value"});
 	EXPECT_EQ(to_string(jopp::error_code::no_top_level_node), std::string_view{"No top level node"});
 
-}
-
-TESTCASE(jopp_parser_unescape_char)
-{
-	auto const quotation_mark = jopp::unescape(jopp::esc_chars::quotation_mark);
-	EXPECT_EQ(quotation_mark, '"');
-
-	auto const rev_sollidus = jopp::unescape(jopp::esc_chars::rev_sollidus);
-	EXPECT_EQ(rev_sollidus, '\\');
-
-	auto const linefeed = jopp::unescape(jopp::esc_chars::linefeed);
-	EXPECT_EQ(linefeed, '\n');
-
-	auto const tab = jopp::unescape(jopp::esc_chars::tab);
-	EXPECT_EQ(tab, '\t');
-
-	auto const other = jopp::unescape('0');
-	EXPECT_EQ(other.has_value(), false);
 }
 
 TESTCASE(jopp_parser_store_value_in_object)
