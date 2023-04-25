@@ -7,6 +7,8 @@
 #include <string>
 #include <memory>
 #include <type_traits>
+#include <optional>
+#include <charconv>
 
 #include <cstdio>
 
@@ -30,6 +32,21 @@ namespace jopp
 	class array;
 	using number = double;
 	using string = std::string;
+
+	inline std::optional<number> to_number(std::string_view val)
+	{
+		number ret{};
+		auto const res = std::from_chars(std::begin(val), std::end(val), ret);
+
+		if(res.ptr != std::end(val) ||
+			res.ec == std::errc::result_out_of_range ||
+			res.ec == std::errc::invalid_argument)
+		{
+			return std::nullopt;
+		}
+
+		return ret;
+	}
 
 	template<class T>
 	inline constexpr auto is_object_or_array_v = is_same_without_cvref_v<T, array>
@@ -118,6 +135,27 @@ namespace jopp
 
 	inline bool is_null(value const& val)
 	{ return val.get_if<null>() != nullptr; }
+
+	inline constexpr std::string_view false_literal{"false"};
+	inline constexpr std::string_view null_literal{"null"};
+	inline constexpr std::string_view true_literal{"true"};
+
+	inline std::optional<value> make_value(std::string_view literal)
+	{
+		if(literal == false_literal)
+		{ return value{false}; }
+
+		if(literal == true_literal)
+		{ return value{true}; }
+
+		if(literal == null_literal)
+		{ return value{null{}}; }
+
+		if(auto val = to_number(literal); val.has_value())
+		{ return value{*val}; }
+
+		return std::nullopt;
+	}
 
 	class object
 	{
