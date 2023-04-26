@@ -136,13 +136,14 @@ namespace jopp
 	class parser
 	{
 	public:
-		parser():
+		explicit parser(value& root):
 			m_line{1},
 			m_col{1},
-			m_current_state{parser_state::value}
+			m_current_state{parser_state::value},
+			m_root{root}
 		{}
 
-		inline parse_result parse(std::span<char const> input_seq, value& root);
+		inline parse_result parse(std::span<char const> input_seq);
 
 	private:
 		size_t m_line;
@@ -150,10 +151,11 @@ namespace jopp
 		parser_state m_current_state;
 		std::stack<parser_context> m_contexts;
 		string m_buffer;
+		std::reference_wrapper<value> m_root;
 	};
 }
 
-jopp::parse_result jopp::parser::parse(std::span<char const> input_seq, value& root)
+jopp::parse_result jopp::parser::parse(std::span<char const> input_seq)
 {
 	auto ptr = std::data(input_seq);
 	while(true)
@@ -337,7 +339,7 @@ jopp::parse_result jopp::parser::parse(std::span<char const> input_seq, value& r
 						m_contexts.pop();
 						if(std::size(m_contexts) == 0)
 						{
-							root = std::move(current_context.value);
+							m_root.get() = std::move(current_context.value);
 							return parse_result{ptr, error_code::completed, m_line, m_col};
 						}
 
@@ -369,7 +371,7 @@ jopp::parse_result jopp::parser::parse(std::span<char const> input_seq, value& r
 						m_contexts.pop();
 						if(std::size(m_contexts) == 0)
 						{
-							root = std::move(current_context.value);
+							m_root.get() = std::move(current_context.value);
 							return parse_result{ptr, error_code::completed, m_line, m_col};
 						}
 

@@ -133,11 +133,11 @@ namespace
 
 TESTCASE(jopp_parser_parse_data_one_block)
 {
-	jopp::parser parser{};
-
 	jopp::value val;
+	jopp::parser parser{val};
+
 	auto res = parser.parse(
-		std::span{std::data(json_test_data), std::size(json_test_data)}, val);
+		std::span{std::data(json_test_data), std::size(json_test_data)});
 	EXPECT_EQ(res.ec, jopp::error_code::completed);
 	EXPECT_EQ(*res.ptr, 'S');
 	EXPECT_EQ(res.line, 32);
@@ -211,17 +211,17 @@ TESTCASE(jopp_parser_parse_data_one_block)
 
 TESTCASE(jopp_parser_parse_data_multiple_blocks)
 {
-	jopp::parser parser{};
+	jopp::value val;
+	jopp::parser parser{val};
 
 	auto ptr = std::data(json_test_data);
 	auto const n = std::size(json_test_data);
 	auto bytes_left = n;
-	jopp::value val;
 
 	while(bytes_left != 0)
 	{
 		auto const bytes_to_process = std::min(bytes_left, static_cast<size_t>(13));
-		auto res = parser.parse(std::span{ptr, bytes_to_process}, val);
+		auto res = parser.parse(std::span{ptr, bytes_to_process});
 		bytes_left -= bytes_to_process;
 		ptr += bytes_to_process;
 		if(res.ec == jopp::error_code::completed)
@@ -304,11 +304,11 @@ TESTCASE(jopp_parser_parse_data_multiple_blocks)
 
 TESTCASE(jopp_parser_top_level_is_array)
 {
-	jopp::parser parser;
+	jopp::value val;
+	jopp::parser parser{val};
 	std::string_view data{R"([3, 1, 2])"};
 
-	jopp::value val;
-	auto const res = parser.parse(data, val);
+	auto const res = parser.parse(data);
 	EXPECT_EQ(res.line, 1);
 	EXPECT_EQ(res.col, 9);
 	EXPECT_EQ(res.ec, jopp::error_code::completed);
@@ -324,10 +324,10 @@ TESTCASE(jopp_parser_top_level_is_array)
 TESTCASE(jopp_parser_leaf_at_top_level)
 {
 	{
-		jopp::parser parser{};
-		std::string_view data{"\"lorem ipsum\""};
 		jopp::value val;
-		auto const res = parser.parse(data, val);
+		jopp::parser parser{val};
+		std::string_view data{"\"lorem ipsum\""};
+		auto const res = parser.parse(data);
 		EXPECT_EQ(res.line, 1);
 		EXPECT_EQ(res.col, 1);
 		EXPECT_EQ(res.ec, jopp::error_code::no_top_level_node);
@@ -335,10 +335,10 @@ TESTCASE(jopp_parser_leaf_at_top_level)
 	}
 
 	{
-		jopp::parser parser{};
-		std::string_view data{"false "};
 		jopp::value val;
-		auto const res = parser.parse(data, val);
+		jopp::parser parser{val};
+		std::string_view data{"false "};
+		auto const res = parser.parse(data);
 		EXPECT_EQ(res.line, 1);
 		EXPECT_EQ(res.col, 1);
 		EXPECT_EQ(res.ec, jopp::error_code::no_top_level_node);
@@ -348,11 +348,11 @@ TESTCASE(jopp_parser_leaf_at_top_level)
 
 TESTCASE(jopp_parser_invalid_literal)
 {
-	jopp::parser parser;
+	jopp::value val;
+	jopp::parser parser{val};
 	std::string_view data{"[foobar]"};
 
-	jopp::value val;
-	auto const res = parser.parse(data, val);
+	auto const res = parser.parse(data);
 	EXPECT_EQ(res.line, 1);
 	EXPECT_EQ(res.col, 8);
 	EXPECT_EQ(res.ptr, std::data(data) + 8);
@@ -360,14 +360,14 @@ TESTCASE(jopp_parser_invalid_literal)
 
 TESTCASE(jopp_parser_duplicate_key)
 {
-	jopp::parser parser;
+	jopp::value val;
+	jopp::parser parser{val};
 	std::string_view data{R"({
 	"the key": "123",
 	"the key": "124"
 })"};
 
-	jopp::value val;
-	auto const res = parser.parse(data, val);
+	auto const res = parser.parse(data);
 	EXPECT_EQ(res.line, 3);
 	EXPECT_EQ(res.col, 17);
 	EXPECT_EQ(res.ec, jopp::error_code::key_already_exists);
@@ -376,14 +376,14 @@ TESTCASE(jopp_parser_duplicate_key)
 
 TESTCASE(jopp_parser_missing_esc_char_in_value)
 {
-	jopp::parser parser;
+	jopp::value val;
+	jopp::parser parser{val};
 	std::string_view data{R"({
 	"the key": "123
 "
 })"};
 
-	jopp::value val;
-	auto const res = parser.parse(data, val);
+	auto const res = parser.parse(data);
 	EXPECT_EQ(res.line, 2);
 	EXPECT_EQ(res.col, 17);
 	EXPECT_EQ(res.ec, jopp::error_code::character_must_be_escaped);
@@ -392,11 +392,11 @@ TESTCASE(jopp_parser_missing_esc_char_in_value)
 
 TESTCASE(jopp_parser_unsupp_esc_seq_in_value)
 {
-	jopp::parser parser;
+	jopp::value val;
+	jopp::parser parser{val};
 	std::string_view data{R"({"the key": "123\u0000"})"};
 
-	jopp::value val;
-	auto const res = parser.parse(data, val);
+	auto const res = parser.parse(data);
 	EXPECT_EQ(res.line, 1);
 	EXPECT_EQ(res.col, 18);
 	EXPECT_EQ(res.ec, jopp::error_code::unsupported_escape_sequence);
@@ -405,11 +405,11 @@ TESTCASE(jopp_parser_unsupp_esc_seq_in_value)
 
 TESTCASE(jopp_parser_junk_before_key)
 {
-	jopp::parser parser;
+	jopp::value val;
+	jopp::parser parser{val};
 	std::string_view data{R"({junk"the key": "123"})"};
 
-	jopp::value val;
-	auto const res = parser.parse(data, val);
+	auto const res = parser.parse(data);
 	EXPECT_EQ(res.line, 1);
 	EXPECT_EQ(res.col, 2);
 	EXPECT_EQ(res.ec, jopp::error_code::illegal_delimiter);
@@ -418,13 +418,13 @@ TESTCASE(jopp_parser_junk_before_key)
 
 TESTCASE(jopp_parser_missing_esc_char_in_key)
 {
-	jopp::parser parser;
+	jopp::value val;
+	jopp::parser parser{val};
 	std::string_view data{R"({
 	"the
 key": "123"})"};
 
-	jopp::value val;
-	auto const res = parser.parse(data, val);
+	auto const res = parser.parse(data);
 	EXPECT_EQ(res.line, 2);
 	EXPECT_EQ(res.col, 6);
 	EXPECT_EQ(res.ec, jopp::error_code::character_must_be_escaped);
@@ -433,11 +433,11 @@ key": "123"})"};
 
 TESTCASE(jopp_parser_unsupp_esc_seq_in_key)
 {
-	jopp::parser parser;
+	jopp::value val;
+	jopp::parser parser{val};
 	std::string_view data{R"({"the key\u0000": "123"})"};
 
-	jopp::value val;
-	auto const res = parser.parse(data, val);
+	auto const res = parser.parse(data);
 	EXPECT_EQ(res.line, 1);
 	EXPECT_EQ(res.col, 11);
 	EXPECT_EQ(res.ec, jopp::error_code::unsupported_escape_sequence);
@@ -446,11 +446,11 @@ TESTCASE(jopp_parser_unsupp_esc_seq_in_key)
 
 TESTCASE(jopp_parser_junk_before_value)
 {
-	jopp::parser parser;
+	jopp::value val;
+	jopp::parser parser{val};
 	std::string_view data{R"({"the key" junk: "123"})"};
 
-	jopp::value val;
-	auto const res = parser.parse(data, val);
+	auto const res = parser.parse(data);
 	EXPECT_EQ(res.line, 1);
 	EXPECT_EQ(res.col, 12);
 	EXPECT_EQ(res.ec, jopp::error_code::illegal_delimiter);
@@ -459,11 +459,11 @@ TESTCASE(jopp_parser_junk_before_value)
 
 TESTCASE(jopp_parser_junk_after_value_object_string)
 {
-	jopp::parser parser;
+	jopp::value val;
+	jopp::parser parser{val};
 	std::string_view data{R"({"the key": "123" junk})"};
 
-	jopp::value val;
-	auto const res = parser.parse(data, val);
+	auto const res = parser.parse(data);
 	EXPECT_EQ(res.line, 1);
 	EXPECT_EQ(res.col, 19);
 	EXPECT_EQ(res.ec, jopp::error_code::illegal_delimiter);
@@ -472,11 +472,11 @@ TESTCASE(jopp_parser_junk_after_value_object_string)
 
 TESTCASE(jopp_parser_junk_after_value_object_other_1)
 {
-	jopp::parser parser;
+	jopp::value val;
+	jopp::parser parser{val};
 	std::string_view data{R"({"the key": 123 junk})"};
 
-	jopp::value val;
-	auto const res = parser.parse(data, val);
+	auto const res = parser.parse(data);
 	EXPECT_EQ(res.line, 1);
 	EXPECT_EQ(res.col, 17);
 	EXPECT_EQ(res.ec, jopp::error_code::illegal_delimiter);
@@ -485,11 +485,11 @@ TESTCASE(jopp_parser_junk_after_value_object_other_1)
 
 TESTCASE(jopp_parser_junk_after_value_object_other_2)
 {
-	jopp::parser parser;
+	jopp::value val;
+	jopp::parser parser{val};
 	std::string_view data{R"({"the key": 123 , junk})"};
 
-	jopp::value val;
-	auto const res = parser.parse(data, val);
+	auto const res = parser.parse(data);
 	EXPECT_EQ(res.line, 1);
 	EXPECT_EQ(res.col, 19);
 	EXPECT_EQ(res.ec, jopp::error_code::illegal_delimiter);
@@ -498,11 +498,11 @@ TESTCASE(jopp_parser_junk_after_value_object_other_2)
 
 TESTCASE(jopp_parser_junk_after_value_array_string)
 {
-	jopp::parser parser;
+	jopp::value val;
+	jopp::parser parser{val};
 	std::string_view data{R"(["A string" 123])"};
 
-	jopp::value val;
-	auto const res = parser.parse(data, val);
+	auto const res = parser.parse(data);
 	EXPECT_EQ(res.line, 1);
 	EXPECT_EQ(res.col, 13);
 	EXPECT_EQ(res.ec, jopp::error_code::illegal_delimiter);
@@ -511,11 +511,11 @@ TESTCASE(jopp_parser_junk_after_value_array_string)
 
 TESTCASE(jopp_parser_junk_after_value_array_other)
 {
-	jopp::parser parser;
+	jopp::value val;
+	jopp::parser parser{val};
 	std::string_view data{R"([123 456])"};
 
-	jopp::value val;
-	auto const res = parser.parse(data, val);
+	auto const res = parser.parse(data);
 	EXPECT_EQ(res.line, 1);
 	EXPECT_EQ(res.col, 6);
 	EXPECT_EQ(res.ec, jopp::error_code::illegal_delimiter);
@@ -524,13 +524,13 @@ TESTCASE(jopp_parser_junk_after_value_array_other)
 
 TESTCASE(jopp_parser_store_object_duplicate_key)
 {
-	jopp::parser parser;
+	jopp::value val;
+	jopp::parser parser{val};
 	std::string_view data{R"({"key a": 456,
 	"key a": {}
 })"};
 
-	jopp::value val;
-	auto const res = parser.parse(data, val);
+	auto const res = parser.parse(data);
 	EXPECT_EQ(res.line, 2);
 	EXPECT_EQ(res.col, 12);
 	EXPECT_EQ(*res.ptr, '\n');
@@ -539,13 +539,13 @@ TESTCASE(jopp_parser_store_object_duplicate_key)
 
 TESTCASE(jopp_parser_terminate_object_as_array)
 {
-	jopp::parser parser;
+	jopp::value val;
+	jopp::parser parser{val};
 	std::string_view data{R"({"key a": 456,
 	"key b": 5687
 ])"};
 
-	jopp::value val;
-	auto const res = parser.parse(data, val);
+	auto const res = parser.parse(data);
 	EXPECT_EQ(res.ec, jopp::error_code::illegal_delimiter);
 	EXPECT_EQ(res.line, 3);
 	EXPECT_EQ(res.col, 1);
@@ -554,13 +554,13 @@ TESTCASE(jopp_parser_terminate_object_as_array)
 
 TESTCASE(jopp_parser_terminate_array_as_object)
 {
-	jopp::parser parser;
+	jopp::value val;
+	jopp::parser parser{val};
 	std::string_view data{R"([456,
 	5687
 })"};
 
-	jopp::value val;
-	auto const res = parser.parse(data, val);
+	auto const res = parser.parse(data);
 	EXPECT_EQ(res.ec, jopp::error_code::illegal_delimiter);
 	EXPECT_EQ(res.line, 3);
 	EXPECT_EQ(res.col, 1);

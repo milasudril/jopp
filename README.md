@@ -14,8 +14,8 @@ Jopp is another JSON parser for C++. It features a DOM parser, that
 
 int main()
 {
-	jopp::parser parser;
 	jopp::value root;
+	jopp::parser parser{root};
 	std::array<char, 4096> buffer{};
 	while(true)
 	{
@@ -26,7 +26,7 @@ int main()
 		if(bytes_read == -1 && errno == EAGAIN)
 		{ continue; }
 
-		auto const res = parser.parse(std::span{std::data(buffer), bytes_read}, root);
+		auto const res = parser.parse(std::span{std::data(buffer), bytes_read});
 		if(res.ec == jopp::error_code::completed)
 		{
 			// Data is now in "root"
