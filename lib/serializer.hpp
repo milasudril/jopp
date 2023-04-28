@@ -28,7 +28,7 @@ namespace jopp
 
 	struct serializer_context
 	{
-		range_processor<item_pointer> current_item;
+		range_processor<item_pointer> range;
 	};
 
 	auto make_range_processor(std::reference_wrapper<value const> val)
@@ -60,6 +60,27 @@ namespace jopp
 	private:
 		std::stack<serializer_context> m_contexts;
 	};
+
+	inline serialize_result serializer::serialize(std::span<char>)
+	{
+		auto& current_context = m_contexts.top();
+		while(true)
+		{
+			auto res = current_context.range.pop_element();
+			if(!res.has_value())
+			{
+				m_contexts.pop();
+				if(m_contexts.empty())
+				{ return serialize_result{}; }
+			}
+
+			res.visit(overload{
+				[](value const&){},
+				[](char const*, value const&){}
+			});
+		}
+	}
+
 }
 
 #endif
