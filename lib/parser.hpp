@@ -3,6 +3,7 @@
 
 #include "./types.hpp"
 #include "./delimiters.hpp"
+#include "./utils.hpp"
 
 #include <string_view>
 #include <stack>

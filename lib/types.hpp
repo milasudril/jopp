@@ -149,10 +149,6 @@ namespace jopp
 			> m_value;
 	};
 
-	template<class ... Ts>
-	struct overload : Ts ...
-	{ using Ts::operator() ...; };
-
 	inline bool is_null(value const& val)
 	{ return val.get_if<null>() != nullptr; }
 
