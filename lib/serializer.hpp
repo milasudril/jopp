@@ -3,6 +3,7 @@
 
 #include "./types.hpp"
 #include "./delimiters.hpp"
+#include "./utils.hpp"
 
 #include <string_view>
 #include <stack>
@@ -24,9 +25,10 @@ namespace jopp
 		serializer_error_code ec;
 	};
 
+
 	struct serailzer_context
 	{
-
+		range_processor<item_pointer> current_item;
 	};
 
 	class serializer

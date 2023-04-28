@@ -3,6 +3,7 @@
 
 #include <type_traits>
 #include <memory>
+#include <cassert>
 
 namespace jopp
 {
@@ -59,6 +60,14 @@ namespace jopp
 	private:
 		std::unique_ptr<enumerator<ValueReference>> m_impl;
 	};
+
+	template<class T>
+	requires(std::is_pointer_v<T>)
+	constexpr decltype(auto) safe_deref(T val)
+	{
+		assert(val != nullptr);
+		return *val;
+	}
 }
 
 #endif

@@ -1,6 +1,8 @@
 #ifndef JOPP_JSON_TYPES_HPP
 #define JOPP_JSON_TYPES_HPP
 
+#include "./utils.hpp"
+
 #include <variant>
 #include <map>
 #include <vector>
@@ -242,6 +244,37 @@ namespace jopp
 
 	private:
 		std::vector<value> m_values;
+	};
+
+	class item_pointer
+	{
+	public:
+		explicit item_pointer(std::pair<object::key_type, object::mapped_type> const* kv):
+			m_key{safe_deref(kv).first.c_str()},
+			m_value{&safe_deref(kv).second}
+		{}
+
+		explicit item_pointer(value const* val):
+			m_key{nullptr},
+			m_value{val}
+		{}
+
+		explicit item_pointer(nullptr_t):m_key{nullptr}, m_value{nullptr} {}
+
+		bool has_value() const { return m_value != nullptr; }
+
+		template<class Visitor, class ... Args>
+		decltype(auto) visit(Visitor&& visitor, Args&& ... args) const
+		{
+			if(m_key == nullptr)
+			{ return visitor(*m_value, std::forward<Args>(args)...); }
+			else
+			{ return visitor(m_key, *m_value, std::forward<Args>(args)...); }
+		}
+
+	private:
+		char const* m_key;
+		value const* m_value;
 	};
 }
 
