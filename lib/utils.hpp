@@ -48,6 +48,8 @@ namespace jopp
 	class range_processor
 	{
 	public:
+		range_processor() = default;
+
 		template<class InputIterator>
 		explicit range_processor(InputIterator begin, InputIterator end):
 			m_impl{std::make_unique<iter_to_rangeproc_adaptor<InputIterator, ValueReference>>(begin, end)}

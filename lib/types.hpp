@@ -249,7 +249,7 @@ namespace jopp
 	class item_pointer
 	{
 	public:
-		explicit item_pointer(std::pair<object::key_type, object::mapped_type> const* kv):
+		explicit item_pointer(std::pair<object::key_type const, object::mapped_type> const* kv):
 			m_key{safe_deref(kv).first.c_str()},
 			m_value{&safe_deref(kv).second}
 		{}

@@ -260,15 +260,15 @@ TESTCASE(jopp_item_pointer_empty)
 
 TESTCASE(jopp_item_pointer_key_value)
 {
-	std::pair<std::string, jopp::value> pair{"foo", jopp::value{124.0}};
+	std::pair<std::string const, jopp::value> pair{"foo", jopp::value{124.0}};
 	jopp::item_pointer ptr{&pair};
 
 	EXPECT_EQ(ptr.has_value(), true);
 	auto ret = ptr.visit(jopp::overload{
-		[](jopp::value const&, std::pair<std::string, jopp::value> const&) {
+		[](jopp::value const&, std::pair<std::string const, jopp::value> const&) {
 			return 1;
 		},
-		[](char const* key, jopp::value const& val, std::pair<std::string, jopp::value> const& expected) {
+		[](char const* key, jopp::value const& val, std::pair<std::string const, jopp::value> const& expected) {
 			EXPECT_EQ(key, expected.first);
 			EXPECT_EQ(val, expected.second);
 			return 2;

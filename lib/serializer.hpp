@@ -8,7 +8,7 @@
 #include <string_view>
 #include <stack>
 #include <span>
-#include <reference_wrapper>
+#include <functional>
 
 namespace jopp
 {
@@ -26,21 +26,39 @@ namespace jopp
 	};
 
 
-	struct serailzer_context
+	struct serializer_context
 	{
 		range_processor<item_pointer> current_item;
 	};
 
+	auto make_range_processor(std::reference_wrapper<value const> val)
+	{
+		return val.get().visit(overload{
+			[](array const& item){
+				return range_processor<item_pointer>{std::begin(item), std::end(item)};
+			},
+			[](object const& item){
+				return range_processor<item_pointer>{std::begin(item), std::end(item)};
+			},
+			[](auto const&) {
+				assert(false);
+				return range_processor<item_pointer>{};
+			}
+		});
+	}
+
 	class serializer
 	{
 	public:
-		explicit serializer(std::reference_wrapper<value const> root):m_root{root}{}
+		explicit serializer(std::reference_wrapper<value const> root)
+		{
+			m_contexts.push(serializer_context{make_range_processor(root)});
+		}
 
-		serialize_result serialize(std::span<char> output_buffer, value const& val);
+		serialize_result serialize(std::span<char> output_buffer);
 
 	private:
-		std::reference_wrapper<value const> m_root;
-		std::stack<serailzer_context> m_contexts;
+		std::stack<serializer_context> m_contexts;
 	};
 }
 
