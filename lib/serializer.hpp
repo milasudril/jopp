@@ -59,6 +59,9 @@ namespace jopp
 
 	private:
 		std::stack<serializer_context> m_contexts;
+		std::string_view m_key_to_write;
+		std::string m_converted_val_to_write;
+		
 	};
 
 	inline serialize_result serializer::serialize(std::span<char>)
@@ -73,11 +76,8 @@ namespace jopp
 				if(m_contexts.empty())
 				{ return serialize_result{}; }
 			}
-
-			res.visit(overload{
-				[](value const&){},
-				[](char const*, value const&){}
-			});
+			
+			m_key_to_write = res.get_key();
 		}
 	}
 

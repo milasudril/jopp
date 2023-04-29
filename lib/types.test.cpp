@@ -264,18 +264,8 @@ TESTCASE(jopp_item_pointer_key_value)
 	jopp::item_pointer ptr{&pair};
 
 	EXPECT_EQ(ptr.has_value(), true);
-	auto ret = ptr.visit(jopp::overload{
-		[](jopp::value const&, std::pair<std::string const, jopp::value> const&) {
-			return 1;
-		},
-		[](char const* key, jopp::value const& val, std::pair<std::string const, jopp::value> const& expected) {
-			EXPECT_EQ(key, expected.first);
-			EXPECT_EQ(val, expected.second);
-			return 2;
-		}
-	}, pair);
-
-	EXPECT_EQ(ret, 2);
+	EXPECT_EQ(ptr.get_key(), "foo");
+	EXPECT_EQ(ptr.get_value(), jopp::value{124.0});
 }
 
 TESTCASE(jopp_item_pointer_value)
@@ -284,15 +274,6 @@ TESTCASE(jopp_item_pointer_value)
 	jopp::item_pointer ptr{&val};
 
 	EXPECT_EQ(ptr.has_value(), true);
-	auto ret = ptr.visit(jopp::overload{
-		[](jopp::value const& val, jopp::value const& expected) {
-			EXPECT_EQ(val, expected);
-			return 1;
-		},
-		[](char const*, jopp::value const&, jopp::value const&) {
-			return 2;
-		}
-	}, val);
-
-	EXPECT_EQ(ret, 1);
+	EXPECT_EQ(ptr.get_key(), std::string_view{});
+	EXPECT_EQ(ptr.get_value(), jopp::value{124.0});
 }
