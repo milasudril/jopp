@@ -60,27 +60,32 @@ namespace jopp
 	private:
 		std::stack<serializer_context> m_contexts;
 		std::string_view m_key_to_write;
-		std::string m_converted_val_to_write;
+		std::string m_val_to_write;
 		
 	};
+}
 
-	inline serialize_result serializer::serialize(std::span<char>)
+inline jopp::serialize_result jopp::serializer::serialize(std::span<char>)
+{
+	auto& current_context = m_contexts.top();
+	while(true)
 	{
-		auto& current_context = m_contexts.top();
-		while(true)
+		auto res = current_context.range.pop_element();
+		if(!res.has_value())
 		{
-			auto res = current_context.range.pop_element();
-			if(!res.has_value())
-			{
-				m_contexts.pop();
-				if(m_contexts.empty())
-				{ return serialize_result{}; }
-			}
-			
-			m_key_to_write = res.get_key();
+			m_contexts.pop();
+			if(m_contexts.empty())
+			{ return serialize_result{}; }
 		}
+		
+		m_key_to_write = res.get_key();
+		res.get_value().visit(overload{
+			[](auto const&) {puts("Other");},
+			[](jopp::string const&){puts("String");},
+			[](jopp::object const&){puts("Object");},
+			[](jopp::array const&){puts("Array");}
+		});
 	}
-
 }
 
 #endif
