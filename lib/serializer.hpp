@@ -76,6 +76,7 @@ namespace jopp
 		std::stack<serializer_context> m_contexts;
 		std::string_view m_current_key;
 		std::string m_current_value;
+		serializer_context m_next_context;
 
 		std::span<char const> m_range_to_write;
 	};
@@ -107,10 +108,10 @@ inline jopp::serialize_result jopp::serializer::serialize(std::span<char>)
 				m_range_to_write = std::span{std::begin(val), std::end(val)};
 			},
 			[this](jopp::object const& val){
-				m_contexts.push(make_serializer_context(val));
+				m_next_context = make_serializer_context(val);
 			},
 			[this](jopp::array const& val){
-				m_contexts.push(make_serializer_context(val));
+				m_next_context = make_serializer_context(val);
 			}
 		});
 	}
