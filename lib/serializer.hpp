@@ -29,20 +29,30 @@ namespace jopp
 	struct serializer_context
 	{
 		range_processor<item_pointer> range;
+		char block_starter;
+		char block_terminator;
 	};
 
-	auto make_range_processor(std::reference_wrapper<value const> val)
+	auto make_serializer_context(std::reference_wrapper<value const> val)
 	{
 		return val.get().visit(overload{
 			[](array const& item){
-				return range_processor<item_pointer>{std::begin(item), std::end(item)};
+				return serializer_context{
+					.range = range_processor<item_pointer>{std::begin(item), std::end(item)},
+					.block_starter = delimiters::begin_array,
+					.block_terminator = delimiters::end_array
+				};
 			},
 			[](object const& item){
-				return range_processor<item_pointer>{std::begin(item), std::end(item)};
+				return serializer_context{
+					.range = range_processor<item_pointer>{std::begin(item), std::end(item)},
+					.block_starter = delimiters::begin_object,
+					.block_terminator = delimiters::end_object
+				};
 			},
 			[](auto const&) {
 				assert(false);
-				return range_processor<item_pointer>{};
+				return serializer_context{};
 			}
 		});
 	}
@@ -52,7 +62,7 @@ namespace jopp
 	public:
 		explicit serializer(std::reference_wrapper<value const> root)
 		{
-			m_contexts.push(serializer_context{make_range_processor(root)});
+			m_contexts.push(make_serializer_context(root));
 		}
 
 		serialize_result serialize(std::span<char> output_buffer);
