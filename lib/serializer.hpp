@@ -59,9 +59,10 @@ namespace jopp
 
 	private:
 		std::stack<serializer_context> m_contexts;
-		std::string_view m_key_to_write;
-		std::string m_val_to_write;
-		
+		std::string_view m_current_key;
+		std::string m_current_value;
+
+		std::span<char const> m_range_to_write;
 	};
 }
 
@@ -70,21 +71,28 @@ inline jopp::serialize_result jopp::serializer::serialize(std::span<char>)
 	auto& current_context = m_contexts.top();
 	while(true)
 	{
-		auto res = current_context.range.pop_element();
+		auto const res = current_context.range.pop_element();
 		if(!res.has_value())
 		{
 			m_contexts.pop();
 			if(m_contexts.empty())
 			{ return serialize_result{}; }
 		}
-		
-		m_key_to_write = res.get_key();
+
+		m_current_key = res.get_key();
 		res.get_value().visit(overload{
-			[](auto const&) {puts("Other");},
-			[](jopp::string const&){puts("String");},
+			[this](auto const& val) {
+				m_current_value = to_string(val);
+				m_range_to_write = std::span{std::begin(m_current_value), std::end(m_current_value)};
+			},
+			[this](jopp::string const& val){
+				m_range_to_write = std::span{std::begin(val), std::end(val)};
+			},
 			[](jopp::object const&){puts("Object");},
 			[](jopp::array const&){puts("Array");}
 		});
+
+		printf("%s: %s\n", m_current_key.data(), m_range_to_write.data());
 	}
 }
 
