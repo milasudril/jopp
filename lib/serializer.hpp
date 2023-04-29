@@ -33,37 +33,42 @@ namespace jopp
 		char block_terminator;
 	};
 
+	inline auto make_serializer_context(std::reference_wrapper<object const> val)
+	{
+		return serializer_context{
+			.range = range_processor<item_pointer>{std::begin(val.get()), std::end(val.get())},
+			.block_starter = delimiters::begin_object,
+			.block_terminator = delimiters::end_object
+		};
+	}
+	
+	inline auto make_serializer_context(std::reference_wrapper<array const> val)
+	{
+		return serializer_context{
+			.range = range_processor<item_pointer>{std::begin(val.get()), std::end(val.get())},
+			.block_starter = delimiters::begin_array,
+			.block_terminator = delimiters::end_array
+		};
+	}
+	
+	template<class T>
+	requires(!std::is_same_v<T, jopp::object> && !std::is_same_v<T, jopp::array>)
+	inline auto make_serializer_context(T const&)
+	{
+		assert(false);
+		return serializer_context{};
+	}
+	
 	auto make_serializer_context(std::reference_wrapper<value const> val)
 	{
-		return val.get().visit(overload{
-			[](array const& item){
-				return serializer_context{
-					.range = range_processor<item_pointer>{std::begin(item), std::end(item)},
-					.block_starter = delimiters::begin_array,
-					.block_terminator = delimiters::end_array
-				};
-			},
-			[](object const& item){
-				return serializer_context{
-					.range = range_processor<item_pointer>{std::begin(item), std::end(item)},
-					.block_starter = delimiters::begin_object,
-					.block_terminator = delimiters::end_object
-				};
-			},
-			[](auto const&) {
-				assert(false);
-				return serializer_context{};
-			}
-		});
+		return val.get().visit([](auto const& val) { return make_serializer_context(val); } );
 	}
 
 	class serializer
 	{
 	public:
 		explicit serializer(std::reference_wrapper<value const> root)
-		{
-			m_contexts.push(make_serializer_context(root));
-		}
+		{ m_contexts.push(make_serializer_context(root)); }
 
 		serialize_result serialize(std::span<char> output_buffer);
 
@@ -78,15 +83,18 @@ namespace jopp
 
 inline jopp::serialize_result jopp::serializer::serialize(std::span<char>)
 {
-	auto& current_context = m_contexts.top();
 	while(true)
 	{
+		auto& current_context = m_contexts.top();
 		auto const res = current_context.range.pop_element();
 		if(!res.has_value())
 		{
+			putchar(current_context.block_terminator);
+			fflush(stdout);
 			m_contexts.pop();
 			if(m_contexts.empty())
 			{ return serialize_result{}; }
+			continue;
 		}
 
 		m_current_key = res.get_key();
@@ -98,12 +106,15 @@ inline jopp::serialize_result jopp::serializer::serialize(std::span<char>)
 			[this](jopp::string const& val){
 				m_range_to_write = std::span{std::begin(val), std::end(val)};
 			},
-			[](jopp::object const&){puts("Object");},
-			[](jopp::array const&){puts("Array");}
+			[this](jopp::object const& val){
+				m_contexts.push(make_serializer_context(val));
+			},
+			[this](jopp::array const& val){
+				m_contexts.push(make_serializer_context(val));
+			}
 		});
-
-		printf("%s: %s\n", m_current_key.data(), m_range_to_write.data());
 	}
 }
 
 #endif
+ 
