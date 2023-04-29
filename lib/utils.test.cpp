@@ -4,11 +4,11 @@
 
 #include <testfwk/testfwk.hpp>
 
-TESTCASE(jopp_utils_iter_to_rangeproc_adaptor_default_valref)
+TESTCASE(jopp_utils_iterator_enumerator_default_valref)
 {
 	std::array<int, 16> vals{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16};
 
-	jopp::iter_to_rangeproc_adaptor rangeproc{std::begin(vals), std::end(vals)};
+	jopp::iterator_enumerator rangeproc{std::begin(vals), std::end(vals)};
 
 	size_t count = 0;
 
@@ -32,12 +32,12 @@ namespace
 	};
 }
 
-TESTCASE(jopp_utils_iter_to_rangeproc_adaptor_custom_valref)
+TESTCASE(jopp_utils_iterator_enumerator_custom_valref)
 {
 	std::array<int, 16> vals{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16};
 	using iterator = std::array<int, 16>::iterator;
 
-	jopp::iter_to_rangeproc_adaptor<iterator, my_valref> rangeproc{std::begin(vals), std::end(vals)};
+	jopp::iterator_enumerator<iterator, my_valref> rangeproc{std::begin(vals), std::end(vals)};
 
 	size_t count = 0;
 

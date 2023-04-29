@@ -21,10 +21,10 @@ namespace jopp
 
 	template<class InputIterator,
 		class ValueReference = decltype(&*std::declval<InputIterator>())>
-	class iter_to_rangeproc_adaptor : public enumerator<ValueReference>
+	class iterator_enumerator : public enumerator<ValueReference>
 	{
 	public:
-		explicit iter_to_rangeproc_adaptor(InputIterator begin, InputIterator end):
+		explicit iterator_enumerator(InputIterator begin, InputIterator end):
 			m_ptr{begin},
 			m_end{end}
 		{}
@@ -52,7 +52,7 @@ namespace jopp
 
 		template<class InputIterator>
 		explicit range_processor(InputIterator begin, InputIterator end):
-			m_impl{std::make_unique<iter_to_rangeproc_adaptor<InputIterator, ValueReference>>(begin, end)}
+			m_impl{std::make_unique<iterator_enumerator<InputIterator, ValueReference>>(begin, end)}
 		{}
 
 		ValueReference pop_element()
