@@ -63,11 +63,14 @@ namespace jopp
 	{
 		return val.get().visit([](auto const& val) { return make_serializer_context(val); } );
 	}
+	
+	enum class serializer_state{write_value, write_key, fetch_item};
 
 	class serializer
 	{
 	public:
-		explicit serializer(std::reference_wrapper<value const> root)
+		explicit serializer(std::reference_wrapper<value const> root):
+			m_current_state{serializer_state::fetch_item}
 		{ m_contexts.push(make_serializer_context(root)); }
 
 		serialize_result serialize(std::span<char> output_buffer);
@@ -77,6 +80,7 @@ namespace jopp
 		std::string_view m_current_key;
 		std::string m_current_value;
 		serializer_context m_next_context;
+		serializer_state m_current_state;
 
 		std::span<char const> m_range_to_write;
 	};
@@ -99,6 +103,10 @@ inline jopp::serialize_result jopp::serializer::serialize(std::span<char>)
 		}
 
 		m_current_key = res.get_key();
+		m_current_state = (m_current_key != std::string_view{}) ?
+			 serializer_state::write_key
+			:serializer_state::write_value;
+
 		res.get_value().visit(overload{
 			[this](auto const& val) {
 				m_current_value = to_string(val);
