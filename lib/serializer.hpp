@@ -135,6 +135,8 @@ inline jopp::serialize_result jopp::serializer::serialize(std::span<char> output
 				auto res = write_buffer(m_range_to_write, output_buffer);
 				m_range_to_write = res.in;
 				output_buffer = res.out;
+				if(std::size(m_range_to_write) == 0)
+				{ m_current_state = serializer_state::fetch_item; }
 				break;
 			}
 

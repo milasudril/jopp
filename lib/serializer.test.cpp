@@ -19,5 +19,9 @@ TESTCASE(jopp_serializer_serialzie)
 	
 	jopp::serializer serializer{val};
 	
-	serializer.serialize(std::span<char>{});
+	std::array<char, 1024> buffer{};
+	
+	serializer.serialize(buffer);
+	
+	printf("%s\n", buffer.data());;
 }
