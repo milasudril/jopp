@@ -43,6 +43,14 @@ namespace jopp
 		Output out;
 	};
 	
+	inline auto write_buffer(std::span<char> buffer, char ch)
+	{
+		if(std::size(buffer) == 0)
+		{ return buffer; }
+		buffer[0] = ch;
+ 		return std::span{std::begin(buffer) + 1, std::end(buffer)};
+	}
+	
 	template<class Input, class Output>
 	requires(std::ranges::random_access_range<Input> && std::ranges::random_access_range<Output>)
 	inline auto write_buffer(Input src, Output dest)
@@ -122,11 +130,19 @@ inline jopp::serialize_result jopp::serializer::serialize(std::span<char> output
 		{
 			case serializer_state::write_key:
 			{
-				auto res = write_buffer(m_current_key, output_buffer);
-				m_current_key = res.in;
-				output_buffer = res.out;
-				if(std::size(m_current_key) == 0)
-				{ m_current_state = serializer_state::write_value; }
+				output_buffer = write_buffer(output_buffer, delimiters::string_begin_end);
+				if(std::size(output_buffer) != 0)
+				{
+					auto res = write_buffer(m_current_key, output_buffer);
+					m_current_key = res.in;
+					output_buffer = res.out;
+					if(std::size(m_current_key) == 0)
+					{ 
+						output_buffer = write_buffer(output_buffer, delimiters::string_begin_end);
+						output_buffer = write_buffer(output_buffer, delimiters::name_separator);
+						m_current_state = serializer_state::write_value;
+					}
+				}
 				break;
 			}
 
