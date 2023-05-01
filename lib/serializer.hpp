@@ -132,11 +132,21 @@ inline jopp::serialize_result jopp::serializer::serialize(std::span<char> output
 
 			case serializer_state::write_value:
 			{
-				auto res = write_buffer(m_range_to_write, output_buffer);
-				m_range_to_write = res.in;
-				output_buffer = res.out;
 				if(std::size(m_range_to_write) == 0)
-				{ m_current_state = serializer_state::fetch_item; }
+				{ 
+					putchar(m_next_context.block_starter);
+					fflush(stdout);
+					m_contexts.push(std::move(m_next_context));
+					m_current_state = serializer_state::fetch_item;
+				}
+				else
+				{
+					auto res = write_buffer(m_range_to_write, output_buffer);
+					m_range_to_write = res.in;
+					output_buffer = res.out;
+					if(std::size(m_range_to_write) == 0)
+					{ m_current_state = serializer_state::fetch_item; }
+				}
 				break;
 			}
 
@@ -167,9 +177,11 @@ inline jopp::serialize_result jopp::serializer::serialize(std::span<char> output
 							m_range_to_write = std::span{std::begin(val), std::end(val)};
 						},
 						[this](jopp::object const& val){
+							m_range_to_write = std::span<char const>{};
 							m_next_context = make_serializer_context(val);
 						},
 						[this](jopp::array const& val){
+							m_range_to_write = std::span<char const>{};
 							m_next_context = make_serializer_context(val);
 						}
 					});
