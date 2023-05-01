@@ -6,10 +6,17 @@
 
 TESTCASE(jopp_serializer_serialzie)
 {
+	jopp::array array;
+	array.push_back(0.5);
+	array.push_back("Some text");
+	array.push_back(false);
+	
+	jopp::object subobj;
+	subobj.insert("Key", "Value");
+	
 	jopp::object obj;
-
-	obj.insert("1. an array", jopp::array{});
-	obj.insert("2. an object", jopp::object{});
+	obj.insert("1. an array", std::move(array));
+	obj.insert("2. an object", std::move(subobj));
 	obj.insert("3. a number", 1.25);
 	obj.insert("4. null literal", jopp::null{});
 	obj.insert("5. a bool", true);
