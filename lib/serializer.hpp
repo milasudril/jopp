@@ -150,8 +150,7 @@ inline jopp::serialize_result jopp::serializer::serialize(std::span<char> output
 			{
 				if(std::size(m_range_to_write) == 0)
 				{ 
-					putchar(m_next_context.block_starter);
-					fflush(stdout);
+					output_buffer = write_buffer(output_buffer, m_next_context.block_starter);
 					m_contexts.push(std::move(m_next_context));
 					m_current_state = serializer_state::fetch_item;
 				}
@@ -161,7 +160,10 @@ inline jopp::serialize_result jopp::serializer::serialize(std::span<char> output
 					m_range_to_write = res.in;
 					output_buffer = res.out;
 					if(std::size(m_range_to_write) == 0)
-					{ m_current_state = serializer_state::fetch_item; }
+					{ 
+						write_buffer(output_buffer, delimiters::value_separator);
+						m_current_state = serializer_state::fetch_item;
+					}
 				}
 				break;
 			}
@@ -172,14 +174,14 @@ inline jopp::serialize_result jopp::serializer::serialize(std::span<char> output
 				auto const res = current_context.range.pop_element();
 				if(!res.has_value())
 				{
-					putchar(current_context.block_terminator);
-					fflush(stdout);
+					output_buffer = write_buffer(output_buffer, current_context.block_terminator);
 					m_contexts.pop();
 					if(m_contexts.empty())
 					{ return serialize_result{}; }
 				}
 				else
 				{
+					output_buffer = write_buffer(output_buffer, delimiters::value_separator);
 					m_current_key = res.get_key();
 					m_current_state = (m_current_key != std::string_view{}) ?
 						serializer_state::write_key : serializer_state::write_value;
