@@ -99,21 +99,22 @@ namespace jopp
 	class serializer
 	{
 	public:
-		explicit serializer(std::reference_wrapper<value const> root):
-			m_current_state{serializer_state::fetch_item}
-		{ m_contexts.push(make_serializer_context(root)); }
+		explicit serializer(std::reference_wrapper<value const> root)
+		{
+			m_contexts.push(make_serializer_context(root));
+			m_string_to_write += m_contexts.top().block_starter;
+			m_range_to_write
+				= std::span{std::begin(m_string_to_write), std::end(m_string_to_write)};
+		}
 
 		serialize_result serialize(std::span<char> output_buffer);
 
 	private:
+		std::span<char const> m_range_to_write;
 		std::stack<serializer_context> m_contexts;
-		std::string_view m_current_key;
-		std::string m_current_value;
 		std::string m_string_to_write;
 		serializer_context m_next_context;
-		serializer_state m_current_state;
 
-		std::span<char const> m_range_to_write;
 	};
 }
 
@@ -127,114 +128,69 @@ inline jopp::serialize_result jopp::serializer::serialize(std::span<char> output
 			return serialize_result{};
 		}
 
-		switch(m_current_state)
+		auto res = write_buffer(m_range_to_write, output_buffer);
+		m_range_to_write = res.in;
+		output_buffer = res.out;
+		if(std::size(m_range_to_write) == 0)
 		{
-			case serializer_state::write_key:
+			auto& current_context = m_contexts.top();
+			auto const res = current_context.range.pop_element();
+			if(!res.has_value())
 			{
-				output_buffer = write_buffer(output_buffer, delimiters::string_begin_end);
-				if(std::size(output_buffer) != 0)
-				{
-					auto res = write_buffer(m_current_key, output_buffer);
-					m_current_key = res.in;
-					output_buffer = res.out;
-					if(std::size(m_current_key) == 0)
-					{
-						output_buffer = write_buffer(output_buffer, delimiters::string_begin_end);
-						output_buffer = write_buffer(output_buffer, delimiters::name_separator);
-						m_current_state = serializer_state::write_value;
-					}
-				}
-				break;
+				m_string_to_write = std::string{current_context.block_terminator};
+				m_contexts.pop();
+				if(m_contexts.empty())
+				{ return serialize_result{}; }
 			}
 
-			case serializer_state::write_value:
+			if(auto key = res.get_key(); key != std::string_view{})
 			{
-				if(std::size(m_range_to_write) == 0)
+				auto wrapped_string = wrap_string(key);
+				if(!wrapped_string.has_value())
 				{
-					output_buffer = write_buffer(output_buffer, m_next_context.block_starter);
-					m_contexts.push(std::move(m_next_context));
-					m_current_state = serializer_state::fetch_item;
+					//FIXME: this is an error
+					return serialize_result{};
 				}
-				else
-				{
-					auto res = write_buffer(m_range_to_write, output_buffer);
-					m_range_to_write = res.in;
-					output_buffer = res.out;
-					if(std::size(m_range_to_write) == 0)
-					{
-						write_buffer(output_buffer, delimiters::value_separator);
-						m_current_state = serializer_state::fetch_item;
-					}
-				}
-				break;
+				m_string_to_write = std::move(*wrapped_string);
+				m_string_to_write += delimiters::name_separator;
+				m_string_to_write += ' ';
 			}
 
-			case serializer_state::fetch_item:
+			auto const result = res.get_value().visit(overload{
+				[this](auto const& val) {
+					m_string_to_write += to_string(val);
+					return true;
+				},
+				[this](jopp::string const& val){
+					auto str = wrap_string(val);
+					if(!str.has_value())
+					{ return false; }
+
+					if(m_string_to_write.empty())
+					{ m_string_to_write = std::move(*str); }
+					else
+					{ m_string_to_write += *str; }
+					return true;
+				},
+				[this](jopp::object const& val){
+					m_string_to_write += delimiters::begin_object;
+					m_next_context = make_serializer_context(val);
+					return true;
+				},
+				[this](jopp::array const& val){
+					m_string_to_write += delimiters::begin_array;
+					m_next_context = make_serializer_context(val);
+					return true;
+				}
+			});
+			if(!result)
 			{
-				auto& current_context = m_contexts.top();
-				auto const res = current_context.range.pop_element();
-				if(!res.has_value())
-				{
-					output_buffer = write_buffer(output_buffer, current_context.block_terminator);
-					m_contexts.pop();
-					if(m_contexts.empty())
-					{ return serialize_result{}; }
-				}
-				else
-				{
-					output_buffer = write_buffer(output_buffer, delimiters::value_separator);
-					if(auto key = res.get_key(); key != std::string_view{})
-					{
-						auto wrapped_string = wrap_string(key);
-						if(!wrapped_string.has_value())
-						{
-							//FIXME: this is an error
-							return serialize_result{};
-						}
-						m_string_to_write = std::move(*wrapped_string);
-						m_string_to_write += delimiters::name_separator;
-						m_string_to_write += ' ';
-					}
-
-					m_current_key = res.get_key();
-					m_current_state = (m_current_key != std::string_view{}) ?
-						serializer_state::write_key : serializer_state::write_value;
-
-					auto const result = res.get_value().visit(overload{
-						[this](auto const& val) {
-							m_string_to_write += to_string(val);
-							return true;
-						},
-						[this](jopp::string const& val){
-							auto str = wrap_string(val);
-							if(!str.has_value())
-							{ return false; }
-
-							if(m_string_to_write.empty())
-							{ m_string_to_write = std::move(*str); }
-							else
-							{ m_string_to_write += *str; }
-							return true;
-						},
-						[this](jopp::object const& val){
-							m_string_to_write += delimiters::begin_object;
-							m_next_context = make_serializer_context(val);
-							return true;
-						},
-						[this](jopp::array const& val){
-							m_string_to_write += delimiters::begin_array;
-							m_next_context = make_serializer_context(val);
-							return true;
-						}
-					});
-					if(!result)
-					{
-						//FIXME: this is an error
-						return serialize_result{};
-					}
-				}
-				break;
+				//FIXME: this is an error
+				return serialize_result{};
 			}
+			m_string_to_write += delimiters::value_separator;
+			m_string_to_write += '\n';
+			m_range_to_write = std::span{std::begin(m_string_to_write), std::end(m_string_to_write)};
 		}
 	}
 }
