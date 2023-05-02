@@ -34,7 +34,7 @@ namespace jopp
 		char block_starter;
 		char block_terminator;
 	};
-	
+
 	template<class Input, class Output>
 	requires(std::ranges::range<Input> && std::ranges::range<Output>)
 	struct write_buffer_result
@@ -42,7 +42,7 @@ namespace jopp
 		Input in;
 		Output out;
 	};
-	
+
 	inline auto write_buffer(std::span<char> buffer, char ch)
 	{
 		if(std::size(buffer) == 0)
@@ -50,7 +50,7 @@ namespace jopp
 		buffer[0] = ch;
  		return std::span{std::begin(buffer) + 1, std::end(buffer)};
 	}
-	
+
 	template<class Input, class Output>
 	requires(std::ranges::random_access_range<Input> && std::ranges::random_access_range<Output>)
 	inline auto write_buffer(Input src, Output dest)
@@ -71,7 +71,7 @@ namespace jopp
 			.block_terminator = delimiters::end_object
 		};
 	}
-	
+
 	inline auto make_serializer_context(std::reference_wrapper<array const> val)
 	{
 		return serializer_context{
@@ -80,7 +80,7 @@ namespace jopp
 			.block_terminator = delimiters::end_array
 		};
 	}
-	
+
 	template<class T>
 	requires(!std::is_same_v<T, jopp::object> && !std::is_same_v<T, jopp::array>)
 	inline auto make_serializer_context(T const&)
@@ -88,12 +88,12 @@ namespace jopp
 		assert(false);
 		return serializer_context{};
 	}
-	
+
 	auto make_serializer_context(std::reference_wrapper<value const> val)
 	{
 		return val.get().visit([](auto const& val) { return make_serializer_context(val); } );
 	}
-	
+
 	enum class serializer_state{write_value, write_key, fetch_item};
 
 	class serializer
@@ -109,6 +109,7 @@ namespace jopp
 		std::stack<serializer_context> m_contexts;
 		std::string_view m_current_key;
 		std::string m_current_value;
+		std::string m_string_to_write;
 		serializer_context m_next_context;
 		serializer_state m_current_state;
 
@@ -137,7 +138,7 @@ inline jopp::serialize_result jopp::serializer::serialize(std::span<char> output
 					m_current_key = res.in;
 					output_buffer = res.out;
 					if(std::size(m_current_key) == 0)
-					{ 
+					{
 						output_buffer = write_buffer(output_buffer, delimiters::string_begin_end);
 						output_buffer = write_buffer(output_buffer, delimiters::name_separator);
 						m_current_state = serializer_state::write_value;
@@ -149,7 +150,7 @@ inline jopp::serialize_result jopp::serializer::serialize(std::span<char> output
 			case serializer_state::write_value:
 			{
 				if(std::size(m_range_to_write) == 0)
-				{ 
+				{
 					output_buffer = write_buffer(output_buffer, m_next_context.block_starter);
 					m_contexts.push(std::move(m_next_context));
 					m_current_state = serializer_state::fetch_item;
@@ -160,7 +161,7 @@ inline jopp::serialize_result jopp::serializer::serialize(std::span<char> output
 					m_range_to_write = res.in;
 					output_buffer = res.out;
 					if(std::size(m_range_to_write) == 0)
-					{ 
+					{
 						write_buffer(output_buffer, delimiters::value_separator);
 						m_current_state = serializer_state::fetch_item;
 					}
@@ -182,6 +183,19 @@ inline jopp::serialize_result jopp::serializer::serialize(std::span<char> output
 				else
 				{
 					output_buffer = write_buffer(output_buffer, delimiters::value_separator);
+					if(auto key = res.get_key(); key != std::string_view{})
+					{
+						auto wrapped_string = wrap_string(key);
+						if(!wrapped_string.has_value())
+						{
+							//FIXME: this is an error
+							return serialize_result{};
+						}
+						m_string_to_write = std::move(*wrapped_string);
+						m_string_to_write += delimiters::name_separator;
+						m_string_to_write += ' ';
+					}
+
 					m_current_key = res.get_key();
 					m_current_state = (m_current_key != std::string_view{}) ?
 						serializer_state::write_key : serializer_state::write_value;
@@ -211,4 +225,4 @@ inline jopp::serialize_result jopp::serializer::serialize(std::span<char> output
 }
 
 #endif
- 
+

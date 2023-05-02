@@ -1,4 +1,4 @@
-#ifndef JOPP_DELIMITERS_HPP
+		#ifndef JOPP_DELIMITERS_HPP
 #define JOPP_DELIMITERS_HPP
 
 #include <optional>
@@ -86,6 +86,19 @@ namespace jopp
 			else
 			{ ret.push_back(val[k]); }
 		}
+
+		return ret;
+	}
+
+	inline std::optional<std::string> wrap_string(std::string_view val)
+	{
+		auto escaped_string = escape(val);
+		if(!escaped_string.has_value())
+		{ return std::nullopt; }
+
+		std::string ret{delimiters::string_begin_end};
+		ret.append(*escaped_string);
+		ret += delimiters::string_begin_end;
 
 		return ret;
 	}
