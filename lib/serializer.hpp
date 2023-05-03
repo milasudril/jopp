@@ -33,6 +33,7 @@ namespace jopp
 		range_processor<item_pointer> range;
 		char block_starter;
 		char block_terminator;
+		bool first_item{true};
 	};
 
 	template<class Input, class Output>
@@ -94,8 +95,6 @@ namespace jopp
 		return val.get().visit([](auto const& val) { return make_serializer_context(val); } );
 	}
 
-	enum class serializer_state{write_value, write_key, fetch_item};
-
 	class serializer
 	{
 	public:
@@ -103,8 +102,8 @@ namespace jopp
 		{
 			m_contexts.push(make_serializer_context(root));
 			m_string_to_write += m_contexts.top().block_starter;
-			m_range_to_write
-				= std::span{std::begin(m_string_to_write), std::end(m_string_to_write)};
+			m_string_to_write += '\n';
+			m_range_to_write = std::span{std::begin(m_string_to_write), std::end(m_string_to_write)};
 		}
 
 		serialize_result serialize(std::span<char> output_buffer);
@@ -113,7 +112,6 @@ namespace jopp
 		std::span<char const> m_range_to_write;
 		std::stack<serializer_context> m_contexts;
 		std::string m_string_to_write;
-		serializer_context m_next_context;
 
 	};
 }
@@ -124,23 +122,36 @@ inline jopp::serialize_result jopp::serializer::serialize(std::span<char> output
 	{
 		if(std::size(output_buffer) == 0)
 		{
-			// FIXME: Fill in result
+			// FIXME: Buffer is full
 			return serialize_result{};
 		}
 
 		auto res = write_buffer(m_range_to_write, output_buffer);
 		m_range_to_write = res.in;
 		output_buffer = res.out;
+		if(m_contexts.empty())
+		{
+			// FIXME: Completed
+			return serialize_result{};
+		}
 		if(std::size(m_range_to_write) == 0)
 		{
+			m_string_to_write.clear();
 			auto& current_context = m_contexts.top();
+			if(!current_context.first_item)
+			{
+				m_string_to_write += delimiters::value_separator;
+				m_string_to_write += '\n';
+			}
+			current_context.first_item = false;
+
 			auto const res = current_context.range.pop_element();
 			if(!res.has_value())
 			{
-				m_string_to_write = std::string{current_context.block_terminator};
+				m_string_to_write += std::string{current_context.block_terminator};
+				m_range_to_write = std::span{std::begin(m_string_to_write), std::end(m_string_to_write)};
 				m_contexts.pop();
-				if(m_contexts.empty())
-				{ return serialize_result{}; }
+				continue;
 			}
 
 			if(auto key = res.get_key(); key != std::string_view{})
@@ -148,10 +159,10 @@ inline jopp::serialize_result jopp::serializer::serialize(std::span<char> output
 				auto wrapped_string = wrap_string(key);
 				if(!wrapped_string.has_value())
 				{
-					//FIXME: this is an error
+					//FIXME: Invalid key
 					return serialize_result{};
 				}
-				m_string_to_write = std::move(*wrapped_string);
+				m_string_to_write += *wrapped_string;
 				m_string_to_write += delimiters::name_separator;
 				m_string_to_write += ' ';
 			}
@@ -166,30 +177,26 @@ inline jopp::serialize_result jopp::serializer::serialize(std::span<char> output
 					if(!str.has_value())
 					{ return false; }
 
-					if(m_string_to_write.empty())
-					{ m_string_to_write = std::move(*str); }
-					else
-					{ m_string_to_write += *str; }
+					m_string_to_write += *str;
 					return true;
 				},
 				[this](jopp::object const& val){
-					m_string_to_write += delimiters::begin_object;
-					m_next_context = make_serializer_context(val);
+					m_contexts.push(make_serializer_context(val));
+					m_string_to_write += m_contexts.top().block_starter;
 					return true;
 				},
 				[this](jopp::array const& val){
-					m_string_to_write += delimiters::begin_array;
-					m_next_context = make_serializer_context(val);
+					m_contexts.push(make_serializer_context(val));
+					m_string_to_write += m_contexts.top().block_starter;
 					return true;
 				}
 			});
 			if(!result)
 			{
-				//FIXME: this is an error
+				//FIXME: Invalid value
 				return serialize_result{};
 			}
-			m_string_to_write += delimiters::value_separator;
-			m_string_to_write += '\n';
+
 			m_range_to_write = std::span{std::begin(m_string_to_write), std::end(m_string_to_write)};
 		}
 	}
