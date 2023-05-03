@@ -138,12 +138,6 @@ inline jopp::serialize_result jopp::serializer::serialize(std::span<char> output
 		{
 			m_string_to_write.clear();
 			auto& current_context = m_contexts.top();
-			if(!current_context.first_item)
-			{
-				m_string_to_write += delimiters::value_separator;
-				m_string_to_write += '\n';
-			}
-			current_context.first_item = false;
 
 			auto const res = current_context.range.pop_element();
 			if(!res.has_value())
@@ -153,6 +147,13 @@ inline jopp::serialize_result jopp::serializer::serialize(std::span<char> output
 				m_contexts.pop();
 				continue;
 			}
+
+			if(!current_context.first_item)
+			{
+				m_string_to_write += delimiters::value_separator;
+				m_string_to_write += '\n';
+			}
+			current_context.first_item = false;
 
 			if(auto key = res.get_key(); key != std::string_view{})
 			{
