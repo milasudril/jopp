@@ -142,6 +142,9 @@ inline jopp::serialize_result jopp::serializer::serialize(std::span<char> output
 			auto const res = current_context.range.pop_element();
 			if(!res.has_value())
 			{
+				m_string_to_write += '\n';
+				for(size_t k = 0; k != m_contexts.size() - 1; ++k)
+				{ m_string_to_write += '\t'; }
 				m_string_to_write += std::string{current_context.block_terminator};
 				m_range_to_write = std::span{std::begin(m_string_to_write), std::end(m_string_to_write)};
 				m_contexts.pop();
@@ -154,6 +157,8 @@ inline jopp::serialize_result jopp::serializer::serialize(std::span<char> output
 				m_string_to_write += '\n';
 			}
 			current_context.first_item = false;
+			for(size_t k = 0; k != m_contexts.size(); ++k)
+			{ m_string_to_write += '\t'; }
 
 			if(auto key = res.get_key(); key != std::string_view{})
 			{
@@ -184,11 +189,13 @@ inline jopp::serialize_result jopp::serializer::serialize(std::span<char> output
 				[this](jopp::object const& val){
 					m_contexts.push(make_serializer_context(val));
 					m_string_to_write += m_contexts.top().block_starter;
+					m_string_to_write += '\n';
 					return true;
 				},
 				[this](jopp::array const& val){
 					m_contexts.push(make_serializer_context(val));
 					m_string_to_write += m_contexts.top().block_starter;
+					m_string_to_write += '\n';
 					return true;
 				}
 			});
