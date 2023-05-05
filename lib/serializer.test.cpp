@@ -210,3 +210,31 @@ TESTCASE(jopp_serializer_serialize_blocks)
 })"};
 	EXPECT_EQ(std::data(buffer), expected_result);
 }
+
+TESTCASE(jopp_serializer_bad_char_in_key)
+{
+	jopp::object obj;
+	std::string key{"this is_illegal"};
+	key[7] = '\0';
+	obj.insert(std::move(key), 42.0);
+	std::array<char, 1024> buffer{};
+	jopp::value val{std::move(obj)};
+	jopp::serializer serializer{val};
+	auto res = serializer.serialize(buffer);
+	EXPECT_EQ(res.ec, jopp::serializer_error_code::illegal_char_in_string);
+	EXPECT_EQ(res.ptr, std::data(buffer) + 2);
+}
+
+TESTCASE(jopp_serializer_bad_char_in_string_value)
+{
+	jopp::object obj;
+	std::string value{"this is_illegal"};
+	value[7] = '\0';
+	obj.insert("hello, world", std::move(value));
+	std::array<char, 1024> buffer{};
+	jopp::value val{std::move(obj)};
+	jopp::serializer serializer{val};
+	auto res = serializer.serialize(buffer);
+	EXPECT_EQ(res.ec, jopp::serializer_error_code::illegal_char_in_string);
+	EXPECT_EQ(res.ptr, std::data(buffer) + 2);
+}
