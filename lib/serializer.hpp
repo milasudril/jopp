@@ -44,14 +44,6 @@ namespace jopp
 		Output out;
 	};
 
-	inline auto write_buffer(std::span<char> buffer, char ch)
-	{
-		if(std::size(buffer) == 0)
-		{ return buffer; }
-		buffer[0] = ch;
- 		return std::span{std::begin(buffer) + 1, std::end(buffer)};
-	}
-
 	template<class Input, class Output>
 	requires(std::ranges::random_access_range<Input> && std::ranges::random_access_range<Output>)
 	inline auto write_buffer(Input src, Output dest)
