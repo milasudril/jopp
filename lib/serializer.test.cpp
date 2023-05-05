@@ -52,6 +52,56 @@ TESTCASE(jopp_serializer_serialzie)
 
 	jopp::serializer serializer{val};
 	std::array<char, 1024> buffer{};
-	serializer.serialize(buffer);
-	printf("%s\n", buffer.data());
+	auto res = serializer.serialize(buffer);
+	EXPECT_EQ(res.ec, jopp::serializer_error_code::completed);
+	REQUIRE_NE(res.ptr, std::data(buffer) + 1024);
+	EXPECT_EQ(*res.ptr, '\0');
+	EXPECT_EQ(*(res.ptr - 1), '}');
+
+	std::string_view expected_result{R"({
+	"a key with esc seq\n\t\\foo\"": "A value with esc seq\n\t\\foo\"",
+	"empty array": [
+
+	],
+	"empty object": {
+
+	},
+	"fireplace": 720535269,
+	"had": {
+		"eaten": false,
+		"independent": -1451031326,
+		"long": -1437168945.8634152,
+		"pull": 1285774482.782745,
+		"repeated end": {
+			"value": 46
+		},
+		"sound": false,
+		"tightly": [
+			[
+				4,
+				2,
+				3,
+				1
+			],
+			"feet",
+			true,
+			2145719840.4312375,
+			-286229488,
+			true,
+			true,
+			{
+				"object in array": "bar"
+			},
+			{
+				"object with literal last": null
+			}
+		]
+	},
+	"it": false,
+	"refused": "better",
+	"testing null": null,
+	"without": true,
+	"wood": "involved"
+})"};
+	EXPECT_EQ(std::data(buffer), expected_result);
 }
