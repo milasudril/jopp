@@ -23,7 +23,7 @@ namespace jopp
 
 	struct serialize_result
 	{
-		value const* last_value;
+		char* ptr;
 		serializer_error_code ec;
 	};
 
@@ -121,19 +121,13 @@ inline jopp::serialize_result jopp::serializer::serialize(std::span<char> output
 	while(true)
 	{
 		if(std::size(output_buffer) == 0)
-		{
-			// FIXME: Buffer is full
-			return serialize_result{};
-		}
+		{ return serialize_result{std::data(output_buffer), serializer_error_code::buffer_is_full}; }
 
 		auto res = write_buffer(m_range_to_write, output_buffer);
 		m_range_to_write = res.in;
 		output_buffer = res.out;
 		if(m_contexts.empty())
-		{
-			// FIXME: Completed
-			return serialize_result{};
-		}
+		{ return serialize_result{std::data(output_buffer), serializer_error_code::completed}; }
 		if(std::size(m_range_to_write) == 0)
 		{
 			m_string_to_write.clear();
@@ -165,8 +159,9 @@ inline jopp::serialize_result jopp::serializer::serialize(std::span<char> output
 				auto wrapped_string = wrap_string(key);
 				if(!wrapped_string.has_value())
 				{
-					//FIXME: Invalid key
-					return serialize_result{};
+					return serialize_result{
+						std::data(output_buffer), serializer_error_code::illegal_char_in_string
+					};
 				}
 				m_string_to_write += *wrapped_string;
 				m_string_to_write += delimiters::name_separator;
@@ -201,8 +196,9 @@ inline jopp::serialize_result jopp::serializer::serialize(std::span<char> output
 			});
 			if(!result)
 			{
-				//FIXME: Invalid value
-				return serialize_result{};
+				return serialize_result{
+					std::data(output_buffer), serializer_error_code::illegal_char_in_string
+				};
 			}
 
 			m_range_to_write = std::span{std::begin(m_string_to_write), std::end(m_string_to_write)};
