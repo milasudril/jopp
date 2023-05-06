@@ -16,6 +16,7 @@ TESTCASE(jopp_parser_error_code_to_string)
 	EXPECT_EQ(to_string(jopp::parser_error_code::illegal_delimiter), std::string_view{"Illegal delimiter"});
 	EXPECT_EQ(to_string(jopp::parser_error_code::invalid_value), std::string_view{"Invalid value"});
 	EXPECT_EQ(to_string(jopp::parser_error_code::no_top_level_node), std::string_view{"No top level node"});
+	EXPECT_EQ(to_string(jopp::parser_error_code::nesting_level_too_deep), std::string_view{"Nesting level too deep"});
 
 }
 
@@ -567,7 +568,7 @@ TESTCASE(jopp_parser_terminate_array_as_object)
 	EXPECT_EQ(*res.ptr, '\0');
 }
 
-TESTCASE(jopp_parser_recursion_level_exceeded)
+TESTCASE(jopp_parser_recursion_level_exceeded_array)
 {
 	jopp::container val;
 	jopp::parser parser{val, 1};
@@ -575,6 +576,18 @@ TESTCASE(jopp_parser_recursion_level_exceeded)
 	auto res = parser.parse(data);
 	EXPECT_EQ(res.ec, jopp::parser_error_code::nesting_level_too_deep);
 	EXPECT_EQ(*res.ptr, '5');
+	EXPECT_EQ(res.line, 1);
+	EXPECT_EQ(res.col, 7);
+}
+
+TESTCASE(jopp_parser_recursion_level_exceeded_object)
+{
+	jopp::container val;
+	jopp::parser parser{val, 1};
+	std::string_view data{R"([456, {"foo": 5687}])"};
+	auto res = parser.parse(data);
+	EXPECT_EQ(res.ec, jopp::parser_error_code::nesting_level_too_deep);
+	EXPECT_EQ(*res.ptr, '"');
 	EXPECT_EQ(res.line, 1);
 	EXPECT_EQ(res.col, 7);
 }

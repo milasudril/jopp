@@ -46,7 +46,7 @@ namespace jopp
 			case parser_error_code::no_top_level_node:
 				return "No top level node";
 			case parser_error_code::nesting_level_too_deep:
-				return "Nesting too level deep";
+				return "Nesting level too deep";
 		}
 		__builtin_unreachable();
 	}
