@@ -36,9 +36,7 @@ int main()
 
 			auto const res = parser.parse(std::span{std::data(buffer), static_cast<size_t>(bytes_read)});
 			if(res.ec == jopp::parser_error_code::completed)
-			{
-				break;
-			}
+			{ break; }
 			else
 			if(res.ec != jopp::parser_error_code::more_data_needed)
 			{
