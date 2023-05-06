@@ -4,18 +4,18 @@
 
 #include <testfwk/testfwk.hpp>
 
-TESTCASE(jopp_error_code_to_string)
+TESTCASE(jopp_parser_error_code_to_string)
 {
-	EXPECT_EQ(to_string(jopp::error_code::completed), std::string_view{"Completed"});
-	EXPECT_EQ(to_string(jopp::error_code::more_data_needed), std::string_view{"More data needed"});
-	EXPECT_EQ(to_string(jopp::error_code::key_already_exists), std::string_view{"Key already exists"});
-	EXPECT_EQ(to_string(jopp::error_code::character_must_be_escaped),
+	EXPECT_EQ(to_string(jopp::parser_error_code::completed), std::string_view{"Completed"});
+	EXPECT_EQ(to_string(jopp::parser_error_code::more_data_needed), std::string_view{"More data needed"});
+	EXPECT_EQ(to_string(jopp::parser_error_code::key_already_exists), std::string_view{"Key already exists"});
+	EXPECT_EQ(to_string(jopp::parser_error_code::character_must_be_escaped),
 				 std::string_view{"Character must be escaped"});
-	EXPECT_EQ(to_string(jopp::error_code::unsupported_escape_sequence),
+	EXPECT_EQ(to_string(jopp::parser_error_code::unsupported_escape_sequence),
 				 std::string_view{"Unsupported escape sequence"});
-	EXPECT_EQ(to_string(jopp::error_code::illegal_delimiter), std::string_view{"Illegal delimiter"});
-	EXPECT_EQ(to_string(jopp::error_code::invalid_value), std::string_view{"Invalid value"});
-	EXPECT_EQ(to_string(jopp::error_code::no_top_level_node), std::string_view{"No top level node"});
+	EXPECT_EQ(to_string(jopp::parser_error_code::illegal_delimiter), std::string_view{"Illegal delimiter"});
+	EXPECT_EQ(to_string(jopp::parser_error_code::invalid_value), std::string_view{"Invalid value"});
+	EXPECT_EQ(to_string(jopp::parser_error_code::no_top_level_node), std::string_view{"No top level node"});
 
 }
 
@@ -26,14 +26,14 @@ TESTCASE(jopp_parser_store_value_in_object)
 	{
 		auto const res = store_value(val, "key", jopp::value{2.5});
 		EXPECT_EQ(res.next_state, jopp::parser_state::after_value_object);
-		EXPECT_EQ(res.err, jopp::error_code::more_data_needed);
+		EXPECT_EQ(res.err, jopp::parser_error_code::more_data_needed);
 		auto& obj = *val.get_if<jopp::object>();
 		EXPECT_EQ(obj.find("key")->second, jopp::value{2.5});
 	}
 
 	{
 		auto const res = store_value(val, "key", jopp::value{2.0});
-		EXPECT_EQ(res.err, jopp::error_code::key_already_exists);
+		EXPECT_EQ(res.err, jopp::parser_error_code::key_already_exists);
 		auto& obj = *val.get_if<jopp::object>();
 		EXPECT_EQ(obj.find("key")->second, jopp::value{2.5});
 	}
@@ -46,13 +46,13 @@ TESTCASE(jopp_parser_store_value_in_array)
 	{
 		auto const res = store_value(val, "key", jopp::value{2.5});
 		EXPECT_EQ(res.next_state, jopp::parser_state::after_value_array);
-		EXPECT_EQ(res.err, jopp::error_code::more_data_needed);
+		EXPECT_EQ(res.err, jopp::parser_error_code::more_data_needed);
 	}
 
 	{
 		auto const res = store_value(val, "key", jopp::value{1.0});
 		EXPECT_EQ(res.next_state, jopp::parser_state::after_value_array);
-		EXPECT_EQ(res.err, jopp::error_code::more_data_needed);
+		EXPECT_EQ(res.err, jopp::parser_error_code::more_data_needed);
 	}
 
 	{
@@ -70,7 +70,7 @@ TESTCASE(jopp_parser_store_value_litral_in_array)
 	{
 		auto const res = store_value(val, "key", jopp::literal_view{"null"});
 		EXPECT_EQ(res.next_state, jopp::parser_state::after_value_array);
-		EXPECT_EQ(res.err, jopp::error_code::more_data_needed);
+		EXPECT_EQ(res.err, jopp::parser_error_code::more_data_needed);
 	}
 
 	{
@@ -86,7 +86,7 @@ TESTCASE(jopp_parser_store_value_unknown_litral_in_array)
 
 	{
 		auto const res = store_value(val, "key", jopp::literal_view{"foobar"});
-		EXPECT_EQ(res.err, jopp::error_code::invalid_value);
+		EXPECT_EQ(res.err, jopp::parser_error_code::invalid_value);
 	}
 
 	{
@@ -138,7 +138,7 @@ TESTCASE(jopp_parser_parse_data_one_block)
 
 	auto res = parser.parse(
 		std::span{std::data(json_test_data), std::size(json_test_data)});
-	EXPECT_EQ(res.ec, jopp::error_code::completed);
+	EXPECT_EQ(res.ec, jopp::parser_error_code::completed);
 	EXPECT_EQ(*res.ptr, 'S');
 	EXPECT_EQ(res.line, 32);
 	EXPECT_EQ(res.col, 1);
@@ -224,7 +224,7 @@ TESTCASE(jopp_parser_parse_data_multiple_blocks)
 		auto res = parser.parse(std::span{ptr, bytes_to_process});
 		bytes_left -= bytes_to_process;
 		ptr += bytes_to_process;
-		if(res.ec == jopp::error_code::completed)
+		if(res.ec == jopp::parser_error_code::completed)
 		{
 			EXPECT_EQ(*res.ptr, 'S');
 			break;
@@ -232,7 +232,7 @@ TESTCASE(jopp_parser_parse_data_multiple_blocks)
 		else
 		{
 			EXPECT_EQ(ptr, res.ptr);
-			EXPECT_EQ(res.ec, jopp::error_code::more_data_needed);
+			EXPECT_EQ(res.ec, jopp::parser_error_code::more_data_needed);
 		}
 	}
 
@@ -311,7 +311,7 @@ TESTCASE(jopp_parser_top_level_is_array)
 	auto const res = parser.parse(data);
 	EXPECT_EQ(res.line, 1);
 	EXPECT_EQ(res.col, 9);
-	EXPECT_EQ(res.ec, jopp::error_code::completed);
+	EXPECT_EQ(res.ec, jopp::parser_error_code::completed);
 	EXPECT_EQ(*res.ptr, '\0');
 
 	auto& array = *val.get_if<jopp::array>();
@@ -330,7 +330,7 @@ TESTCASE(jopp_parser_leaf_at_top_level)
 		auto const res = parser.parse(data);
 		EXPECT_EQ(res.line, 1);
 		EXPECT_EQ(res.col, 1);
-		EXPECT_EQ(res.ec, jopp::error_code::no_top_level_node);
+		EXPECT_EQ(res.ec, jopp::parser_error_code::no_top_level_node);
 		EXPECT_EQ(res.ptr, std::data(data) + 1);
 	}
 
@@ -341,7 +341,7 @@ TESTCASE(jopp_parser_leaf_at_top_level)
 		auto const res = parser.parse(data);
 		EXPECT_EQ(res.line, 1);
 		EXPECT_EQ(res.col, 1);
-		EXPECT_EQ(res.ec, jopp::error_code::no_top_level_node);
+		EXPECT_EQ(res.ec, jopp::parser_error_code::no_top_level_node);
 		EXPECT_EQ(res.ptr, std::data(data) + 1);
 	}
 }
@@ -370,7 +370,7 @@ TESTCASE(jopp_parser_duplicate_key)
 	auto const res = parser.parse(data);
 	EXPECT_EQ(res.line, 3);
 	EXPECT_EQ(res.col, 17);
-	EXPECT_EQ(res.ec, jopp::error_code::key_already_exists);
+	EXPECT_EQ(res.ec, jopp::parser_error_code::key_already_exists);
 	EXPECT_EQ(*res.ptr, '\n');
 }
 
@@ -386,7 +386,7 @@ TESTCASE(jopp_parser_missing_esc_char_in_value)
 	auto const res = parser.parse(data);
 	EXPECT_EQ(res.line, 2);
 	EXPECT_EQ(res.col, 17);
-	EXPECT_EQ(res.ec, jopp::error_code::character_must_be_escaped);
+	EXPECT_EQ(res.ec, jopp::parser_error_code::character_must_be_escaped);
 	EXPECT_EQ(*res.ptr, '"');
 }
 
@@ -399,7 +399,7 @@ TESTCASE(jopp_parser_unsupp_esc_seq_in_value)
 	auto const res = parser.parse(data);
 	EXPECT_EQ(res.line, 1);
 	EXPECT_EQ(res.col, 18);
-	EXPECT_EQ(res.ec, jopp::error_code::unsupported_escape_sequence);
+	EXPECT_EQ(res.ec, jopp::parser_error_code::unsupported_escape_sequence);
 	EXPECT_EQ(*res.ptr, '0');
 }
 
@@ -412,7 +412,7 @@ TESTCASE(jopp_parser_junk_before_key)
 	auto const res = parser.parse(data);
 	EXPECT_EQ(res.line, 1);
 	EXPECT_EQ(res.col, 2);
-	EXPECT_EQ(res.ec, jopp::error_code::illegal_delimiter);
+	EXPECT_EQ(res.ec, jopp::parser_error_code::illegal_delimiter);
 	EXPECT_EQ(*res.ptr, 'u');
 }
 
@@ -427,7 +427,7 @@ key": "123"})"};
 	auto const res = parser.parse(data);
 	EXPECT_EQ(res.line, 2);
 	EXPECT_EQ(res.col, 6);
-	EXPECT_EQ(res.ec, jopp::error_code::character_must_be_escaped);
+	EXPECT_EQ(res.ec, jopp::parser_error_code::character_must_be_escaped);
 	EXPECT_EQ(*res.ptr, 'k');
 }
 
@@ -440,7 +440,7 @@ TESTCASE(jopp_parser_unsupp_esc_seq_in_key)
 	auto const res = parser.parse(data);
 	EXPECT_EQ(res.line, 1);
 	EXPECT_EQ(res.col, 11);
-	EXPECT_EQ(res.ec, jopp::error_code::unsupported_escape_sequence);
+	EXPECT_EQ(res.ec, jopp::parser_error_code::unsupported_escape_sequence);
 	EXPECT_EQ(*res.ptr, '0');
 }
 
@@ -453,7 +453,7 @@ TESTCASE(jopp_parser_junk_before_value)
 	auto const res = parser.parse(data);
 	EXPECT_EQ(res.line, 1);
 	EXPECT_EQ(res.col, 12);
-	EXPECT_EQ(res.ec, jopp::error_code::illegal_delimiter);
+	EXPECT_EQ(res.ec, jopp::parser_error_code::illegal_delimiter);
 	EXPECT_EQ(*res.ptr, 'u');
 }
 
@@ -466,7 +466,7 @@ TESTCASE(jopp_parser_junk_after_value_object_string)
 	auto const res = parser.parse(data);
 	EXPECT_EQ(res.line, 1);
 	EXPECT_EQ(res.col, 19);
-	EXPECT_EQ(res.ec, jopp::error_code::illegal_delimiter);
+	EXPECT_EQ(res.ec, jopp::parser_error_code::illegal_delimiter);
 	EXPECT_EQ(*res.ptr, 'u');
 }
 
@@ -479,7 +479,7 @@ TESTCASE(jopp_parser_junk_after_value_object_other_1)
 	auto const res = parser.parse(data);
 	EXPECT_EQ(res.line, 1);
 	EXPECT_EQ(res.col, 17);
-	EXPECT_EQ(res.ec, jopp::error_code::illegal_delimiter);
+	EXPECT_EQ(res.ec, jopp::parser_error_code::illegal_delimiter);
 	EXPECT_EQ(*res.ptr, 'u');
 }
 
@@ -492,7 +492,7 @@ TESTCASE(jopp_parser_junk_after_value_object_other_2)
 	auto const res = parser.parse(data);
 	EXPECT_EQ(res.line, 1);
 	EXPECT_EQ(res.col, 19);
-	EXPECT_EQ(res.ec, jopp::error_code::illegal_delimiter);
+	EXPECT_EQ(res.ec, jopp::parser_error_code::illegal_delimiter);
 	EXPECT_EQ(*res.ptr, 'u');
 }
 
@@ -505,7 +505,7 @@ TESTCASE(jopp_parser_junk_after_value_array_string)
 	auto const res = parser.parse(data);
 	EXPECT_EQ(res.line, 1);
 	EXPECT_EQ(res.col, 13);
-	EXPECT_EQ(res.ec, jopp::error_code::illegal_delimiter);
+	EXPECT_EQ(res.ec, jopp::parser_error_code::illegal_delimiter);
 	EXPECT_EQ(*res.ptr, '2');
 }
 
@@ -518,7 +518,7 @@ TESTCASE(jopp_parser_junk_after_value_array_other)
 	auto const res = parser.parse(data);
 	EXPECT_EQ(res.line, 1);
 	EXPECT_EQ(res.col, 6);
-	EXPECT_EQ(res.ec, jopp::error_code::illegal_delimiter);
+	EXPECT_EQ(res.ec, jopp::parser_error_code::illegal_delimiter);
 	EXPECT_EQ(*res.ptr, '5');
 }
 
@@ -534,7 +534,7 @@ TESTCASE(jopp_parser_store_object_duplicate_key)
 	EXPECT_EQ(res.line, 2);
 	EXPECT_EQ(res.col, 12);
 	EXPECT_EQ(*res.ptr, '\n');
-	EXPECT_EQ(res.ec, jopp::error_code::key_already_exists);
+	EXPECT_EQ(res.ec, jopp::parser_error_code::key_already_exists);
 }
 
 TESTCASE(jopp_parser_terminate_object_as_array)
@@ -546,7 +546,7 @@ TESTCASE(jopp_parser_terminate_object_as_array)
 ])"};
 
 	auto const res = parser.parse(data);
-	EXPECT_EQ(res.ec, jopp::error_code::illegal_delimiter);
+	EXPECT_EQ(res.ec, jopp::parser_error_code::illegal_delimiter);
 	EXPECT_EQ(res.line, 3);
 	EXPECT_EQ(res.col, 1);
 	EXPECT_EQ(*res.ptr, '\0');
@@ -561,8 +561,20 @@ TESTCASE(jopp_parser_terminate_array_as_object)
 })"};
 
 	auto const res = parser.parse(data);
-	EXPECT_EQ(res.ec, jopp::error_code::illegal_delimiter);
+	EXPECT_EQ(res.ec, jopp::parser_error_code::illegal_delimiter);
 	EXPECT_EQ(res.line, 3);
 	EXPECT_EQ(res.col, 1);
 	EXPECT_EQ(*res.ptr, '\0');
+}
+
+TESTCASE(jopp_parser_recursion_level_exceeded)
+{
+	jopp::value val;
+	jopp::parser parser{val, 1};
+	std::string_view data{R"([456, [5687]])"};
+	auto res = parser.parse(data);
+	EXPECT_EQ(res.ec, jopp::parser_error_code::nesting_level_too_deep);
+	EXPECT_EQ(*res.ptr, '5');
+	EXPECT_EQ(res.line, 1);
+	EXPECT_EQ(res.col, 7);
 }

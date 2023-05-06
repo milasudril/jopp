@@ -12,7 +12,7 @@
 
 namespace jopp
 {
-	enum class error_code
+	enum class parser_error_code
 	{
 		completed,
 		more_data_needed,
@@ -21,29 +21,32 @@ namespace jopp
 		unsupported_escape_sequence,
 		illegal_delimiter,
 		invalid_value,
-		no_top_level_node
+		no_top_level_node,
+		nesting_level_too_deep
 	};
 
-	inline constexpr char const* to_string(error_code ec)
+	inline constexpr char const* to_string(parser_error_code ec)
 	{
 		switch(ec)
 		{
-			case error_code::completed:
+			case parser_error_code::completed:
 				return "Completed";
-			case error_code::more_data_needed:
+			case parser_error_code::more_data_needed:
 				return "More data needed";
-			case error_code::key_already_exists:
+			case parser_error_code::key_already_exists:
 				return "Key already exists";
-			case error_code::character_must_be_escaped:
+			case parser_error_code::character_must_be_escaped:
 				return "Character must be escaped";
-			case error_code::unsupported_escape_sequence:
+			case parser_error_code::unsupported_escape_sequence:
 				return "Unsupported escape sequence";
-			case error_code::illegal_delimiter:
+			case parser_error_code::illegal_delimiter:
 				return "Illegal delimiter";
-			case error_code::invalid_value:
+			case parser_error_code::invalid_value:
 				return "Invalid value";
-			case error_code::no_top_level_node:
+			case parser_error_code::no_top_level_node:
 				return "No top level node";
+			case parser_error_code::nesting_level_too_deep:
+				return "Nesting too level deep";
 		}
 		__builtin_unreachable();
 	}
@@ -51,7 +54,7 @@ namespace jopp
 	struct parse_result
 	{
 		char const* ptr;
-		error_code ec;
+		parser_error_code ec;
 		size_t line;
 		size_t col;
 	};
@@ -79,7 +82,7 @@ namespace jopp
 	struct store_value_result
 	{
 		parser_state next_state;
-		error_code err;
+		parser_error_code err;
 	};
 
 	inline auto store_value(class value& parent_value, string&& key, class value&& value)
@@ -91,20 +94,20 @@ namespace jopp
 					{
 						return store_value_result{
 							parser_state::after_value_object,
-							error_code::key_already_exists
+							parser_error_code::key_already_exists
 						};
 					}
 
 					return store_value_result{
 						parser_state::after_value_object,
-						error_code::more_data_needed
+						parser_error_code::more_data_needed
 					};
 				},
 				[](array& item, string&&, class value&& val) {
 					item.push_back(std::move(val));
 					return store_value_result{
 						parser_state::after_value_array,
-						error_code::more_data_needed
+						parser_error_code::more_data_needed
 					};
 				},
 				[](auto&, string&&, class value&&) {
@@ -127,7 +130,7 @@ namespace jopp
 		{
 			return store_value_result{
 				parser_state::value,
-				error_code::invalid_value
+				parser_error_code::invalid_value
 			};
 		}
 
@@ -137,10 +140,11 @@ namespace jopp
 	class parser
 	{
 	public:
-		explicit parser(value& root):
+		explicit parser(value& root, std::optional<size_t> max_levels = 1024):
 			m_line{1},
 			m_col{1},
 			m_current_state{parser_state::value},
+			m_max_levels{max_levels},
 			m_root{root}
 		{}
 
@@ -150,6 +154,7 @@ namespace jopp
 		size_t m_line;
 		size_t m_col;
 		parser_state m_current_state;
+		std::optional<size_t> m_max_levels;
 		std::stack<parser_context> m_contexts;
 		string m_buffer;
 		std::reference_wrapper<value> m_root;
@@ -162,7 +167,7 @@ jopp::parse_result jopp::parser::parse(std::span<char const> input_seq)
 	while(true)
 	{
 		if(ptr == std::data(input_seq) + std::size(input_seq))
-		{ return parse_result{ptr, error_code::more_data_needed, m_line, m_col}; }
+		{ return parse_result{ptr, parser_error_code::more_data_needed, m_line, m_col}; }
 
 		auto ch_in = *ptr;
 		auto const old_pos = ptr;
@@ -174,12 +179,16 @@ jopp::parse_result jopp::parser::parse(std::span<char const> input_seq)
 				switch(ch_in)
 				{
 					case delimiters::begin_array:
+						if(m_max_levels.has_value() && std::size(m_contexts) == *m_max_levels)
+						{ return parse_result{ptr, parser_error_code::nesting_level_too_deep, m_line, m_col }; }
 						m_contexts.push(parser_context{});
 						m_contexts.top().value = value{array{}};
 						m_current_state = parser_state::value;
 						break;
 
 					case delimiters::begin_object:
+						if(m_max_levels.has_value() && std::size(m_contexts) == *m_max_levels)
+						{ return parse_result{ptr, parser_error_code::nesting_level_too_deep, m_line, m_col }; }
 						m_contexts.push(parser_context{});
 						m_contexts.top().value = value{object{}};
 						m_current_state = parser_state::before_key;
@@ -192,13 +201,13 @@ jopp::parse_result jopp::parser::parse(std::span<char const> input_seq)
 
 					case delimiters::string_begin_end:
 						if(std::size(m_contexts) == 0)
-						{ return parse_result{ptr, error_code::no_top_level_node, m_line, m_col}; }
+						{ return parse_result{ptr, parser_error_code::no_top_level_node, m_line, m_col}; }
 						m_current_state = parser_state::string_value;
 						break;
 
 					default:
 						if(std::size(m_contexts) == 0)
-						{ return parse_result{ptr, error_code::no_top_level_node, m_line, m_col}; }
+						{ return parse_result{ptr, parser_error_code::no_top_level_node, m_line, m_col}; }
 						if(!is_whitespace(ch_in))
 						{
 							m_buffer += ch_in;
@@ -216,7 +225,7 @@ jopp::parse_result jopp::parser::parse(std::span<char const> input_seq)
 					auto res = store_value(m_contexts.top().value,
 						std::move(m_contexts.top().key),
 						literal_view{m_buffer});
-					if(res.err != error_code::more_data_needed)
+					if(res.err != parser_error_code::more_data_needed)
 					{ return parse_result{ptr, res.err, m_line, m_col}; }
 
 					if(!is_whitespace(ch_in))
@@ -238,7 +247,7 @@ jopp::parse_result jopp::parser::parse(std::span<char const> input_seq)
 						auto res = store_value(m_contexts.top().value,
 							std::move(m_contexts.top().key),
 							value{m_buffer});
-						if(res.err != error_code::more_data_needed)
+						if(res.err != parser_error_code::more_data_needed)
 						{ return parse_result{ptr, res.err, m_line, m_col}; }
 
 						m_current_state = res.next_state;
@@ -253,7 +262,7 @@ jopp::parse_result jopp::parser::parse(std::span<char const> input_seq)
 
 					default:
 						if(char_should_be_escaped(ch_in))
-						{ return parse_result{ptr, error_code::character_must_be_escaped, m_line, m_col}; }
+						{ return parse_result{ptr, parser_error_code::character_must_be_escaped, m_line, m_col}; }
 						else
 						{ m_buffer += ch_in; }
 				}
@@ -266,7 +275,7 @@ jopp::parse_result jopp::parser::parse(std::span<char const> input_seq)
 					m_current_state = parser_state::string_value;
 				}
 				else
-				{ return parse_result{ptr, error_code::unsupported_escape_sequence, m_line, m_col}; }
+				{ return parse_result{ptr, parser_error_code::unsupported_escape_sequence, m_line, m_col}; }
 				break;
 
 			case parser_state::before_key:
@@ -283,7 +292,7 @@ jopp::parse_result jopp::parser::parse(std::span<char const> input_seq)
 
 					default:
 						if(!is_whitespace(ch_in))
-						{ return parse_result{ptr, error_code::illegal_delimiter, m_line, m_col}; }
+						{ return parse_result{ptr, parser_error_code::illegal_delimiter, m_line, m_col}; }
 				}
 				break;
 
@@ -302,7 +311,7 @@ jopp::parse_result jopp::parser::parse(std::span<char const> input_seq)
 
 					default:
 						if(char_should_be_escaped(ch_in))
-						{ return parse_result{ptr, error_code::character_must_be_escaped, m_line, m_col}; }
+						{ return parse_result{ptr, parser_error_code::character_must_be_escaped, m_line, m_col}; }
 						else
 						{ m_buffer += ch_in; }
 				}
@@ -315,7 +324,7 @@ jopp::parse_result jopp::parser::parse(std::span<char const> input_seq)
 					m_current_state = parser_state::key;
 				}
 				else
-				{ return parse_result{ptr, error_code::unsupported_escape_sequence, m_line, m_col}; }
+				{ return parse_result{ptr, parser_error_code::unsupported_escape_sequence, m_line, m_col}; }
 				break;
 
 			case parser_state::before_value:
@@ -327,7 +336,7 @@ jopp::parse_result jopp::parser::parse(std::span<char const> input_seq)
 
 					default:
 						if(!is_whitespace(ch_in))
-						{ return parse_result{ptr, error_code::illegal_delimiter, m_line, m_col}; }
+						{ return parse_result{ptr, parser_error_code::illegal_delimiter, m_line, m_col}; }
 				}
 				break;
 
@@ -341,13 +350,13 @@ jopp::parse_result jopp::parser::parse(std::span<char const> input_seq)
 						if(std::size(m_contexts) == 0)
 						{
 							m_root.get() = std::move(current_context.value);
-							return parse_result{ptr, error_code::completed, m_line, m_col};
+							return parse_result{ptr, parser_error_code::completed, m_line, m_col};
 						}
 
 						auto const res = store_value(m_contexts.top().value,
 							std::move(m_contexts.top().key),
 							std::move(current_context.value));
-						if(res.err != error_code::more_data_needed)
+						if(res.err != parser_error_code::more_data_needed)
 						{ return parse_result{ptr, res.err, m_line, m_col}; }
 						m_current_state = res.next_state;
 						break;
@@ -359,7 +368,7 @@ jopp::parse_result jopp::parser::parse(std::span<char const> input_seq)
 
 					default:
 						if(!is_whitespace(ch_in))
-						{ return parse_result{ptr, error_code::illegal_delimiter, m_line, m_col}; }
+						{ return parse_result{ptr, parser_error_code::illegal_delimiter, m_line, m_col}; }
 				}
 				break;
 
@@ -373,7 +382,7 @@ jopp::parse_result jopp::parser::parse(std::span<char const> input_seq)
 						if(std::size(m_contexts) == 0)
 						{
 							m_root.get() = std::move(current_context.value);
-							return parse_result{ptr, error_code::completed, m_line, m_col};
+							return parse_result{ptr, parser_error_code::completed, m_line, m_col};
 						}
 
 						m_current_state = store_value(m_contexts.top().value,
@@ -388,7 +397,7 @@ jopp::parse_result jopp::parser::parse(std::span<char const> input_seq)
 
 					default:
 						if(!is_whitespace(ch_in))
-						{ return parse_result{ptr, error_code::illegal_delimiter, m_line, m_col}; }
+						{ return parse_result{ptr, parser_error_code::illegal_delimiter, m_line, m_col}; }
 				}
 				break;
 		}
