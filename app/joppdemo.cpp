@@ -1,15 +1,7 @@
-# Jopp
+//@	{"target":{"name":"joppdemo.o"}}
 
-Jopp is another JSON parser for C++. It features a DOM parser, that
-
-* Allows streams that does not end with the outermost json object
-* Can be used together with non-blocking I/O
-
-## Example usage
-
-```c++
-#include <jopp/parser.hpp>
-#include <jopp/serializer.hpp>
+#include "lib/parser.hpp"
+#include "lib/serializer.hpp"
 #include <unistd.h>
 #include <errno.h>
 
@@ -94,4 +86,3 @@ int main()
 		}
 	}
 }
-```
