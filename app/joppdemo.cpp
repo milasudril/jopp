@@ -7,7 +7,7 @@
 
 int main()
 {
-	jopp::value root;
+	jopp::container root;
 
 	{
 		// Read data from stdin
@@ -39,12 +39,14 @@ int main()
 				return - 1;
 			}
 		}
-
+/*
+	FIXME:
 		if(is_null(root))
 		{
 			// Failed due to early eof
-				return -1;
+			return -1;
 		}
+*/
 	}
 
 	{

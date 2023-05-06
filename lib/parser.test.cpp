@@ -21,7 +21,7 @@ TESTCASE(jopp_parser_error_code_to_string)
 
 TESTCASE(jopp_parser_store_value_in_object)
 {
-	jopp::value val{jopp::object{}};
+	jopp::container val{jopp::object{}};
 
 	{
 		auto const res = store_value(val, "key", jopp::value{2.5});
@@ -41,7 +41,7 @@ TESTCASE(jopp_parser_store_value_in_object)
 
 TESTCASE(jopp_parser_store_value_in_array)
 {
-	jopp::value val{jopp::array{}};
+	jopp::container val{jopp::array{}};
 
 	{
 		auto const res = store_value(val, "key", jopp::value{2.5});
@@ -65,7 +65,7 @@ TESTCASE(jopp_parser_store_value_in_array)
 
 TESTCASE(jopp_parser_store_value_litral_in_array)
 {
-	jopp::value val{jopp::array{}};
+	jopp::container val{jopp::array{}};
 
 	{
 		auto const res = store_value(val, "key", jopp::literal_view{"null"});
@@ -82,7 +82,7 @@ TESTCASE(jopp_parser_store_value_litral_in_array)
 
 TESTCASE(jopp_parser_store_value_unknown_litral_in_array)
 {
-	jopp::value val{jopp::array{}};
+	jopp::container val{jopp::array{}};
 
 	{
 		auto const res = store_value(val, "key", jopp::literal_view{"foobar"});
@@ -133,7 +133,7 @@ namespace
 
 TESTCASE(jopp_parser_parse_data_one_block)
 {
-	jopp::value val;
+	jopp::container val;
 	jopp::parser parser{val};
 
 	auto res = parser.parse(
@@ -211,7 +211,7 @@ TESTCASE(jopp_parser_parse_data_one_block)
 
 TESTCASE(jopp_parser_parse_data_multiple_blocks)
 {
-	jopp::value val;
+	jopp::container val;
 	jopp::parser parser{val};
 
 	auto ptr = std::begin(json_test_data);
@@ -304,7 +304,7 @@ TESTCASE(jopp_parser_parse_data_multiple_blocks)
 
 TESTCASE(jopp_parser_top_level_is_array)
 {
-	jopp::value val;
+	jopp::container val;
 	jopp::parser parser{val};
 	std::string_view data{R"([3, 1, 2])"};
 
@@ -324,7 +324,7 @@ TESTCASE(jopp_parser_top_level_is_array)
 TESTCASE(jopp_parser_leaf_at_top_level)
 {
 	{
-		jopp::value val;
+		jopp::container val;
 		jopp::parser parser{val};
 		std::string_view data{"\"lorem ipsum\""};
 		auto const res = parser.parse(data);
@@ -335,7 +335,7 @@ TESTCASE(jopp_parser_leaf_at_top_level)
 	}
 
 	{
-		jopp::value val;
+		jopp::container val;
 		jopp::parser parser{val};
 		std::string_view data{"false "};
 		auto const res = parser.parse(data);
@@ -348,7 +348,7 @@ TESTCASE(jopp_parser_leaf_at_top_level)
 
 TESTCASE(jopp_parser_invalid_literal)
 {
-	jopp::value val;
+	jopp::container val;
 	jopp::parser parser{val};
 	std::string_view data{"[foobar]"};
 
@@ -360,7 +360,7 @@ TESTCASE(jopp_parser_invalid_literal)
 
 TESTCASE(jopp_parser_duplicate_key)
 {
-	jopp::value val;
+	jopp::container val;
 	jopp::parser parser{val};
 	std::string_view data{R"({
 	"the key": "123",
@@ -376,7 +376,7 @@ TESTCASE(jopp_parser_duplicate_key)
 
 TESTCASE(jopp_parser_missing_esc_char_in_value)
 {
-	jopp::value val;
+	jopp::container val;
 	jopp::parser parser{val};
 	std::string_view data{R"({
 	"the key": "123
@@ -392,7 +392,7 @@ TESTCASE(jopp_parser_missing_esc_char_in_value)
 
 TESTCASE(jopp_parser_unsupp_esc_seq_in_value)
 {
-	jopp::value val;
+	jopp::container val;
 	jopp::parser parser{val};
 	std::string_view data{R"({"the key": "123\u0000"})"};
 
@@ -405,7 +405,7 @@ TESTCASE(jopp_parser_unsupp_esc_seq_in_value)
 
 TESTCASE(jopp_parser_junk_before_key)
 {
-	jopp::value val;
+	jopp::container val;
 	jopp::parser parser{val};
 	std::string_view data{R"({junk"the key": "123"})"};
 
@@ -418,7 +418,7 @@ TESTCASE(jopp_parser_junk_before_key)
 
 TESTCASE(jopp_parser_missing_esc_char_in_key)
 {
-	jopp::value val;
+	jopp::container val;
 	jopp::parser parser{val};
 	std::string_view data{R"({
 	"the
@@ -433,7 +433,7 @@ key": "123"})"};
 
 TESTCASE(jopp_parser_unsupp_esc_seq_in_key)
 {
-	jopp::value val;
+	jopp::container val;
 	jopp::parser parser{val};
 	std::string_view data{R"({"the key\u0000": "123"})"};
 
@@ -446,7 +446,7 @@ TESTCASE(jopp_parser_unsupp_esc_seq_in_key)
 
 TESTCASE(jopp_parser_junk_before_value)
 {
-	jopp::value val;
+	jopp::container val;
 	jopp::parser parser{val};
 	std::string_view data{R"({"the key" junk: "123"})"};
 
@@ -459,7 +459,7 @@ TESTCASE(jopp_parser_junk_before_value)
 
 TESTCASE(jopp_parser_junk_after_value_object_string)
 {
-	jopp::value val;
+	jopp::container val;
 	jopp::parser parser{val};
 	std::string_view data{R"({"the key": "123" junk})"};
 
@@ -472,7 +472,7 @@ TESTCASE(jopp_parser_junk_after_value_object_string)
 
 TESTCASE(jopp_parser_junk_after_value_object_other_1)
 {
-	jopp::value val;
+	jopp::container val;
 	jopp::parser parser{val};
 	std::string_view data{R"({"the key": 123 junk})"};
 
@@ -485,7 +485,7 @@ TESTCASE(jopp_parser_junk_after_value_object_other_1)
 
 TESTCASE(jopp_parser_junk_after_value_object_other_2)
 {
-	jopp::value val;
+	jopp::container val;
 	jopp::parser parser{val};
 	std::string_view data{R"({"the key": 123 , junk})"};
 
@@ -498,7 +498,7 @@ TESTCASE(jopp_parser_junk_after_value_object_other_2)
 
 TESTCASE(jopp_parser_junk_after_value_array_string)
 {
-	jopp::value val;
+	jopp::container val;
 	jopp::parser parser{val};
 	std::string_view data{R"(["A string" 123])"};
 
@@ -511,7 +511,7 @@ TESTCASE(jopp_parser_junk_after_value_array_string)
 
 TESTCASE(jopp_parser_junk_after_value_array_other)
 {
-	jopp::value val;
+	jopp::container val;
 	jopp::parser parser{val};
 	std::string_view data{R"([123 456])"};
 
@@ -524,7 +524,7 @@ TESTCASE(jopp_parser_junk_after_value_array_other)
 
 TESTCASE(jopp_parser_store_object_duplicate_key)
 {
-	jopp::value val;
+	jopp::container val;
 	jopp::parser parser{val};
 	std::string_view data{R"({"key a": 456,
 	"key a": {}
@@ -539,7 +539,7 @@ TESTCASE(jopp_parser_store_object_duplicate_key)
 
 TESTCASE(jopp_parser_terminate_object_as_array)
 {
-	jopp::value val;
+	jopp::container val;
 	jopp::parser parser{val};
 	std::string_view data{R"({"key a": 456,
 	"key b": 5687
@@ -554,7 +554,7 @@ TESTCASE(jopp_parser_terminate_object_as_array)
 
 TESTCASE(jopp_parser_terminate_array_as_object)
 {
-	jopp::value val;
+	jopp::container val;
 	jopp::parser parser{val};
 	std::string_view data{R"([456,
 	5687
@@ -569,7 +569,7 @@ TESTCASE(jopp_parser_terminate_array_as_object)
 
 TESTCASE(jopp_parser_recursion_level_exceeded)
 {
-	jopp::value val;
+	jopp::container val;
 	jopp::parser parser{val, 1};
 	std::string_view data{R"([456, [5687]])"};
 	auto res = parser.parse(data);

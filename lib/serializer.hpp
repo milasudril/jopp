@@ -74,15 +74,7 @@ namespace jopp
 		};
 	}
 
-	template<class T>
-	requires(!std::is_same_v<T, jopp::object> && !std::is_same_v<T, jopp::array>)
-	inline auto make_serializer_context(T const&)
-	{
-		assert(false);
-		return serializer_context{};
-	}
-
-	auto make_serializer_context(std::reference_wrapper<value const> val)
+	auto make_serializer_context(std::reference_wrapper<container const> val)
 	{
 		return val.get().visit([](auto const& val) { return make_serializer_context(val); } );
 	}
@@ -90,7 +82,7 @@ namespace jopp
 	class serializer
 	{
 	public:
-		explicit serializer(std::reference_wrapper<value const> root)
+		explicit serializer(std::reference_wrapper<container const> root)
 		{
 			m_contexts.push(make_serializer_context(root));
 			m_string_to_write += m_contexts.top().block_starter;

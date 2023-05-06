@@ -8,7 +8,6 @@
 #include <string_view>
 #include <stack>
 #include <span>
-#include <cassert>
 #include <iterator>
 
 namespace jopp
@@ -78,7 +77,7 @@ namespace jopp
 	struct parser_context
 	{
 		string key;
-		class value value{null{}};
+		container value;
 	};
 
 	struct store_value_result
@@ -87,9 +86,9 @@ namespace jopp
 		parser_error_code err;
 	};
 
-	inline auto store_value(class value& parent_value, string&& key, class value&& value)
+	inline auto store_value(container& parent, string&& key, class value&& value)
 	{
-		return parent_value.visit(
+		return parent.visit(
 			overload{
 				[](object& item, string&& key, class value&& val) {
 					if(!item.insert(std::move(key), std::move(val)).second)
@@ -111,10 +110,6 @@ namespace jopp
 						parser_state::after_value_array,
 						parser_error_code::more_data_needed
 					};
-				},
-				[](auto&, string&&, class value&&) {
-					assert(false);
-					return store_value_result{};
 				}
 			},
 			std::move(key),
@@ -125,7 +120,7 @@ namespace jopp
 	struct literal_view
 	{ std::string_view value; };
 
-	inline auto store_value(class value& parent_value, string&& key, literal_view buffer)
+	inline auto store_value(container& parent, string&& key, literal_view buffer)
 	{
 		auto val = make_value(buffer.value);
 		if(!val.has_value())
@@ -136,7 +131,12 @@ namespace jopp
 			};
 		}
 
-		return store_value(parent_value, std::move(key), std::move(*val));
+		return store_value(parent, std::move(key), std::move(*val));
+	}
+
+	inline auto store_value(container& parent, string&& key, container&& child)
+	{
+		return store_value(parent, std::move(key), to_value(std::move(child)));
 	}
 
 	template<class T>
@@ -150,7 +150,7 @@ namespace jopp
 	class parser
 	{
 	public:
-		explicit parser(value& root, std::optional<size_t> max_levels = 1024):
+		explicit parser(container& root, std::optional<size_t> max_levels = 1024):
 			m_line{1},
 			m_col{1},
 			m_current_state{parser_state::value},
@@ -168,7 +168,7 @@ namespace jopp
 		std::optional<size_t> m_max_levels;
 		std::stack<parser_context> m_contexts;
 		string m_buffer;
-		std::reference_wrapper<value> m_root;
+		std::reference_wrapper<container> m_root;
 	};
 }
 
@@ -194,7 +194,7 @@ auto jopp::parser::parse(InputSeq input_seq)
 						if(m_max_levels.has_value() && std::size(m_contexts) == *m_max_levels)
 						{ return parse_result{ptr, parser_error_code::nesting_level_too_deep, m_line, m_col }; }
 						m_contexts.push(parser_context{});
-						m_contexts.top().value = value{array{}};
+						m_contexts.top().value = container{array{}};
 						m_current_state = parser_state::value;
 						break;
 
@@ -202,7 +202,7 @@ auto jopp::parser::parse(InputSeq input_seq)
 						if(m_max_levels.has_value() && std::size(m_contexts) == *m_max_levels)
 						{ return parse_result{ptr, parser_error_code::nesting_level_too_deep, m_line, m_col }; }
 						m_contexts.push(parser_context{});
-						m_contexts.top().value = value{object{}};
+						m_contexts.top().value = container{object{}};
 						m_current_state = parser_state::before_key;
 						break;
 

@@ -216,8 +216,7 @@ TESTCASE(jopp_serializer_bad_char_in_key)
 	key[7] = '\0';
 	obj.insert(std::move(key), 42.0);
 	std::array<char, 1024> buffer{};
-	jopp::value val{std::move(obj)};
-	jopp::serializer serializer{val};
+	jopp::serializer serializer{obj};
 	auto res = serializer.serialize(buffer);
 	EXPECT_EQ(res.ec, jopp::serializer_error_code::illegal_char_in_string);
 	EXPECT_EQ(res.ptr, std::data(buffer) + 2);
@@ -230,8 +229,7 @@ TESTCASE(jopp_serializer_bad_char_in_string_value)
 	value[7] = '\0';
 	obj.insert("hello, world", std::move(value));
 	std::array<char, 1024> buffer{};
-	jopp::value val{std::move(obj)};
-	jopp::serializer serializer{val};
+	jopp::serializer serializer{obj};
 	auto res = serializer.serialize(buffer);
 	EXPECT_EQ(res.ec, jopp::serializer_error_code::illegal_char_in_string);
 	EXPECT_EQ(res.ptr, std::data(buffer) + 2);
@@ -246,8 +244,7 @@ TESTCASE(jopp_serializer_serialize_array)
 	obj.push_back(3.0);
 
 	std::array<char, 1024> buffer{};
-	jopp::value val{std::move(obj)};
-	jopp::serializer serializer{val};
+	jopp::serializer serializer{obj};
 	auto res = serializer.serialize(buffer);
 	EXPECT_EQ(res.ec, jopp::serializer_error_code::completed);
 	EXPECT_EQ(std::data(buffer), std::string_view{R"([

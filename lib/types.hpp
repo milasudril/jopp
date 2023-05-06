@@ -277,7 +277,7 @@ namespace jopp
 	class container
 	{
 	public:
-		explicit container() = default;
+		container() = default;
 
 		template<class T>
 		requires(is_object_or_array_v<T>)
@@ -314,6 +314,15 @@ namespace jopp
 	private:
 		std::variant<object, array> m_value;
 	};
+
+	template<class T>
+	requires(std::is_same_v<std::decay_t<T>, container>)
+	decltype(auto) to_value(T&& obj)
+	{
+		return obj.visit([]<class U>(U&& item){
+			return value{std::forward<std::decay_t<U>>(item)};
+		});
+	}
 }
 
 #endif
