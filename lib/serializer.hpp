@@ -21,9 +21,10 @@ namespace jopp
 		illegal_char_in_string
 	};
 
+	template<class OutputSeqIter>
 	struct serialize_result
 	{
-		char* ptr;
+		OutputSeqIter ptr;
 		serializer_error_code ec;
 	};
 
@@ -98,7 +99,7 @@ namespace jopp
 			m_range_to_write = std::span{std::begin(m_string_to_write), std::end(m_string_to_write)};
 		}
 
-		serialize_result serialize(std::span<char> output_buffer);
+		auto serialize(std::span<char> output_buffer);
 
 	private:
 		std::span<char const> m_range_to_write;
@@ -108,18 +109,18 @@ namespace jopp
 	};
 }
 
-inline jopp::serialize_result jopp::serializer::serialize(std::span<char> output_buffer)
+auto jopp::serializer::serialize(std::span<char> output_buffer)
 {
 	while(true)
 	{
 		if(std::begin(output_buffer) == std::end(output_buffer))
-		{ return serialize_result{std::data(output_buffer), serializer_error_code::buffer_is_full}; }
+		{ return serialize_result{std::begin(output_buffer), serializer_error_code::buffer_is_full}; }
 
 		auto res = write_buffer(m_range_to_write, output_buffer);
 		m_range_to_write = res.in;
 		output_buffer = res.out;
 		if(m_contexts.empty())
-		{ return serialize_result{std::data(output_buffer), serializer_error_code::completed}; }
+		{ return serialize_result{std::begin(output_buffer), serializer_error_code::completed}; }
 
 		if(std::size(m_range_to_write) == 0)
 		{
@@ -153,7 +154,7 @@ inline jopp::serialize_result jopp::serializer::serialize(std::span<char> output
 				if(!wrapped_string.has_value())
 				{
 					return serialize_result{
-						std::data(output_buffer), serializer_error_code::illegal_char_in_string
+						std::begin(output_buffer), serializer_error_code::illegal_char_in_string
 					};
 				}
 				m_string_to_write += *wrapped_string;
@@ -190,7 +191,7 @@ inline jopp::serialize_result jopp::serializer::serialize(std::span<char> output
 			if(!result)
 			{
 				return serialize_result{
-					std::data(output_buffer), serializer_error_code::illegal_char_in_string
+					std::begin(output_buffer), serializer_error_code::illegal_char_in_string
 				};
 			}
 

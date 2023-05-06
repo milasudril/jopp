@@ -54,7 +54,7 @@ TESTCASE(jopp_serializer_serialize)
 	std::array<char, 1024> buffer{};
 	auto res = serializer.serialize(buffer);
 	EXPECT_EQ(res.ec, jopp::serializer_error_code::completed);
-	REQUIRE_NE(res.ptr, std::data(buffer) + 1024);
+	REQUIRE_NE(&(*res.ptr), std::data(buffer) + 1024);
 	EXPECT_EQ(*res.ptr, '\0');
 	EXPECT_EQ(*(res.ptr - 1), '}');
 
@@ -160,7 +160,7 @@ TESTCASE(jopp_serializer_serialize_blocks)
 		auto res = serializer.serialize(std::span{ptr, ptr + 13});
 		if(res.ec == jopp::serializer_error_code::completed)
 		{ break; }
-		ptr = res.ptr;
+		ptr = &(*res.ptr);
 	}
 
 	std::string_view expected_result{R"({
@@ -222,7 +222,7 @@ TESTCASE(jopp_serializer_bad_char_in_key)
 	jopp::serializer serializer{val};
 	auto res = serializer.serialize(buffer);
 	EXPECT_EQ(res.ec, jopp::serializer_error_code::illegal_char_in_string);
-	EXPECT_EQ(res.ptr, std::data(buffer) + 2);
+	EXPECT_EQ(&(*res.ptr), std::data(buffer) + 2);
 }
 
 TESTCASE(jopp_serializer_bad_char_in_string_value)
@@ -236,5 +236,5 @@ TESTCASE(jopp_serializer_bad_char_in_string_value)
 	jopp::serializer serializer{val};
 	auto res = serializer.serialize(buffer);
 	EXPECT_EQ(res.ec, jopp::serializer_error_code::illegal_char_in_string);
-	EXPECT_EQ(res.ptr, std::data(buffer) + 2);
+	EXPECT_EQ(&(*res.ptr), std::data(buffer) + 2);
 }
