@@ -379,7 +379,7 @@ jopp::parse_result jopp::parser::parse(std::span<char const> input_seq)
 					{
 						auto current_context = std::move(m_contexts.top());
 						m_contexts.pop();
-						if(std::size(m_contexts) == 0)
+						if(m_contexts.empty())
 						{
 							m_root.get() = std::move(current_context.value);
 							return parse_result{ptr, parser_error_code::completed, m_line, m_col};
