@@ -1,11 +1,40 @@
 # Jopp
 
-Jopp is another JSON parser for C++. It features a DOM parser, that
+Jopp is another JSON library for C++. Jopp
 
-* Allows streams that does not end with the outermost json object
-* Can be used together with non-blocking I/O
+* Is header-only to simplify integration. The parser can read from different input ranges.
+
+* Supports non-blocking I/O
+
+* Does not complain when there is more data to be processed after the first JSON object/array has
+ended
+
+* Parses/serializes numbers with `std::from_chars`/`std::to_chars`. This means that inf and nan are
+supported. Please notice that the behaviour with regards to inf and nan may depend on compiler
+options such as `-ffinite-math`.
+
+* Always maps a JSON `number` to the type double. This differs from the choice made by jansson and
+nlohmann, which may parse numbers to integers. This choice has been made since there is no standard
+way of inferring that a number written as an integer should actually be a double. Also, this choice
+prevents information loss, when the data should be pared by other implementations.
+
+* Has an optional limit on the tree depth to control memory usage. By default, it is set
+to 1024 levels.
+
+* Because the parser works on thunks, it is possible to stop feeding data at a certain point. This
+is also a measure to prevent control memory usage.
 
 ## Example usage
+
+The following program demonstrates how to read data from stdin, and write it back to stdout. For details about different features, see the corresponding file:
+
+| Feature                             | Include file       |
+| ----------------------------------- | ------------------ |
+| Delimiters and escape char handling | lib/delimiters.hpp |
+| Misc                                | lib/utils.hpp      |
+| Parser                              | lib/parser.hpp     |
+| Serializer                          | lib/serializer.hpp |
+| Data storage                        | lib/types.hpp      |
 
 ```c++
 #include <jopp/parser.hpp>
@@ -51,7 +80,7 @@ int main()
 		if(is_null(root))
 		{
 			// Failed due to early eof
-				return -1;
+			return -1;
 		}
 	}
 
