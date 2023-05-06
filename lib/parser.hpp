@@ -9,6 +9,7 @@
 #include <stack>
 #include <span>
 #include <cassert>
+#include <iterator>
 
 namespace jopp
 {
@@ -138,6 +139,14 @@ namespace jopp
 		return store_value(parent_value, std::move(key), std::move(*val));
 	}
 
+	template<class T>
+	concept parser_input_range = requires(T x)
+	{
+		{ std::begin(x) } -> std::bidirectional_iterator;
+		{ std::end(x) } -> std::bidirectional_iterator;
+		{ *std::begin(x) } -> std::convertible_to<char>;
+	};
+
 	class parser
 	{
 	public:
@@ -149,7 +158,7 @@ namespace jopp
 			m_root{root}
 		{}
 
-		template<class InputSeq>
+		template<parser_input_range InputSeq>
 		auto parse(InputSeq input_seq);
 
 	private:
@@ -163,7 +172,7 @@ namespace jopp
 	};
 }
 
-template<class InputSeq>
+template<jopp::parser_input_range InputSeq>
 auto jopp::parser::parse(InputSeq input_seq)
 {
 	auto ptr = std::begin(input_seq);
