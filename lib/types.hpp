@@ -262,16 +262,57 @@ namespace jopp
 		explicit item_pointer(nullptr_t):m_key{}, m_value{nullptr} {}
 
 		bool has_value() const { return m_value != nullptr; }
-		
+
 		std::string_view get_key() const
 		{ return m_key; }
-		
+
 		value const& get_value() const
 		{ return *m_value; }
-		
+
 	private:
 		std::string_view m_key;
 		value const* m_value;
+	};
+
+	class container
+	{
+	public:
+		explicit container() = default;
+
+		template<class T>
+		requires(is_object_or_array_v<T>)
+		explicit container(T&& val):m_value{std::forward<T>(val)}
+		{}
+
+		template<class T>
+		auto get_if() const
+		{ return std::get_if<T>(&m_value); }
+
+		template<class Visitor, class ... Args>
+		decltype(auto) visit(Visitor&& v, Args&& ... args) const
+		{
+			return std::visit([v = std::forward<Visitor>(v),
+				...args = std::forward<Args>(args)]<class T>(T&& x) mutable {
+					return v(std::forward<T>(x), std::forward<Args>(args)...);
+
+			}, m_value);
+		}
+
+		template<class Visitor, class ... Args>
+		decltype(auto) visit(Visitor&& v, Args&& ... args)
+		{
+			return std::visit([v = std::forward<Visitor>(v),
+				...args = std::forward<Args>(args)]<class T>(T&& x) mutable {
+					return v(std::forward<T>(x), std::forward<Args>(args)...);
+
+			}, m_value);
+		}
+
+		bool operator==(container const&) const = default;
+		bool operator!=(container const&) const = default;
+
+	private:
+		std::variant<object, array> m_value;
 	};
 }
 
