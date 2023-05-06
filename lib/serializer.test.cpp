@@ -48,9 +48,8 @@ TESTCASE(jopp_serializer_serialize)
 	root.insert(R"(a key with esc seq
 	\foo")", R"(A value with esc seq
 	\foo")");
-	jopp::value val{std::move(root)};
 
-	jopp::serializer serializer{val};
+	jopp::serializer serializer{root};
 	std::array<char, 1024> buffer{};
 	auto res = serializer.serialize(buffer);
 	EXPECT_EQ(res.ec, jopp::serializer_error_code::completed);
@@ -150,9 +149,8 @@ TESTCASE(jopp_serializer_serialize_blocks)
 	root.insert(R"(a key with esc seq
 	\foo")", R"(A value with esc seq
 	\foo")");
-	jopp::value val{std::move(root)};
 
-	jopp::serializer serializer{val};
+	jopp::serializer serializer{root};
 	std::array<char, 1024> buffer{};
 	auto ptr = std::begin(buffer);
 	while(true)
@@ -237,4 +235,25 @@ TESTCASE(jopp_serializer_bad_char_in_string_value)
 	auto res = serializer.serialize(buffer);
 	EXPECT_EQ(res.ec, jopp::serializer_error_code::illegal_char_in_string);
 	EXPECT_EQ(res.ptr, std::data(buffer) + 2);
+}
+
+TESTCASE(jopp_serializer_serialize_array)
+{
+	jopp::array obj;
+	obj.push_back(1.0);
+	obj.push_back(4.0);
+	obj.push_back(2.0);
+	obj.push_back(3.0);
+
+	std::array<char, 1024> buffer{};
+	jopp::value val{std::move(obj)};
+	jopp::serializer serializer{val};
+	auto res = serializer.serialize(buffer);
+	EXPECT_EQ(res.ec, jopp::serializer_error_code::completed);
+	EXPECT_EQ(std::data(buffer), std::string_view{R"([
+	1,
+	4,
+	2,
+	3
+])"});
 }

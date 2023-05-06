@@ -98,6 +98,22 @@ namespace jopp
 			m_range_to_write = std::span{std::begin(m_string_to_write), std::end(m_string_to_write)};
 		}
 
+		explicit serializer(std::reference_wrapper<object const> root)
+		{
+			m_contexts.push(make_serializer_context(root));
+			m_string_to_write += m_contexts.top().block_starter;
+			m_string_to_write += '\n';
+			m_range_to_write = std::span{std::begin(m_string_to_write), std::end(m_string_to_write)};
+		}
+
+		explicit serializer(std::reference_wrapper<array const> root)
+		{
+			m_contexts.push(make_serializer_context(root));
+			m_string_to_write += m_contexts.top().block_starter;
+			m_string_to_write += '\n';
+			m_range_to_write = std::span{std::begin(m_string_to_write), std::end(m_string_to_write)};
+		}
+
 		serialize_result serialize(std::span<char> output_buffer);
 
 	private:
