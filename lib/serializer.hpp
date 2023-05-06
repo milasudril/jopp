@@ -112,7 +112,7 @@ inline jopp::serialize_result jopp::serializer::serialize(std::span<char> output
 {
 	while(true)
 	{
-		if(std::size(output_buffer) == 0)
+		if(std::begin(output_buffer) == std::end(output_buffer))
 		{ return serialize_result{std::data(output_buffer), serializer_error_code::buffer_is_full}; }
 
 		auto res = write_buffer(m_range_to_write, output_buffer);
@@ -120,6 +120,7 @@ inline jopp::serialize_result jopp::serializer::serialize(std::span<char> output
 		output_buffer = res.out;
 		if(m_contexts.empty())
 		{ return serialize_result{std::data(output_buffer), serializer_error_code::completed}; }
+
 		if(std::size(m_range_to_write) == 0)
 		{
 			m_string_to_write.clear();
