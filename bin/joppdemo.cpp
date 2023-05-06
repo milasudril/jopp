@@ -13,11 +13,19 @@ int main()
 		// Read data from stdin
 		jopp::parser parser{root};
 		std::array<char, 4096> buffer{};
+		auto old_ec = jopp::parser_error_code::completed;
 		while(true)
 		{
 			auto const bytes_read = ::read(STDIN_FILENO, std::data(buffer), std::size(buffer));
 			if(bytes_read == 0)
-			{ break; }
+			{
+				if(old_ec != jopp::parser_error_code::completed)
+				{
+					fprintf(stderr, "error: %s\n", to_string(old_ec));
+					return -1;
+				}
+				break;
+			}
 
 			if(bytes_read == -1 && errno == EAGAIN)
 			{
@@ -29,24 +37,17 @@ int main()
 			auto const res = parser.parse(std::span{std::data(buffer), static_cast<size_t>(bytes_read)});
 			if(res.ec == jopp::parser_error_code::completed)
 			{
-				// Data is now in "root"
 				break;
 			}
 			else
 			if(res.ec != jopp::parser_error_code::more_data_needed)
 			{
+				fprintf(stderr, "error: %s\n", to_string(res.ec));
 				// Error condition: invalid data
 				return - 1;
 			}
+			old_ec = res.ec;
 		}
-/*
-	FIXME:
-		if(is_null(root))
-		{
-			// Failed due to early eof
-			return -1;
-		}
-*/
 	}
 
 	{
