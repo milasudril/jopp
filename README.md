@@ -21,8 +21,11 @@ prevents information loss, when the data should be pared by other implementation
 * Has an optional limit on the tree depth to control memory usage. By default, it is set
 to 1024 levels.
 
-* Because the parser works on thunks, it is possible to stop feeding data at a certain point. This
-is also a measure to prevent control memory usage.
+* Since the parser works on blocks of data, it is possible to stop feeding data at a certain point.
+This is also a measure to prevent control memory usage.
+
+* Objects uses `std::map` as backing store. This means that Jopp is immune against hash attacks.
+Also data serialized by Jopp is always consistent in formatting, which helps when comparing files.
 
 ## Example usage
 
