@@ -214,14 +214,14 @@ TESTCASE(jopp_parser_parse_data_multiple_blocks)
 	jopp::value val;
 	jopp::parser parser{val};
 
-	auto ptr = std::data(json_test_data);
+	auto ptr = std::begin(json_test_data);
 	auto const n = std::size(json_test_data);
 	auto bytes_left = n;
 
 	while(bytes_left != 0)
 	{
 		auto const bytes_to_process = std::min(bytes_left, static_cast<size_t>(13));
-		auto res = parser.parse(std::span{ptr, bytes_to_process});
+		auto res = parser.parse(std::string_view{ptr, bytes_to_process});
 		bytes_left -= bytes_to_process;
 		ptr += bytes_to_process;
 		if(res.ec == jopp::parser_error_code::completed)

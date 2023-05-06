@@ -51,9 +51,10 @@ namespace jopp
 		__builtin_unreachable();
 	}
 
+	template<class InputSeqIterator>
 	struct parse_result
 	{
-		char const* ptr;
+		InputSeqIterator ptr;
 		parser_error_code ec;
 		size_t line;
 		size_t col;
@@ -148,7 +149,8 @@ namespace jopp
 			m_root{root}
 		{}
 
-		inline parse_result parse(std::span<char const> input_seq);
+		template<class InputSeq>
+		auto parse(InputSeq input_seq);
 
 	private:
 		size_t m_line;
@@ -161,12 +163,13 @@ namespace jopp
 	};
 }
 
-jopp::parse_result jopp::parser::parse(std::span<char const> input_seq)
+template<class InputSeq>
+auto jopp::parser::parse(InputSeq input_seq)
 {
-	auto ptr = std::data(input_seq);
+	auto ptr = std::begin(input_seq);
 	while(true)
 	{
-		if(ptr == std::data(input_seq) + std::size(input_seq))
+		if(ptr == std::end(input_seq))
 		{ return parse_result{ptr, parser_error_code::more_data_needed, m_line, m_col}; }
 
 		auto ch_in = *ptr;
