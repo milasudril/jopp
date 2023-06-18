@@ -107,6 +107,18 @@ namespace jopp
 			{ return std::get_if<T>(&m_value); }
 		}
 
+		template<class T>
+		auto get_if()
+		{
+			if constexpr(is_object_or_array_v<T>)
+			{
+				auto ptr = std::get_if<std::unique_ptr<T>>(&m_value);
+				return ptr != nullptr ? ptr->get() : nullptr;
+			}
+			else
+			{ return std::get_if<T>(&m_value); }
+		}
+
 		template<class Visitor, class ... Args>
 		decltype(auto) visit(Visitor&& v, Args&& ... args) const
 		{
@@ -286,6 +298,10 @@ namespace jopp
 
 		template<class T>
 		auto get_if() const
+		{ return std::get_if<T>(&m_value); }
+
+		template<class T>
+		auto get_if()
 		{ return std::get_if<T>(&m_value); }
 
 		template<class Visitor, class ... Args>
