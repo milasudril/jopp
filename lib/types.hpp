@@ -14,6 +14,10 @@
 
 namespace jopp
 {
+	template<class T>
+	struct get_type_name;
+
+
 	template<class A, class B>
 	inline constexpr auto is_same_without_cvref_v = std::is_same_v<std::remove_cvref_t<A>,
 		std::remove_cvref_t<B>>;
@@ -32,6 +36,30 @@ namespace jopp
 	class array;
 	using number = double;
 	using string = std::string;
+
+	template<>
+	struct get_type_name<object>
+	{ static constexpr char const* value = "object"; };
+
+	template<>
+	struct get_type_name<array>
+	{ static constexpr char const* value = "array"; };
+
+	template<>
+	struct get_type_name<number>
+	{ static constexpr char const* value = "number"; };
+
+	template<>
+	struct get_type_name<string>
+	{ static constexpr char const* value = "string"; };
+
+	template<>
+	struct get_type_name<bool>
+	{ static constexpr char const* value = "boolean"; };
+
+	template<>
+	struct get_type_name<null>
+	{ static constexpr char const* value = "null"; };
 
 	inline constexpr char const* false_literal{"false"};
 	inline constexpr char const* null_literal{"null"};
@@ -183,6 +211,23 @@ namespace jopp
 		return std::nullopt;
 	}
 
+	class missing_field_error:public std::runtime_error
+	{
+	public:
+		explicit missing_field_error(std::string_view key):
+			runtime_error{std::string{"Mandatory field `"}.append(key).append("` is missing")}
+		{}
+	};
+
+	class field_type_mismatch_error:public std::runtime_error
+	{
+	public:
+		template<class T>
+		explicit field_type_mismatch_error(std::string_view key, std::type_identity<T>):
+			runtime_error{std::string{"Field `"}.append(key).append("` should be a ").append(get_type_name<T>::value)}
+		{}
+	};
+
 	class object
 	{
 	public:
@@ -210,6 +255,20 @@ namespace jopp
 
 		auto find(std::string_view key)
 		{ return m_values.find(key); }
+
+		template<class T>
+		auto& get_field_as(std::string_view key) const
+		{
+			auto const i = find(key);
+			if(i == std::end(m_values))
+			{ throw missing_field_error{key}; }
+
+			auto const value = i->second.get_if<T>();
+			if(value == nullptr)
+			{ throw field_type_mismatch_error{key, std::type_identity<T>{}}; }
+
+			return *value;
+		}
 
 		template<class T>
 		auto insert(key_type&& key, T&& value)
