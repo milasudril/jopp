@@ -207,5 +207,29 @@ inline jopp::serialize_result jopp::serializer::serialize(std::span<char> output
 	}
 }
 
+namespace jopp
+{
+	auto to_string(jopp::container const& root)
+	{
+		std::string ret;
+		// Write data to stdout
+		jopp::serializer serializer{root};
+		std::array<char, 65536> buffer{};
+		while(true)
+		{
+			auto const res = serializer.serialize(buffer);
+			//auto const write_ptr = std::begin(buffer);
+			//auto const bytes_to_write = static_cast<size_t>(res.ptr - std::begin(buffer));
+			ret.insert(std::end(ret), std::data(buffer), res.ptr);
+
+			if(res.ec == jopp::serializer_error_code::completed)
+			{ return ret; }
+
+			if(res.ec != jopp::serializer_error_code::buffer_is_full)
+			{ throw std::runtime_error{"jopp bad data"}; }
+		}
+	}
+}
+
 #endif
 

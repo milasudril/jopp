@@ -398,6 +398,15 @@ namespace jopp
 			return value{std::forward<std::decay_t<U>>(item)};
 		});
 	}
+
+	template<class T>
+	struct object_converter;
+
+	template<class T>
+	auto to_json(T const& obj)
+	{
+		return object_converter<T>::to_json(obj);
+	}
 }
 
 #endif
