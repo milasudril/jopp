@@ -74,7 +74,7 @@ namespace jopp
 		};
 	}
 
-	auto make_serializer_context(std::reference_wrapper<container const> val)
+	inline auto make_serializer_context(std::reference_wrapper<container const> val)
 	{
 		return val.get().visit([](auto const& val) { return make_serializer_context(val); } );
 	}
@@ -209,7 +209,7 @@ inline jopp::serialize_result jopp::serializer::serialize(std::span<char> output
 
 namespace jopp
 {
-	auto to_string(jopp::container const& root)
+	inline auto to_string(jopp::container const& root)
 	{
 		std::string ret;
 		// Write data to stdout
