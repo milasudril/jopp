@@ -229,6 +229,37 @@ namespace jopp
 			{ throw std::runtime_error{"jopp bad data"}; }
 		}
 	}
+
+	class json_buffer;
+	
+	class json_buffer_view:private std::string_view
+	{
+	public:
+		using std::string_view::begin;
+		using std::string_view::end;
+		using std::string_view::data;
+		using std::string_view::size;
+		
+		inline json_buffer_view(std::reference_wrapper<json_buffer const>);
+	};
+	
+	class json_buffer
+	{
+	public:
+		explicit json_buffer(jopp::container const& root):
+			m_content{to_string(root)}
+		{}
+		
+		auto get_view() const
+		{ return std::string_view{m_content}; }
+		
+	private:
+		std::string m_content;
+	};
+	
+	json_buffer_view::json_buffer_view(std::reference_wrapper<json_buffer const> buffer):
+		std::string_view{buffer.get().get_view()}
+	{}
 }
 
 #endif
