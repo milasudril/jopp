@@ -209,17 +209,18 @@ inline jopp::serialize_result jopp::serializer::serialize(std::span<char> output
 
 namespace jopp
 {
-	inline auto to_string(jopp::container const& root)
+	template<class T>
+ 	requires std::is_same_v<std::remove_cvref_t<T>, container>
+		|| std::is_same_v<std::remove_cvref_t<T>, array>
+		|| std::is_same_v<std::remove_cvref_t<T>, object>
+	inline auto to_string(T const& root)
 	{
 		std::string ret;
-		// Write data to stdout
 		jopp::serializer serializer{root};
 		std::array<char, 65536> buffer{};
 		while(true)
 		{
 			auto const res = serializer.serialize(buffer);
-			//auto const write_ptr = std::begin(buffer);
-			//auto const bytes_to_write = static_cast<size_t>(res.ptr - std::begin(buffer));
 			ret.insert(std::end(ret), std::data(buffer), res.ptr);
 
 			if(res.ec == jopp::serializer_error_code::completed)
@@ -231,7 +232,7 @@ namespace jopp
 	}
 
 	class json_buffer;
-	
+
 	class json_buffer_view:private std::string_view
 	{
 	public:
@@ -239,24 +240,24 @@ namespace jopp
 		using std::string_view::end;
 		using std::string_view::data;
 		using std::string_view::size;
-		
+
 		inline json_buffer_view(std::reference_wrapper<json_buffer const>);
 	};
-	
+
 	class json_buffer
 	{
 	public:
 		explicit json_buffer(jopp::container const& root):
 			m_content{to_string(root)}
 		{}
-		
+
 		auto get_view() const
 		{ return std::string_view{m_content}; }
-		
+
 	private:
 		std::string m_content;
 	};
-	
+
 	json_buffer_view::json_buffer_view(std::reference_wrapper<json_buffer const> buffer):
 		std::string_view{buffer.get().get_view()}
 	{}
