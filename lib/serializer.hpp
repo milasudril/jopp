@@ -247,7 +247,11 @@ namespace jopp
 	class json_buffer
 	{
 	public:
-		explicit json_buffer(jopp::container const& root):
+		template<class T>
+		requires std::is_same_v<std::remove_cvref_t<T>, container>
+			|| std::is_same_v<std::remove_cvref_t<T>, array>
+			|| std::is_same_v<std::remove_cvref_t<T>, object>
+		explicit json_buffer(T const& root):
 			m_content{to_string(root)}
 		{}
 
