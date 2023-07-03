@@ -278,7 +278,7 @@ namespace jopp
 		auto insert_or_assign(key_type&& key, T&& value)
 		{ return m_values.insert_or_assign(std::move(key), mapped_type{std::forward<T>(value)}); }
 
-		auto constains(std::string_view key) const
+		auto contains(std::string_view key) const
 		{ return m_values.contains(key); }
 
 	private:
