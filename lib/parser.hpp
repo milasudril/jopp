@@ -161,6 +161,9 @@ namespace jopp
 		template<parser_input_range InputSeq>
 		auto parse(InputSeq input_seq);
 
+		container const& root() const
+		{ return m_root; }
+
 	private:
 		size_t m_line;
 		size_t m_col;
