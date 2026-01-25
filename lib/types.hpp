@@ -11,6 +11,7 @@
 #include <type_traits>
 #include <optional>
 #include <charconv>
+#include <array>
 
 namespace jopp
 {
