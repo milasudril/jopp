@@ -286,7 +286,7 @@ namespace jopp
 		std::string_view{buffer.get().get_view()}
 	{}
 
-	std::string to_string(jopp::container const& root, bool pretty_print = false)
+	inline std::string to_string(jopp::container const& root, bool pretty_print = false)
 	{
 		jopp::serializer serializer{root, pretty_print};
 		std::array<char, 4096> buffer{};
