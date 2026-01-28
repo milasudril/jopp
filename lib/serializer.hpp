@@ -285,6 +285,22 @@ namespace jopp
 	json_buffer_view::json_buffer_view(std::reference_wrapper<json_buffer const> buffer):
 		std::string_view{buffer.get().get_view()}
 	{}
+
+	std::string to_string(jopp::container const& root, bool pretty_print = false)
+	{
+		jopp::serializer serializer{root, pretty_print};
+		std::array<char, 4096> buffer{};
+		std::string ret;
+		while(true)
+		{
+			auto res = serializer.serialize(std::span{buffer});
+			if(res.ec == jopp::serializer_error_code::completed)
+			{ break; }
+			ret.append(std::begin(buffer), res.ptr);
+		}
+		return ret;
+	}
+
 }
 
 #endif
