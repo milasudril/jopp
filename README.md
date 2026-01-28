@@ -4,28 +4,26 @@ Jopp is another JSON library for C++. Jopp
 
 * Is header-only to simplify integration. The parser can read from different input ranges.
 
-* Supports non-blocking I/O
+* Supports non-blocking I/O, by using an API similar to `std::form_chars`/`std::to_chars`
 
 * Does not complain when there is more data to be processed after the first JSON object/array has
-ended
+ended.
 
 * Parses/serializes numbers with `std::from_chars`/`std::to_chars`. This means that inf and nan are
 supported. Please notice that the behaviour with regards to inf and nan may depend on compiler
 options such as `-ffinite-math`.
 
 * Always maps a JSON `number` to the type double. This differs from the choice made by jansson and
-nlohmann, which may parse numbers to integers. This choice has been made since there is no standard
+nlohmann, which may parse numbers as integers. This choice has been made since there is no standard
 way of inferring that a number written as an integer should actually be a double. Also, this choice
 prevents information loss, when the data should be pared by other implementations.
 
 * Has an optional limit on the tree depth to control memory usage. By default, it is set
 to 1024 levels.
 
-* Since the parser works on blocks of data, it is possible to stop feeding data at a certain point.
-This is also a measure to prevent control memory usage.
-
-* Objects uses `std::map` as backing store. This means that Jopp is immune against hash attacks.
-Also data serialized by Jopp is always consistent in formatting, which helps when comparing files.
+* Objects uses `std::map` as backing store. This means that
+  * Jopp is immune against hash attacks.
+  * Keys are always sorted according to the C local.
 
 ## Example usage
 
