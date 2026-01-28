@@ -82,30 +82,36 @@ namespace jopp
 	class serializer
 	{
 	public:
-		explicit serializer(std::reference_wrapper<container const> root):
-			m_string_to_write{std::make_unique<std::string>()}
+		explicit serializer(std::reference_wrapper<container const> root, bool pretty_print = false):
+			m_string_to_write{std::make_unique<std::string>()},
+			m_pretty_print{pretty_print}
 		{
 			m_contexts.push(make_serializer_context(root));
 			(*m_string_to_write) += m_contexts.top().block_starter;
+			if(pretty_print)
+			{ (*m_string_to_write) += '\n'; }
+			m_range_to_write = std::span{std::begin((*m_string_to_write)), std::end((*m_string_to_write))};
+		}
+
+		explicit serializer(std::reference_wrapper<object const> root, bool pretty_print = false):
+			m_string_to_write{std::make_unique<std::string>()},
+			m_pretty_print{pretty_print}
+		{
+			m_contexts.push(make_serializer_context(root));
+			(*m_string_to_write) += m_contexts.top().block_starter;
+			if(pretty_print)
 			(*m_string_to_write) += '\n';
 			m_range_to_write = std::span{std::begin((*m_string_to_write)), std::end((*m_string_to_write))};
 		}
 
-		explicit serializer(std::reference_wrapper<object const> root):
-			m_string_to_write{std::make_unique<std::string>()}
+		explicit serializer(std::reference_wrapper<array const> root, bool pretty_print = false):
+			m_string_to_write{std::make_unique<std::string>()},
+			m_pretty_print{pretty_print}
 		{
 			m_contexts.push(make_serializer_context(root));
 			(*m_string_to_write) += m_contexts.top().block_starter;
-			(*m_string_to_write) += '\n';
-			m_range_to_write = std::span{std::begin((*m_string_to_write)), std::end((*m_string_to_write))};
-		}
-
-		explicit serializer(std::reference_wrapper<array const> root):
-			m_string_to_write{std::make_unique<std::string>()}
-		{
-			m_contexts.push(make_serializer_context(root));
-			(*m_string_to_write) += m_contexts.top().block_starter;
-			(*m_string_to_write) += '\n';
+			if(pretty_print)
+			{ (*m_string_to_write) += '\n'; }
 			m_range_to_write = std::span{std::begin((*m_string_to_write)), std::end((*m_string_to_write))};
 		}
 
@@ -115,12 +121,13 @@ namespace jopp
 		std::unique_ptr<std::string> m_string_to_write;
 		std::span<char const> m_range_to_write;
 		std::stack<serializer_context> m_contexts;
-
+		bool m_pretty_print;
 	};
 }
 
 inline jopp::serialize_result jopp::serializer::serialize(std::span<char> output_buffer)
 {
+	auto const pretty_print = m_pretty_print;
 	while(true)
 	{
 		if(std::begin(output_buffer) == std::end(output_buffer))
@@ -140,9 +147,12 @@ inline jopp::serialize_result jopp::serializer::serialize(std::span<char> output
 			auto const res = current_context.range.pop_element();
 			if(!res.has_value())
 			{
-				(*m_string_to_write) += '\n';
-				for(size_t k = 0; k != m_contexts.size() - 1; ++k)
-				{ (*m_string_to_write) += '\t'; }
+				if(pretty_print)
+				{
+					(*m_string_to_write) += '\n';
+					for(size_t k = 0; k != m_contexts.size() - 1; ++k)
+					{ (*m_string_to_write) += '\t'; }
+				}
 				(*m_string_to_write) += std::string{current_context.block_terminator};
 				m_range_to_write = std::span{std::begin((*m_string_to_write)), std::end((*m_string_to_write))};
 				m_contexts.pop();
@@ -152,11 +162,15 @@ inline jopp::serialize_result jopp::serializer::serialize(std::span<char> output
 			if(!current_context.first_item)
 			{
 				(*m_string_to_write) += delimiters::value_separator;
-				(*m_string_to_write) += '\n';
+				if(pretty_print)
+				{ (*m_string_to_write) += '\n'; }
 			}
 			current_context.first_item = false;
-			for(size_t k = 0; k != m_contexts.size(); ++k)
-			{ (*m_string_to_write) += '\t'; }
+			if(pretty_print)
+			{
+				for(size_t k = 0; k != m_contexts.size(); ++k)
+				{ (*m_string_to_write) += '\t'; }
+			}
 
 			if(auto key = res.get_key(); key != std::string_view{})
 			{
@@ -169,7 +183,8 @@ inline jopp::serialize_result jopp::serializer::serialize(std::span<char> output
 				}
 				(*m_string_to_write) += *wrapped_string;
 				(*m_string_to_write) += delimiters::name_separator;
-				(*m_string_to_write) += ' ';
+				if(pretty_print)
+				{ (*m_string_to_write) += ' '; }
 			}
 
 			auto const result = res.get_value().visit(overload{
@@ -185,16 +200,18 @@ inline jopp::serialize_result jopp::serializer::serialize(std::span<char> output
 					(*m_string_to_write) += *str;
 					return true;
 				},
-				[this](jopp::object const& val){
+				[this, pretty_print](jopp::object const& val){
 					m_contexts.push(make_serializer_context(val));
 					(*m_string_to_write) += m_contexts.top().block_starter;
-					(*m_string_to_write) += '\n';
+					if(pretty_print)
+					{ (*m_string_to_write) += '\n'; }
 					return true;
 				},
-				[this](jopp::array const& val){
+				[this, pretty_print](jopp::array const& val){
 					m_contexts.push(make_serializer_context(val));
 					(*m_string_to_write) += m_contexts.top().block_starter;
-					(*m_string_to_write) += '\n';
+					if(pretty_print)
+					{ (*m_string_to_write) += '\n'; }
 					return true;
 				}
 			});
