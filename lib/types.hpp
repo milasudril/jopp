@@ -272,6 +272,16 @@ namespace jopp
 		}
 
 		template<class T>
+		T const* try_get_field_as(std::string_view key) const
+		{
+			auto const i = find(key);
+			if(i == std::end(m_values))
+			{ return nullptr; }
+
+			return i->second.get_if<T>();
+		}
+
+		template<class T>
 		auto insert(key_type&& key, T&& value)
 		{ return m_values.insert(std::pair{std::move(key), mapped_type{std::forward<T>(value)}}); }
 
