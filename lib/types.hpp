@@ -341,7 +341,7 @@ namespace jopp
 			m_value{val}
 		{}
 
-		explicit item_pointer(nullptr_t):m_key{}, m_value{nullptr} {}
+		explicit item_pointer(std::nullptr_t):m_key{}, m_value{nullptr} {}
 
 		bool has_value() const { return m_value != nullptr; }
 
