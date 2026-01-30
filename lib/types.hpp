@@ -109,6 +109,15 @@ namespace jopp
 		{*x};
 	};
 
+	class field_type_mismatch_error:public std::runtime_error
+	{
+	public:
+		template<class T>
+		explicit field_type_mismatch_error(std::string_view key, std::type_identity<T>):
+			runtime_error{std::string{"Field `"}.append(key).append("` should be a ").append(get_type_name<T>::value)}
+		{}
+	};
+
 	class value
 	{
 	public:
@@ -146,6 +155,24 @@ namespace jopp
 			}
 			else
 			{ return std::get_if<T>(&m_value); }
+		}
+
+		template<class T>
+		auto& get() const
+		{
+			auto res = get_if<T>();
+			if(res == nullptr)
+			{ throw field_type_mismatch_error{".", std::type_identity<T>{}}; }
+			return *res;
+		}
+
+		template<class T>
+		auto& get()
+		{
+			auto res = get_if<T>();
+			if(res == nullptr)
+			{ throw field_type_mismatch_error{".", std::type_identity<T>{}}; }
+			return *res;
 		}
 
 		template<class Visitor, class ... Args>
@@ -217,15 +244,6 @@ namespace jopp
 	public:
 		explicit missing_field_error(std::string_view key):
 			runtime_error{std::string{"Mandatory field `"}.append(key).append("` is missing")}
-		{}
-	};
-
-	class field_type_mismatch_error:public std::runtime_error
-	{
-	public:
-		template<class T>
-		explicit field_type_mismatch_error(std::string_view key, std::type_identity<T>):
-			runtime_error{std::string{"Field `"}.append(key).append("` should be a ").append(get_type_name<T>::value)}
 		{}
 	};
 
