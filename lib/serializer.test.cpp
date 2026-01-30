@@ -55,7 +55,8 @@ TESTCASE(jopp_serializer_serialize)
 	EXPECT_EQ(res.ec, jopp::serializer_error_code::completed);
 	REQUIRE_NE(res.ptr, std::data(buffer) + 1024);
 	EXPECT_EQ(*res.ptr, '\0');
-	EXPECT_EQ(*(res.ptr - 1), '}');
+	EXPECT_EQ(*(res.ptr - 2), '}');
+	EXPECT_EQ(*(res.ptr - 1), '\n');
 
 	std::string_view expected_result{R"({
 	"a key with esc seq\n\t\\foo\"": "A value with esc seq\n\t\\foo\"",
@@ -101,7 +102,8 @@ TESTCASE(jopp_serializer_serialize)
 	"testing null": null,
 	"without": true,
 	"wood": "involved"
-})"};
+}
+)"};
 	EXPECT_EQ(std::data(buffer), expected_result);
 }
 
@@ -205,7 +207,8 @@ TESTCASE(jopp_serializer_serialize_blocks)
 	"testing null": null,
 	"without": true,
 	"wood": "involved"
-})"};
+}
+)"};
 	EXPECT_EQ(std::data(buffer), expected_result);
 }
 
@@ -252,7 +255,8 @@ TESTCASE(jopp_serializer_serialize_array)
 	4,
 	2,
 	3
-])"});
+]
+)"});
 }
 
 TESTCASE(jopp_serializer_serialize_blocks_compact)
@@ -310,7 +314,8 @@ TESTCASE(jopp_serializer_serialize_blocks_compact)
 		{ break; }
 		ptr = res.ptr;
 	}
-	std::string_view expected_result{R"({"a key with esc seq\n\t\\foo\"":"A value with esc seq\n\t\\foo\"","empty array":[],"empty object":{},"fireplace":720535269,"had":{"eaten":false,"independent":-1451031326,"long":-1437168945.8634152,"pull":1285774482.782745,"repeated end":{"value":46},"sound":false,"tightly":[[4,2,3,1],"feet",true,2145719840.4312375,-286229488,true,true,{"object in array":"bar"},{"object with literal last":null}]},"it":false,"refused":"better","testing null":null,"without":true,"wood":"involved"})"};
+	std::string_view expected_result{R"({"a key with esc seq\n\t\\foo\"":"A value with esc seq\n\t\\foo\"","empty array":[],"empty object":{},"fireplace":720535269,"had":{"eaten":false,"independent":-1451031326,"long":-1437168945.8634152,"pull":1285774482.782745,"repeated end":{"value":46},"sound":false,"tightly":[[4,2,3,1],"feet",true,2145719840.4312375,-286229488,true,true,{"object in array":"bar"},{"object with literal last":null}]},"it":false,"refused":"better","testing null":null,"without":true,"wood":"involved"}
+)"};
 	EXPECT_EQ(std::data(buffer), expected_result);
 }
 
@@ -361,6 +366,7 @@ TESTCASE(jopp_serializer_to_string)
 	\foo")");
 
 	auto res = to_string(root);
-	std::string_view expected_result{R"({"a key with esc seq\n\t\\foo\"":"A value with esc seq\n\t\\foo\"","empty array":[],"empty object":{},"fireplace":720535269,"had":{"eaten":false,"independent":-1451031326,"long":-1437168945.8634152,"pull":1285774482.782745,"repeated end":{"value":46},"sound":false,"tightly":[[4,2,3,1],"feet",true,2145719840.4312375,-286229488,true,true,{"object in array":"bar"},{"object with literal last":null}]},"it":false,"refused":"better","testing null":null,"without":true,"wood":"involved"})"};
+	std::string_view expected_result{R"({"a key with esc seq\n\t\\foo\"":"A value with esc seq\n\t\\foo\"","empty array":[],"empty object":{},"fireplace":720535269,"had":{"eaten":false,"independent":-1451031326,"long":-1437168945.8634152,"pull":1285774482.782745,"repeated end":{"value":46},"sound":false,"tightly":[[4,2,3,1],"feet",true,2145719840.4312375,-286229488,true,true,{"object in array":"bar"},{"object with literal last":null}]},"it":false,"refused":"better","testing null":null,"without":true,"wood":"involved"}
+)"};
 	EXPECT_EQ(res, expected_result);
 }

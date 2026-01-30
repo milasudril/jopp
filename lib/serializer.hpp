@@ -154,6 +154,8 @@ inline jopp::serialize_result jopp::serializer::serialize(std::span<char> output
 					{ (*m_string_to_write) += '\t'; }
 				}
 				(*m_string_to_write) += std::string{current_context.block_terminator};
+				if(m_contexts.size() == 1)
+				{ (*m_string_to_write) += '\n'; }
 				m_range_to_write = std::span{std::begin((*m_string_to_write)), std::end((*m_string_to_write))};
 				m_contexts.pop();
 				continue;
