@@ -221,10 +221,11 @@ auto jopp::parser::parse(InputSeq input_seq)
 						break;
 
 					default:
-						if(std::size(m_contexts) == 0)
-						{ return parse_result{ptr, parser_error_code::no_top_level_node, m_line, m_col}; }
 						if(!is_whitespace(ch_in))
 						{
+							if(std::size(m_contexts) == 0)
+							{ return parse_result{ptr, parser_error_code::no_top_level_node, m_line, m_col}; }
+
 							m_buffer += ch_in;
 							m_current_state = parser_state::literal;
 						}

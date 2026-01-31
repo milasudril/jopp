@@ -98,7 +98,7 @@ TESTCASE(jopp_parser_store_value_unknown_litral_in_array)
 
 namespace
 {
-	constexpr std::string_view json_test_data{R"({
+	constexpr std::string_view json_test_data{R"(   {
 	"empty object": { },
 	"empty array": [ ],
 	"had": {
