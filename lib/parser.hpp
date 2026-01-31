@@ -9,6 +9,7 @@
 #include <stack>
 #include <span>
 #include <iterator>
+#include <format>
 
 namespace jopp
 {
@@ -427,6 +428,27 @@ auto jopp::parser::parse(InputSeq input_seq)
 			}
 			++m_col;
 		}
+	}
+}
+
+namespace jopp
+{
+	template<parser_input_range InputSeq>
+	auto parse(InputSeq input_seq, std::optional<size_t> max_levels = 1024)
+	{
+		container output_object;
+		parser parser{output_object};
+		auto const result = parser.parse(input_seq);
+		if(result.ec != parser_error_code::completed)
+		{
+			throw std::runtime_error{
+				std::format(
+					"Failed to parse input_sequence: {}",
+					to_string(result.ec)
+				)
+			};
+		}
+		return output_object;
 	}
 }
 
