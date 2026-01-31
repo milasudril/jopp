@@ -392,6 +392,24 @@ namespace jopp
 		auto get_if()
 		{ return std::get_if<T>(&m_value); }
 
+		template<class T>
+		auto& get() const
+		{
+			auto const res = std::get_if<T>(&m_value);
+			if(res == nullptr)
+			{ throw field_type_mismatch_error{"/", std::type_identity<T>{}}; }
+			return *res;
+		}
+
+		template<class T>
+		auto& get()
+		{
+			auto const res = std::get_if<T>(&m_value);
+			if(res == nullptr)
+			{ throw field_type_mismatch_error{"/", std::type_identity<T>{}}; }
+			return *res;
+		}
+
 		template<class Visitor, class ... Args>
 		decltype(auto) visit(Visitor&& v, Args&& ... args) const
 		{
