@@ -165,6 +165,9 @@ namespace jopp
 		container const& root() const
 		{ return m_root; }
 
+		auto current_depth() const
+		{ return m_contexts.size(); }
+
 	private:
 		size_t m_line;
 		size_t m_col;
