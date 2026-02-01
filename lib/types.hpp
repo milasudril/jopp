@@ -310,6 +310,9 @@ namespace jopp
 		auto contains(std::string_view key) const
 		{ return m_values.contains(key); }
 
+		bool empty() const
+		{ return m_values.empty(); }
+
 	private:
 		std::map<key_type, mapped_type, std::less<>> m_values;
 	};
@@ -341,6 +344,9 @@ namespace jopp
 
 		decltype(auto) operator[](size_t k) const
 		{ return m_values[k]; }
+
+		bool empty() const
+		{ return m_values.empty(); }
 
 	private:
 		std::vector<value> m_values;
@@ -432,6 +438,16 @@ namespace jopp
 
 		bool operator==(container const&) const = default;
 		bool operator!=(container const&) const = default;
+
+		[[nodiscard]] bool empty() const
+		{
+			return std::visit(
+				[](auto const& item){
+					return item.empty();
+				},
+				m_value
+			);
+		}
 
 	private:
 		std::variant<object, array> m_value;
