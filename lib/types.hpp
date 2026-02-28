@@ -417,23 +417,30 @@ namespace jopp
 		}
 
 		template<class Visitor, class ... Args>
-		decltype(auto) visit(Visitor&& v, Args&& ... args) const
+		decltype(auto) visit(Visitor&& v, Args&& ... args) const&
 		{
 			return std::visit([v = std::forward<Visitor>(v),
 				...args = std::forward<Args>(args)]<class T>(T&& x) mutable {
 					return v(std::forward<T>(x), std::forward<Args>(args)...);
-
 			}, m_value);
 		}
 
 		template<class Visitor, class ... Args>
-		decltype(auto) visit(Visitor&& v, Args&& ... args)
+		decltype(auto) visit(Visitor&& v, Args&& ... args) &
 		{
 			return std::visit([v = std::forward<Visitor>(v),
 				...args = std::forward<Args>(args)]<class T>(T&& x) mutable {
 					return v(std::forward<T>(x), std::forward<Args>(args)...);
-
 			}, m_value);
+		}
+
+		template<class Visitor, class ... Args>
+		decltype(auto) visit(Visitor&& v, Args&& ... args) &&
+		{
+			return std::visit([v = std::forward<Visitor>(v),
+				...args = std::forward<Args>(args)]<class T>(T&& x) mutable {
+					return v(std::forward<T>(x), std::forward<Args>(args)...);
+			}, std::move(m_value));
 		}
 
 		bool operator==(container const&) const = default;
