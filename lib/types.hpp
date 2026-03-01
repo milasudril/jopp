@@ -38,6 +38,8 @@ namespace jopp
 	using number = double;
 	using string = std::string;
 
+	inline constexpr int64_t max_safe_integer = 0x1fffffffffffffll;
+
 	template<>
 	struct get_type_name<object>
 	{ static constexpr char const* value = "object"; };
