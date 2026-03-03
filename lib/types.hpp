@@ -292,7 +292,31 @@ namespace jopp
 		}
 
 		template<class T>
+		auto& get_field_as(std::string_view key)
+		{
+			auto const i = find(key);
+			if(i == std::end(m_values))
+			{ throw missing_field_error{key}; }
+
+			auto const value = i->second.get_if<T>();
+			if(value == nullptr)
+			{ throw field_type_mismatch_error{key, std::type_identity<T>{}}; }
+
+			return *value;
+		}
+
+		template<class T>
 		T const* try_get_field_as(std::string_view key) const
+		{
+			auto const i = find(key);
+			if(i == std::end(m_values))
+			{ return nullptr; }
+
+			return i->second.get_if<T>();
+		}
+
+		template<class T>
+		T* try_get_field_as(std::string_view key)
 		{
 			auto const i = find(key);
 			if(i == std::end(m_values))
