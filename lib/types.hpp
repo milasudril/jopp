@@ -374,6 +374,9 @@ namespace jopp
 		bool empty() const
 		{ return m_values.empty(); }
 
+		void reserve(size_t n)
+		{ m_values.reserve(n); }
+
 	private:
 		std::vector<value> m_values;
 	};
