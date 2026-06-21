@@ -29,13 +29,13 @@
                 "compiler": {
                     "config": {
                         "cflags": [
-                            "-DGEOSIMD_MAX_BUILTIN_VECTOR_BYTE_SIZE=32",
                             "-Wall",
                             "-march=native",
                             "-Wextra",
                             "-Werror",
                             "-Wconversion",
                             "-Wno-psabi",
+                            "-Wno-error=maybe-uninitialized",
                             "-I.",
                             "-fconcepts-diagnostics-depth=2"
                         ],
@@ -57,7 +57,6 @@
                     "config": {
 						"actions":["link", "run"],
                         "cflags": [
-                            "-DGEOSIMD_MAX_BUILTIN_VECTOR_BYTE_SIZE=32",
                             "-I.",
                             "-march=native",
                             "-Wall",
@@ -65,6 +64,7 @@
                             "-Wconversion",
                             "-Wno-psabi",
                             "-Werror",
+                            "-Wno-error=maybe-uninitialized",
                             "-fconcepts-diagnostics-depth=2"
                         ],
                         "iquote": [
