@@ -4,7 +4,6 @@
 #include <variant>
 #include <type_traits>
 #include <array>
-#include <ranges>
 #include <algorithm>
 
 namespace jopp2::serialization_config
@@ -18,7 +17,7 @@ namespace jopp2::serialization_config
 	template<class T, class A, class B>
 	concept one_of = same_as_no_ref<T, A> || same_as_no_ref<T, B>;
 
-	struct  not_configured :std::monostate
+	struct not_configured :std::monostate
 	{
 		template<class T>
 		requires(!same_as_no_ref<T, not_configured>)
@@ -32,8 +31,8 @@ namespace jopp2::serialization_config
 	constexpr bool all_different(std::array<T, N> items)
 	{
 		std::sort(std::begin(items), std::end(items));
-		auto const i = std::ranges::unique(items);
-		return std::end(i) == std::end(items);
+		auto const i = std::unique(std::begin(items), std::end(items));
+		return i == std::end(items);
 	}
 
 	template<class T, size_t N>
@@ -50,14 +49,6 @@ namespace jopp2::serialization_config
 		{T::key_escape_sequence_begin_marker} -> same_as_no_ref<char>;
 		{T::key_escape_sequence_end_marker} -> one_of<char, not_configured>;
 		{T::key_end_marker} -> one_of<char, not_configured>;
-		{T::string_begin_marker} -> one_of<char, not_configured>;
-		{T::string_escape_sequence_begin_marker} -> same_as_no_ref<char>;
-		{T::string_escape_sequence_end_marker} -> one_of<char, not_configured>;
-		{T::string_end_marker} -> one_of<char, not_configured>;
-		{T::number_begin_marker} -> one_of<char, not_configured>;
-		{T::number_end_marker} -> one_of<char, not_configured>;
-		{T::special_value_begin_marker} -> one_of<char, not_configured>;
-		{T::special_value_end_marker} -> one_of<char, not_configured>;
 		{T::associative_container_begin_marker} -> one_of<char, not_configured>;
 		{T::associative_container_end_marker} -> one_of<char, not_configured>;
 		{T::sequence_container_begin_marker} -> one_of<char, not_configured>;
@@ -71,27 +62,12 @@ namespace jopp2::serialization_config
 		// Stream control markers
 		{T::discard_root_marker} -> one_of<char, not_configured>;
 		{T::flush_root_marker} -> one_of<char, not_configured>;
-
-		// Behavioural control
-		{T::allow_multiline_strings} -> same_as_no_ref<bool>;
-		{T::allow_multiline_keys} -> same_as_no_ref<bool>;
-		{T::allow_inf} -> same_as_no_ref<bool>;
-		{T::allow_nan} -> same_as_no_ref<bool>;
 	} &&
 	// Escape sequence begin markers cannot be the same as the corresponding end marker
 	T::key_escape_sequence_begin_marker != T::key_end_marker &&
-	T::string_escape_sequence_begin_marker != T::string_end_marker &&
 
-	// All begin value begin markers has to be different
-	all_different(
-		std::array<trait_marker_field, 5>{
-			T::string_begin_marker,
-			T::number_begin_marker,
-			T::special_value_begin_marker,
-			T::associative_container_begin_marker,
-			T::sequence_container_begin_marker
-		}
-	) &&
+	// All value begin markers has to be different
+	T::associative_container_begin_marker != T::sequence_container_begin_marker &&
 
 	// Containers are recursive and cannot use the same marker for begin and end
 	T::associative_container_begin_marker != T::associative_container_end_marker &&
@@ -108,9 +84,6 @@ namespace jopp2::serialization_config
 			not_included_in(
 				trait_marker_field{T::key_begin_marker},
 				std::array<trait_marker_field, 5>{
-					T::string_end_marker,
-					T::number_end_marker,
-					T::special_value_end_marker,
 					T::associative_container_end_marker,
 					T::sequence_container_end_marker
 				}
@@ -122,9 +95,6 @@ namespace jopp2::serialization_config
 			not_included_in(
 				trait_marker_field{T::associative_container_item_separator},
 				std::array<trait_marker_field, 5>{
-					T::string_end_marker,
-					T::number_end_marker,
-					T::special_value_end_marker,
 					T::associative_container_end_marker,
 					T::sequence_container_end_marker
 				}
@@ -136,9 +106,6 @@ namespace jopp2::serialization_config
 	not_included_in(
 		trait_marker_field{T::sequence_container_item_separator},
 		std::array<trait_marker_field, 5>{
-			T::string_end_marker,
-			T::number_end_marker,
-			T::special_value_end_marker,
 			T::associative_container_end_marker,
 			T::sequence_container_end_marker
 		}
@@ -147,14 +114,6 @@ namespace jopp2::serialization_config
 	// Ensure it is possible to identify end of containers
 	T::associative_container_item_separator != T::associative_container_end_marker &&
 	T::sequence_container_item_separator != T::sequence_container_end_marker;
-
-	template<serialization_traits T>
-	constexpr bool requires_escape_of_string_begin_marker()
-	{ return T::string_begin_marker == T::string_end_marker; }
-
-	template<serialization_traits T>
-	constexpr bool requires_escape_of_key_begin_marker()
-	{ return T::key_begin_marker == T::key_end_marker; }
 }
 
 #endif
