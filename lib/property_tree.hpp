@@ -1,12 +1,12 @@
-#ifndef JOPP_SERIALIZATION_CONFIG_HPP
-#define JOPP_SERIALIZATION_CONFIG_HPP
+#ifndef JOPP_PROPERTY_TREE_HPP
+#define JOPP_PROPERTY_TREE_HPP
 
 #include <variant>
 #include <type_traits>
 #include <array>
 #include <algorithm>
 
-namespace jopp2::serialization_config
+namespace jopp2::property_tree
 {
 	template<class T, class A>
 	concept same_as_no_ref = std::is_same_v<
