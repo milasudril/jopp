@@ -56,7 +56,7 @@ namespace jopp2
 			auto retval = std::forward<Self>(self).template get_if<T>();
 			if(retval == nullptr)
 			{ throw std::runtime_error{"Item has an unexpected type"}; }
-			return std::forward<T>(*retval);
+			return std::forward_like<Self>(*retval);
 		}
 
 		template<class T, class Self, class KeyLike>
@@ -83,13 +83,7 @@ namespace jopp2
 			auto retval = std::forward<Self>(self).template get_if_by_name<T>(std::forward<KeyLike>(key));
 			if(retval == nullptr)
 			{ throw std::runtime_error{"Item has an unexpected type or does not exist"}; }
-			return std::forward<
-				std::conditional_t<
-					std::is_const_v<std::remove_reference_t<Self>>,
-					T const,
-					T
-				>
-			>(*retval);
+			return std::forward_like<Self>(*retval);
 		}
 
 		static constexpr size_t first_sequence_type_index()
