@@ -83,7 +83,7 @@ namespace jopp2
 		template<class T, class Self, class KeyLike>
 		auto&& get_by_name(this Self&& self, KeyLike&& key)
 		{
-			auto retval = std::forward<Self>(self).template get_if_by_name<T>(std::forward<KeyLike>(key));
+			auto retval = self.template get_if_by_name<T>(std::forward<KeyLike>(key));
 			if(retval == nullptr)
 			{ throw std::runtime_error{"Item has an unexpected type or does not exist"}; }
 			return std::forward_like<Self>(*retval);
