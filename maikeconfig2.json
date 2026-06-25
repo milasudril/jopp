@@ -34,16 +34,17 @@
                             "-Wextra",
                             "-Werror",
                             "-Wconversion",
+                            "-Wno-maybe-uninitialized",
                             "-Wno-psabi",
                             "-Wno-error=maybe-uninitialized",
                             "-I.",
                             "-fconcepts-diagnostics-depth=2"
                         ],
                         "iquote": [
-                            "."
+                          "."
                         ],
                         "std_revision": {
-							"min":"c++20"
+                          "min":"c++23"
                         }
                     },
                     "recipe": "cxx_compiler.py",
@@ -55,7 +56,7 @@
             "cxx_test": {
                 "compiler": {
                     "config": {
-						"actions":["link", "run"],
+                    "actions":["link", "run"],
                         "cflags": [
                             "-I.",
                             "-march=native",
@@ -63,15 +64,16 @@
                             "-Wextra",
                             "-Wconversion",
                             "-Wno-psabi",
+                            "-Wno-maybe-uninitialized",
                             "-Werror",
                             "-Wno-error=maybe-uninitialized",
                             "-fconcepts-diagnostics-depth=2"
                         ],
                         "iquote": [
-                            "."
+                          "."
                         ],
                         "std_revision": {
-							"min":"c++20"
+                          "min":"c++23"
                         }
                     },
                     "recipe": "cxx_compiler.py",
@@ -105,7 +107,7 @@
         "source_tree_loader": {
             "file_info_loaders": {
                 ".app.maikerule": "app",
-				".lib.maikerule": "lib",
+                ".lib.maikerule": "lib",
                 ".cpp": "cxx",
                 ".hpp": "cxx",
                 ".py": "extension",

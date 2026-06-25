@@ -1,28 +1,27 @@
-//@	{"target":{"name":"property_tree.test"}}
+//@	{"target":{"name": "property_tree.test"}}
 
 #include "./property_tree.hpp"
 
+#include <flat_map>
 #include <testfwk/testfwk.hpp>
 
 namespace
 {
-	struct json_tree_traits
+	struct my_value_traits_with_variant
 	{
-		static constexpr auto associative_container_item_separator = ',';
-		static constexpr auto associative_container_end_marker = '}';
-		static constexpr auto sequence_container_end_marker = ']';
-		static constexpr auto sequence_container_item_separator = ',';
-		static constexpr auto key_begin_marker = '"';
-		static constexpr auto key_escape_sequence_begin_marker = '\\';
-		static constexpr auto key_escape_sequence_end_marker = jopp2::property_tree::not_configured{};
-		static constexpr auto key_end_marker = '"';
-		static constexpr auto associative_container_begin_marker = '{';
-		static constexpr auto sequence_container_begin_marker = '[';
-		static constexpr auto key_mapped_item_separator = ':';
-		static constexpr auto discard_root_marker = jopp2::property_tree::not_configured{};
-		static constexpr auto flush_root_marker = jopp2::property_tree::not_configured{};
+		using key_type = std::string;
+		using leaf_value_type = std::variant<std::string, double>;
 	};
 
-};
+	struct my_value_traits_with_no_variant
+	{
+		using key_type = std::string;
+		using leaf_value_type = std::string;
+	};
+}
 
-static_assert(jopp2::property_tree::serialization_traits<json_tree_traits>);
+TESTCASE(jopp2_create_empty_value)
+{
+	jopp2::generic_value<std::flat_map, std::vector, my_value_traits_with_variant> val_1;
+	jopp2::generic_value<std::flat_map, std::vector, my_value_traits_with_no_variant> val_2;
+}
