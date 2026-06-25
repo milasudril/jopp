@@ -20,7 +20,7 @@ namespace
 	};
 }
 
-TESTCASE(jopp2_create_empty_value)
+TESTCASE(jopp2_static_properties)
 {
 	using type_with_variant = jopp2::generic_value<std::flat_map, std::vector, my_value_traits_with_variant>;
 	EXPECT_EQ(
@@ -40,6 +40,12 @@ TESTCASE(jopp2_create_empty_value)
 	);
 	EXPECT_EQ(std::is_constructible_v<type_with_variant>, true);
 	EXPECT_EQ(type_with_variant::first_sequence_type_index(), 3);
+	EXPECT_EQ(std::is_copy_constructible_v<type_with_variant>, false);
+	EXPECT_EQ(std::is_copy_assignable_v<type_with_variant>, false);
+	EXPECT_EQ(std::is_move_constructible_v<type_with_variant>, true);
+	EXPECT_EQ(std::is_move_assignable_v<type_with_variant>, true);
+	EXPECT_EQ((std::is_constructible_v<type_with_variant, int>), true);
+	EXPECT_EQ((std::is_constructible_v<type_with_variant, type_with_variant::variant_type>), true);
 
 	using type_with_no_variant = jopp2::generic_value<std::flat_map, std::vector, my_value_traits_with_no_variant>;
 		EXPECT_EQ(
@@ -57,5 +63,10 @@ TESTCASE(jopp2_create_empty_value)
 	);
 	EXPECT_EQ(std::is_constructible_v<type_with_no_variant>, true);
 	EXPECT_EQ(type_with_no_variant::first_sequence_type_index(), 2);
-
+	EXPECT_EQ(std::is_copy_constructible_v<type_with_no_variant>, false);
+	EXPECT_EQ(std::is_copy_assignable_v<type_with_no_variant>, false);
+	EXPECT_EQ(std::is_move_constructible_v<type_with_no_variant>, true);
+	EXPECT_EQ(std::is_move_assignable_v<type_with_no_variant>, true);
+	EXPECT_EQ((std::is_constructible_v<type_with_no_variant, int>), true);
+	EXPECT_EQ((std::is_constructible_v<type_with_no_variant, type_with_variant::variant_type>), true);
 }

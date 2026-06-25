@@ -28,6 +28,21 @@ namespace jopp2
 			wrap_in_variant_t<SequenceContainerType<generic_value>>
 		>;
 
+		generic_value() = default;
+
+		generic_value(generic_value const&) = delete;
+		generic_value& operator=(generic_value const&) = delete;
+		generic_value(variant_type const&) = delete;
+		generic_value& operator=(variant_type const&) = delete;
+
+		generic_value(generic_value&&) = default;
+		generic_value& operator=(generic_value&&) = default;
+
+		template<class ... Args>
+		explicit generic_value(Args&&... args):
+			m_value{std::forward<Args>(args)...}
+		{}
+
 		auto const& get() const
 		{ return m_value; }
 
