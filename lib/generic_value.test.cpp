@@ -1,6 +1,6 @@
-//@	{"target":{"name": "property_tree.test"}}
+//@	{"target":{"name": "generic_value.test"}}
 
-#include "./property_tree.hpp"
+#include "./generic_value.hpp"
 
 #include <flat_map>
 #include <testfwk/testfwk.hpp>

@@ -1,5 +1,5 @@
-#ifndef JOPP_PROPERTY_TREE_HPP
-#define JOPP_PROPERTY_TREE_HPP
+#ifndef JOPP_GENERIC_VALUE_HPP
+#define JOPP_GENERIC_VALUE_HPP
 
 #include "./variant_utils.hpp"
 
@@ -18,7 +18,7 @@ namespace jopp2
 			std::variant<
 				AssociativeContainerType<typename ValueTraits::key_type, generic_value>,
 				SequenceContainerType<generic_value>,
-				SequenceContainerType<property_tree<AssociativeContainerType, SequenceContainerType, ValueTraits>>
+				SequenceContainerType<AssociativeContainerType<typename ValueTraits::key_type, generic_value>>
 			>,
 			build_variant_t<
 				typename ValueTraits::leaf_value_type,
