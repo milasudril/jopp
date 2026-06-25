@@ -29,21 +29,21 @@
                 "compiler": {
                     "config": {
                         "cflags": [
-                            "-DGEOSIMD_MAX_BUILTIN_VECTOR_BYTE_SIZE=32",
                             "-Wall",
                             "-march=native",
                             "-Wextra",
                             "-Werror",
                             "-Wconversion",
+                            "-Wno-maybe-uninitialized",
                             "-Wno-psabi",
                             "-I.",
                             "-fconcepts-diagnostics-depth=2"
                         ],
                         "iquote": [
-                            "."
+                          "."
                         ],
                         "std_revision": {
-							"min":"c++20"
+                          "min":"c++23"
                         }
                     },
                     "recipe": "cxx_compiler.py",
@@ -55,23 +55,23 @@
             "cxx_test": {
                 "compiler": {
                     "config": {
-						"actions":["link", "run"],
+                    "actions":["link", "run"],
                         "cflags": [
-                            "-DGEOSIMD_MAX_BUILTIN_VECTOR_BYTE_SIZE=32",
                             "-I.",
                             "-march=native",
                             "-Wall",
                             "-Wextra",
                             "-Wconversion",
                             "-Wno-psabi",
+                            "-Wno-maybe-uninitialized",
                             "-Werror",
                             "-fconcepts-diagnostics-depth=2"
                         ],
                         "iquote": [
-                            "."
+                          "."
                         ],
                         "std_revision": {
-							"min":"c++20"
+                          "min":"c++23"
                         }
                     },
                     "recipe": "cxx_compiler.py",
@@ -105,7 +105,7 @@
         "source_tree_loader": {
             "file_info_loaders": {
                 ".app.maikerule": "app",
-				".lib.maikerule": "lib",
+                ".lib.maikerule": "lib",
                 ".cpp": "cxx",
                 ".hpp": "cxx",
                 ".py": "extension",
