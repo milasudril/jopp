@@ -3,7 +3,8 @@
 
 #include "./variant_utils.hpp"
 
-#include <memory>
+#include <optional>
+#include <stdexcept>
 
 namespace jopp2
 {
@@ -18,6 +19,8 @@ namespace jopp2
 		using leaf_value_type = typename ValueTraits::leaf_value_type;
 		using key_type = typename ValueTraits::key_type;
 		using object = AssociativeContainerType<key_type, generic_value>;
+		using map_value_type = object::value_type;
+
 		using variant_type = concatenate_variants_t<
 			wrap_in_variant_t<leaf_value_type>,
 			wrap_in_variant_t<object>,
@@ -90,35 +93,46 @@ namespace jopp2
 		}
 
 		template<class Self, class T, class KeyLike>
-		std::remove_cvref_t<T>* try_store_value_as(this Self&& self, T&& value, KeyLike&& key)
+		auto try_store_value_as(this Self&& self, T&& value, KeyLike&& key)
 		{
-			// TODO:
-			//
-			// If m_value is set but not an object, fail the operation
-			//
-			// If m_value is unset make it an object
-			//
-			// If key already exists, fail the operation
-			//
-			// Return a pointer  to the inserted value
+			auto i = self.template get_if<object>();
+			using objref = object::reference;
+			using ret_type = std::conditional_t<
+				std::is_same_v<objref, std::pair<key_type const&, generic_value&>>,
+				std::optional<objref>,
+				std::pair<key_type const, generic_value>*
+			>;
 
-			return nullptr;
+			if(i == nullptr)
+			{ return ret_type{}; }
+
+			auto const insert_result = i->emplace(std::forward<KeyLike>(key), std::forward<T>(value));
+
+			if constexpr(std::is_same_v<objref, std::pair<key_type const&, generic_value&>>)
+			{
+				if(!insert_result.second)
+				{ return ret_type{}; }
+				return ret_type{*insert_result.first};
+			}
+			else
+			{ return &*insert_result.first; }
 		}
 
 		template<class Self, class T, class KeyLike>
-		T&& store_value_as(this Self&& self, T&& value, KeyLike&& key)
+		std::conditional_t<
+			std::is_same_v<typename object::reference, std::pair<key_type const&, generic_value&>>,
+			typename object::reference,
+			std::pair<key_type const, generic_value>&
+		> store_value_as(this Self&& self, T&& value, KeyLike&& key)
 		{
-			auto res = self.try_store_value_as(
-				std::forward<T>(value),
-				std::forward<KeyLike>(key)
-			);
-			if(res == nullptr)
+			auto res = self.try_store_value_as(std::forward<T>(value), std::forward<KeyLike>(key));
+			if(!res)
 			{
 				throw std::runtime_error{
 					"This generic value is not an object, or the property has already been set"
 				};
 			}
-			return std::forward_like<Self>(*res);
+			return *res;
 		}
 
 	private:

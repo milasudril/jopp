@@ -74,9 +74,7 @@ TESTCASE(jopp2_generic_value_static_properties)
 TESTCASE(jopp2_generic_value_set_field_and_get_value)
 {
 	using type_with_variant = jopp2::generic_value<std::flat_map, std::vector, my_value_traits_with_variant>;
-	type_with_variant foo{
-		type_with_variant::object{}
-	};
+	type_with_variant foo{type_with_variant::object{}};
 
 	{
 		auto& obj = foo.get<type_with_variant::object&>();
@@ -113,4 +111,27 @@ TESTCASE(jopp2_generic_value_set_field_and_get_value)
 			EXPECT_EQ(item, k + 1);
 		}
 	}
+}
+
+TESTCASE(jopp2_generic_value_store_value_as)
+{
+	using type_with_variant = jopp2::generic_value<std::flat_map, std::vector, my_value_traits_with_variant>;
+	type_with_variant foo{type_with_variant::object{}};
+
+	auto const result_1 = foo.store_value_as(42, "The answer to the question of life the universe and everything");
+	EXPECT_EQ(result_1.first, "The answer to the question of life the universe and everything");
+	EXPECT_EQ(result_1.second.get<int>(), 42);
+
+	auto const result_2 = foo.try_store_value_as(
+		43,
+		"The answer to the question of life the universe and everything"
+	);
+	EXPECT_EQ(result_2.has_value(), false);
+
+	foo = type_with_variant{};
+	auto const result_3 = foo.try_store_value_as(
+		42,
+		"The answer to the question of life the universe and everything"
+	);
+	EXPECT_EQ(result_3.has_value(), false);
 }
