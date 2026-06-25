@@ -1,20 +1,10 @@
 #ifndef JOPP_PROPERTY_TREE_HPP
 #define JOPP_PROPERTY_TREE_HPP
 
-
 #include "./variant_utils.hpp"
-
-#include <memory>
 
 namespace jopp2
 {
-	template<
-		template<class KeyType, class MappedType> class AssociativeContainerType,
-		template<class ValueType> class SequenceContainerType,
-		class ValueTraits
-	>
-	class property_tree;
-
 	template<
 		template<class KeyType, class MappedType> class AssociativeContainerType,
 		template<class ValueType> class SequenceContainerType,
@@ -26,9 +16,7 @@ namespace jopp2
 	private:
 		build_variant_t<
 			std::variant<
-				std::unique_ptr<
-					property_tree<AssociativeContainerType, SequenceContainerType, ValueTraits>
-				>,
+				AssociativeContainerType<typename ValueTraits::key_type, generic_value>,
 				SequenceContainerType<generic_value>,
 				SequenceContainerType<property_tree<AssociativeContainerType, SequenceContainerType, ValueTraits>>
 			>,
@@ -40,23 +28,6 @@ namespace jopp2
 			>
 		>
 		m_value;
-	};
-
-	template<
-		template<class KeyType, class MappedType> class AssociativeContainerType,
-		template<class ValueType> class SequenceContainerType,
-		class ValueTraits
-	>
-	class property_tree
-	{
-	public:
-		using key_type = typename ValueTraits::key_type;
-		using mapped_type = generic_value<AssociativeContainerType, SequenceContainerType, ValueTraits>;
-		using container_type = AssociativeContainerType<key_type, mapped_type>;
-		using value_type = typename container_type::value_type;
-
-	private:
-		container_type m_container;
 	};
 }
 
