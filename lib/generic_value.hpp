@@ -89,6 +89,38 @@ namespace jopp2
 			return std::forward_like<Self>(*retval);
 		}
 
+		template<class Self, class T, class KeyLike>
+		std::remove_cvref_t<T>* try_store_value_as(this Self&& self, T&& value, KeyLike&& key)
+		{
+			// TODO:
+			//
+			// If m_value is set but not an object, fail the operation
+			//
+			// If m_value is unset make it an object
+			//
+			// If key already exists, fail the operation
+			//
+			// Return a pointer  to the inserted value
+
+			return nullptr;
+		}
+
+		template<class Self, class T, class KeyLike>
+		T&& store_value_as(this Self&& self, T&& value, KeyLike&& key)
+		{
+			auto res = std::forward<Self>(self).try_store_value_as(
+				std::forward<T>(value),
+				std::forward<KeyLike>(key)
+			);
+			if(res == nullptr)
+			{
+				throw std::runtime_error{
+					"This generic value is not an object, or the property has already been set"
+				};
+			}
+			return std::forward_like<Self>(*res);
+		}
+
 	private:
 		variant_type m_value;
 	};
