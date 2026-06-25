@@ -51,12 +51,12 @@ namespace jopp2
 
 		template<class T, class Self>
 		auto get_if(this Self&& self)
-		{ return std::get_if<std::remove_cvref_t<T>>(&std::forward<Self>(self).m_value); }
+		{ return std::get_if<std::remove_cvref_t<T>>(&self.m_value); }
 
 		template<class T, class Self>
 		auto&& get(this Self&& self)
 		{
-			auto retval = std::forward<Self>(self).template get_if<T>();
+			auto retval = self.template get_if<T>();
 			if(retval == nullptr)
 			{ throw std::runtime_error{"Item has an unexpected type"}; }
 			return std::forward_like<Self>(*retval);
@@ -108,7 +108,7 @@ namespace jopp2
 		template<class Self, class T, class KeyLike>
 		T&& store_value_as(this Self&& self, T&& value, KeyLike&& key)
 		{
-			auto res = std::forward<Self>(self).try_store_value_as(
+			auto res = self.try_store_value_as(
 				std::forward<T>(value),
 				std::forward<KeyLike>(key)
 			);
