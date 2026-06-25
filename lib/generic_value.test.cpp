@@ -20,7 +20,7 @@ namespace
 	};
 }
 
-TESTCASE(jopp2_static_properties)
+TESTCASE(jopp2_generic_value_static_properties)
 {
 	using type_with_variant = jopp2::generic_value<std::flat_map, std::vector, my_value_traits_with_variant>;
 	EXPECT_EQ(
@@ -69,4 +69,48 @@ TESTCASE(jopp2_static_properties)
 	EXPECT_EQ(std::is_move_assignable_v<type_with_no_variant>, true);
 	EXPECT_EQ((std::is_constructible_v<type_with_no_variant, int>), true);
 	EXPECT_EQ((std::is_constructible_v<type_with_no_variant, type_with_variant::variant_type>), true);
+}
+
+TESTCASE(jopp2_generic_value_set_field_and_get_value)
+{
+	using type_with_variant = jopp2::generic_value<std::flat_map, std::vector, my_value_traits_with_variant>;
+	type_with_variant foo{
+		type_with_variant::object{}
+	};
+
+	{
+		auto& obj = foo.get<type_with_variant::object&>();
+		obj.insert(std::pair{"the_key", 2345});
+		for(size_t k = 0; k != 2; ++k)
+		{
+			auto item = std::as_const(foo).get_by_name<int const&>("the_key");
+			EXPECT_EQ(item, 2345);
+			item = 1;
+			EXPECT_EQ(item, 1);
+		}
+	}
+
+	{
+		auto& obj = foo.get<type_with_variant::object&>();
+		obj.insert(std::pair{"other_key", 0});
+		for(size_t k = 0; k != 2; ++k)
+		{
+			auto item = foo.get_by_name<int>("other_key");
+			EXPECT_EQ(item, 0);
+			item = 1;
+			EXPECT_EQ(item, 1);
+		}
+	}
+
+	{
+		auto& obj = foo.get<type_with_variant::object&>();
+		obj.insert(std::pair{"third_key", 0});
+		for(int k = 0; k != 2; ++k)
+		{
+			auto& item = foo.get_by_name<int&>("third_key");
+			EXPECT_EQ(item, k);
+			++item;
+			EXPECT_EQ(item, k + 1);
+		}
+	}
 }

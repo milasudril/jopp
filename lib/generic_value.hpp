@@ -46,6 +46,52 @@ namespace jopp2
 		auto const& get() const
 		{ return m_value; }
 
+		template<class T, class Self>
+		auto get_if(this Self&& self)
+		{ return std::get_if<std::remove_cvref_t<T>>(&std::forward<Self>(self).m_value); }
+
+		template<class T, class Self>
+		auto&& get(this Self&& self)
+		{
+			auto retval = std::forward<Self>(self).template get_if<T>();
+			if(retval == nullptr)
+			{ throw std::runtime_error{"Item has an unexpected type"}; }
+			return std::forward<T>(*retval);
+		}
+
+		template<class T, class Self, class KeyLike>
+		std::conditional_t<
+			std::is_const_v<std::remove_reference_t<Self>>,
+			std::remove_cvref_t<T> const*,
+			std::remove_cvref_t<T>*
+		> get_if_by_name(this Self&& self, KeyLike&& key)
+		{
+			auto item = self.template get_if<object>();
+			if(item == nullptr)
+			{ return nullptr; }
+
+			auto const i = item->find(std::forward<KeyLike>(key));
+			if(i == std::end(*item))
+			{ return nullptr; }
+
+			return i->second.template get_if<std::remove_cvref_t<T>>();
+		}
+
+		template<class T, class Self, class KeyLike>
+		auto&& get_by_name(this Self&& self, KeyLike&& key)
+		{
+			auto retval = std::forward<Self>(self).template get_if_by_name<T>(std::forward<KeyLike>(key));
+			if(retval == nullptr)
+			{ throw std::runtime_error{"Item has an unexpected type or does not exist"}; }
+			return std::forward<
+				std::conditional_t<
+					std::is_const_v<std::remove_reference_t<Self>>,
+					T const,
+					T
+				>
+			>(*retval);
+		}
+
 		static constexpr size_t first_sequence_type_index()
 		{ return std::variant_size_v<wrap_in_variant_t<leaf_value_type>> + 1; }
 
