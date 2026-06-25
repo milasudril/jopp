@@ -1,7 +1,9 @@
 #ifndef JOPP_PROPERTY_TREE_HPP
 #define JOPP_PROPERTY_TREE_HPP
 
-#include <variant>
+
+#include "./variant_utils.hpp"
+
 #include <memory>
 
 namespace jopp2
@@ -22,15 +24,20 @@ namespace jopp2
 	{
 	public:
 	private:
-		std::variant<
-			std::unique_ptr<
-				property_tree<
-					AssociativeContainerType,
-					SequenceContainerType,
-					ValueTraits
-				>
+		build_variant_t<
+			std::variant<
+				std::unique_ptr<
+					property_tree<AssociativeContainerType, SequenceContainerType, ValueTraits>
+				>,
+				SequenceContainerType<generic_value>,
+				SequenceContainerType<property_tree<AssociativeContainerType, SequenceContainerType, ValueTraits>>
 			>,
-			SequenceContainerType<generic_value>
+			build_variant_t<
+				typename ValueTraits::leaf_value_type,
+				wrap_variant_element_t<
+					wrap_in_variant_t<typename ValueTraits::leaf_value_type>, SequenceContainerType
+				>
+			>
 		>
 		m_value;
 	};
