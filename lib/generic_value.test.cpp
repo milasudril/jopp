@@ -167,3 +167,45 @@ TESTCASE(jopp2_generic_value_try_store_at_end_sequence_empty_wrong_type)
 	REQUIRE_NE(container, nullptr);
 	EXPECT_EQ(res, &container->back());
 }
+
+TESTCASE(jopp2_generic_value_try_store_at_end_nonempty_generic_sequence)
+{
+	using type_with_variant = jopp2::generic_value<std::flat_map, std::vector, my_value_traits_with_variant>;
+	std::vector<type_with_variant> initial_value{};
+	initial_value.emplace_back("foobar");
+	initial_value.emplace_back(123);
+	type_with_variant foo{std::move(initial_value)};
+
+	auto const res = foo.try_store_at_end(2.5);
+	REQUIRE_NE(res, nullptr);
+	EXPECT_EQ(*res, 2.5);
+	auto container = foo.get_if<std::vector<type_with_variant>>();
+	REQUIRE_NE(container, nullptr);
+	auto const stored_value_ptr = container->back().get_if<double>();
+	EXPECT_EQ(res, stored_value_ptr);
+}
+
+TESTCASE(jopp2_generic_value_try_store_at_end_different_type_from_typed_sequence)
+{
+	using type_with_variant = jopp2::generic_value<std::flat_map, std::vector, my_value_traits_with_variant>;
+	type_with_variant foo{std::vector{1,2,3,4}};
+	auto const res = foo.try_store_at_end(std::string{"Foobar"});
+	REQUIRE_NE(res, nullptr);
+	EXPECT_EQ(*res, "Foobar");
+	auto container = foo.get_if<std::vector<type_with_variant>>();
+	REQUIRE_NE(container, nullptr);
+	auto const stored_value_ptr = container->back().get_if<std::string>();
+	EXPECT_EQ(res, stored_value_ptr);
+}
+
+TESTCASE(jopp2_generic_value_try_store_at_end_of_typed_container)
+{
+	using type_with_variant = jopp2::generic_value<std::flat_map, std::vector, my_value_traits_with_variant>;
+	type_with_variant foo{std::vector{1,2,3,4}};
+	auto const res = foo.try_store_at_end(5);
+	REQUIRE_NE(res, nullptr);
+	EXPECT_EQ(*res, 5);
+	auto container = foo.get_if<std::vector<int>>();
+	REQUIRE_NE(container, nullptr);
+	EXPECT_EQ(res, &container->back());
+}
