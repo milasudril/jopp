@@ -150,20 +150,6 @@ namespace jopp2
 		template<class Self, class T>
 		T* try_store_at_end(this Self& self, T&& value)
 		{
-			auto const is_sequence_container = std::visit(
-				overload{
-					[]<sequence_container Seq>(Seq const&) static {
-						return true;
-					},
-					[](auto const&) static {
-						return false;
-					}
-				},
-				self.m_value
-			);
-			if(!is_sequence_container)
-			{ return nullptr; }
-
 			return visit_with_args(
 				self.m_value,
 				overload{
