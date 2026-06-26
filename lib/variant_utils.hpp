@@ -149,5 +149,16 @@ namespace jopp2
 
 	template<class VariantType, template<class> class Wrapper>
 	using wrap_variant_element_t = wrap_variant_element<VariantType,Wrapper>::type;
+
+	template<class Variant, class Visitor, class... VisitorArgs>
+	constexpr decltype(auto) visit_with_args(Variant&& to_visit, Visitor&& visitor, VisitorArgs&&... args)
+	{
+		return std::visit(
+			[&]<class T>(T&& item) -> decltype(auto) {
+				return std::forward<Visitor>(visitor)(std::forward<T>(item), std::forward<VisitorArgs>(args)...);
+			},
+			std::forward<Variant>(to_visit)
+		);
+	}
 }
 #endif

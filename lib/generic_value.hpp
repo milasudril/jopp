@@ -164,17 +164,18 @@ namespace jopp2
 			if(!is_sequence_container)
 			{ return nullptr; }
 
-			return std::visit(
+			return visit_with_args(
+				self.m_value,
 				overload{
-					[value = std::forward<T>(value)](SequenceContainerType<std::remove_cvref_t<T>>& seq) {
-						seq.push_back(std::move(value));
+					[](SequenceContainerType<std::remove_cvref_t<T>>& seq, T&& value) {
+						seq.emplace_back(std::forward<T>(value));
 						return &seq.back();
 					},
-					[value = std::forward<T>(value), &self]<sequence_container Seq>(Seq& seq){
+					[&self]<sequence_container Seq>(Seq& seq, T&& value) {
 						if(seq.empty())
 						{
 							SequenceContainerType<std::remove_cvref_t<T>> new_container{};
-							new_container.push_back(std::move(value));
+							new_container.emplace_back(std::forward<T>(value));
 							auto ret = &new_container.back();
 							self.m_value = std::move(new_container);
 							return ret;
@@ -182,7 +183,7 @@ namespace jopp2
 
 						if constexpr(std::is_same_v<typename Seq::value_type, generic_value>)
 						{
-							seq.push_back(generic_value{std::move(value)});
+							seq.emplace_back(std::forward<T>(value));
 							return seq.back().template get_if<T>();
 						}
 						else
@@ -198,18 +199,18 @@ namespace jopp2
 							for(auto& item : seq)
 							{ new_container.emplace_back(std::move(item)); }
 
-							new_container.emplace_back(std::move(value));
+							new_container.emplace_back(std::forward<T>(value));
 
 							auto ret = new_container.back().template get_if<T>();
 							self.m_value = std::move(new_container);
 							return ret;
 						}
 					},
-					[](auto const&) static {
+					[](auto const&...) {
 						return static_cast<T*>(nullptr);
 					}
 				},
-				self.m_value
+				std::forward<T>(value)
 			);
 		}
 

@@ -10,7 +10,7 @@ namespace
 	struct my_value_traits_with_variant
 	{
 		using key_type = std::string;
-		using leaf_value_type = std::variant<int, double>;
+		using leaf_value_type = std::variant<int, double, std::string, char>;
 	};
 
 	struct my_value_traits_with_no_variant
@@ -29,9 +29,13 @@ TESTCASE(jopp2_generic_value_static_properties)
 			std::variant<
 				int,
 				double,
+				std::string,
+				char,
 				type_with_variant::object,
 				std::vector<int>,
 				std::vector<double>,
+				std::vector<std::string>,
+				std::vector<char>,
 				std::vector<type_with_variant::object>,
 				std::vector<type_with_variant>
 			>
@@ -39,7 +43,7 @@ TESTCASE(jopp2_generic_value_static_properties)
 		true
 	);
 	EXPECT_EQ(std::is_constructible_v<type_with_variant>, true);
-	EXPECT_EQ(type_with_variant::first_sequence_type_index(), 3);
+	EXPECT_EQ(type_with_variant::first_sequence_type_index(), 5);
 	EXPECT_EQ(std::is_copy_constructible_v<type_with_variant>, false);
 	EXPECT_EQ(std::is_copy_assignable_v<type_with_variant>, false);
 	EXPECT_EQ(std::is_move_constructible_v<type_with_variant>, true);
@@ -142,4 +146,24 @@ TESTCASE(jopp2_generic_value_try_store_at_end_not_a_sequence)
 	type_with_variant foo{};
 	auto const res = foo.try_store_at_end(134);
 	EXPECT_EQ(res, nullptr);
+}
+
+TESTCASE(jopp2_generic_value_try_store_at_value_is_a_string)
+{
+	using type_with_variant = jopp2::generic_value<std::flat_map, std::vector, my_value_traits_with_variant>;
+	type_with_variant foo{std::string{"Hej"}};
+	auto const res = foo.try_store_at_end('a');
+	EXPECT_EQ(res, nullptr);
+}
+
+TESTCASE(jopp2_generic_value_try_store_at_end_sequence_empty_wrong_type)
+{
+	using type_with_variant = jopp2::generic_value<std::flat_map, std::vector, my_value_traits_with_variant>;
+	type_with_variant foo{std::vector<int>{}};
+	auto const res = foo.try_store_at_end(std::string{"foobar"});
+	REQUIRE_NE(res, nullptr);
+	EXPECT_EQ(*res, "foobar");
+	auto container = foo.get_if<std::vector<std::string>>();
+	REQUIRE_NE(container, nullptr);
+	EXPECT_EQ(res, &container->back());
 }
