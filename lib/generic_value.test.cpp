@@ -135,3 +135,11 @@ TESTCASE(jopp2_generic_value_store_value_as)
 	);
 	EXPECT_EQ(result_3.has_value(), false);
 }
+
+TESTCASE(jopp2_generic_value_try_store_at_end_not_a_sequence)
+{
+	using type_with_variant = jopp2::generic_value<std::flat_map, std::vector, my_value_traits_with_variant>;
+	type_with_variant foo{};
+	auto const res = foo.try_store_at_end(134);
+	EXPECT_EQ(res, nullptr);
+}

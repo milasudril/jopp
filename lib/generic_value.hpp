@@ -2,12 +2,23 @@
 #define JOPP_GENERIC_VALUE_HPP
 
 #include "./variant_utils.hpp"
+#include "./utils.hpp"
 
 #include <optional>
 #include <stdexcept>
 
 namespace jopp2
 {
+	using jopp::overload;
+
+	template<class T>
+	concept sequence_container = requires(T& obj){
+		{obj.back()};
+		{obj.push_back(std::declval<typename T::value_type>())};
+		{obj.emplace_back(std::declval<typename T::value_type>())};
+		{obj.empty()} -> std::same_as<bool>;
+	};
+
 	template<
 		template<class KeyType, class MappedType> class AssociativeContainerType,
 		template<class ValueType> class SequenceContainerType,
@@ -20,6 +31,7 @@ namespace jopp2
 		using key_type = typename ValueTraits::key_type;
 		using object = AssociativeContainerType<key_type, generic_value>;
 		using map_value_type = object::value_type;
+		static_assert(sequence_container<SequenceContainerType<leaf_value_type>>);
 
 		using variant_type = concatenate_variants_t<
 			wrap_in_variant_t<leaf_value_type>,
@@ -80,7 +92,7 @@ namespace jopp2
 			if(i == std::end(*item))
 			{ return nullptr; }
 
-			return i->second.template get_if<std::remove_cvref_t<T>>();
+			return i->second.template get_if<T>();
 		}
 
 		template<class T, class Self, class KeyLike>
@@ -93,7 +105,7 @@ namespace jopp2
 		}
 
 		template<class Self, class T, class KeyLike>
-		auto try_store_value_as(this Self&& self, T&& value, KeyLike&& key)
+		auto try_store_value_as(this Self& self, T&& value, KeyLike&& key)
 		{
 			auto i = self.template get_if<object>();
 			using objref = object::reference;
@@ -123,7 +135,7 @@ namespace jopp2
 			std::is_same_v<typename object::reference, std::pair<key_type const&, generic_value&>>,
 			typename object::reference,
 			std::pair<key_type const, generic_value>&
-		> store_value_as(this Self&& self, T&& value, KeyLike&& key)
+		> store_value_as(this Self& self, T&& value, KeyLike&& key)
 		{
 			auto res = self.try_store_value_as(std::forward<T>(value), std::forward<KeyLike>(key));
 			if(!res)
@@ -133,6 +145,72 @@ namespace jopp2
 				};
 			}
 			return *res;
+		}
+
+		template<class Self, class T>
+		T* try_store_at_end(this Self& self, T&& value)
+		{
+			auto const is_sequence_container = std::visit(
+				overload{
+					[]<sequence_container Seq>(Seq const&) static {
+						return true;
+					},
+					[](auto const&) static {
+						return false;
+					}
+				},
+				self.m_value
+			);
+			if(!is_sequence_container)
+			{ return nullptr; }
+
+			return std::visit(
+				overload{
+					[value = std::forward<T>(value)](SequenceContainerType<std::remove_cvref_t<T>>& seq) {
+						seq.push_back(std::move(value));
+						return &seq.back();
+					},
+					[value = std::forward<T>(value), &self]<sequence_container Seq>(Seq& seq){
+						if(seq.empty())
+						{
+							SequenceContainerType<std::remove_cvref_t<T>> new_container{};
+							new_container.push_back(std::move(value));
+							auto ret = &new_container.back();
+							self.m_value = std::move(new_container);
+							return ret;
+						}
+
+						if constexpr(std::is_same_v<typename Seq::value_type, generic_value>)
+						{
+							seq.push_back(generic_value{std::move(value)});
+							return seq.back().template get_if<T>();
+						}
+						else
+						{
+							SequenceContainerType<generic_value> new_container;
+
+							if constexpr(
+								requires{{new_container.reserve(size_t{})};} &&
+								requires{{std::size(seq)};}
+							)
+							{ new_container.reserve(std::size(seq) + 1); }
+
+							for(auto& item : seq)
+							{ new_container.emplace_back(std::move(item)); }
+
+							new_container.emplace_back(std::move(value));
+
+							auto ret = new_container.back().template get_if<T>();
+							self.m_value = std::move(new_container);
+							return ret;
+						}
+					},
+					[](auto const&) static {
+						return static_cast<T*>(nullptr);
+					}
+				},
+				self.m_value
+			);
 		}
 
 	private:
