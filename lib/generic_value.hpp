@@ -193,6 +193,11 @@ namespace jopp2
 								for(auto&& value: *seq)
 								{ visit_with_args(value.m_value, handle_value, state); }
 							}
+							else
+							{
+								for(auto&& value: *seq)
+								{ handle_value(value, state); }
+							}
 						},
 						[](end_of_object, visitor_state& state) static {
 							state.visitor.handle_end_of_object();
