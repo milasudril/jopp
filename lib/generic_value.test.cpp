@@ -130,14 +130,14 @@ TESTCASE(jopp2_generic_value_store_value_as)
 		43,
 		"The answer to the question of life the universe and everything"
 	);
-	EXPECT_EQ(result_2.has_value(), false);
+	EXPECT_EQ(result_2.first, nullptr);
 
 	foo = type_with_variant{};
 	auto const result_3 = foo.try_store_value_as(
 		42,
 		"The answer to the question of life the universe and everything"
 	);
-	EXPECT_EQ(result_3.has_value(), false);
+	EXPECT_EQ(result_3.first, nullptr);
 }
 
 TESTCASE(jopp2_generic_value_try_store_at_end_not_a_sequence)

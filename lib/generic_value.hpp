@@ -32,11 +32,6 @@ namespace jopp2
 		using object = AssociativeContainerType<key_type, generic_value>;
 		using map_value_type = object::value_type;
 		static_assert(sequence_container<SequenceContainerType<leaf_value_type>>);
-		using mutable_map_node = std::conditional_t<
-			std::is_same_v<typename object::reference, std::pair<key_type const&, generic_value&>>,
-			typename object::reference,
-			std::pair<key_type const, generic_value>&
-		>;
 
 		using variant_type = concatenate_variants_t<
 			wrap_in_variant_t<leaf_value_type>,
@@ -206,40 +201,35 @@ namespace jopp2
 		template<class Self, class T, class KeyLike>
 		auto try_store_value_as(this Self& self, T&& value, KeyLike&& key)
 		{
-			auto i = self.template get_if<object>();
-			using objref = object::reference;
-			using ret_type = std::conditional_t<
-				std::is_same_v<objref, std::pair<key_type const&, generic_value&>>,
-				std::optional<objref>,
-				std::pair<key_type const, generic_value>*
-			>;
+			using ret_type = std::pair<key_type const*, generic_value*>;
 
+			auto i = self.template get_if<object>();
 			if(i == nullptr)
 			{ return ret_type{}; }
 
 			auto const insert_result = i->emplace(std::forward<KeyLike>(key), std::forward<T>(value));
 
-			if constexpr(std::is_same_v<objref, std::pair<key_type const&, generic_value&>>)
+			if constexpr(std::is_same_v<typename object::reference, std::pair<key_type const&, generic_value&>>)
 			{
 				if(!insert_result.second)
 				{ return ret_type{}; }
-				return ret_type{*insert_result.first};
+				return ret_type{&insert_result.first->first, &insert_result.first->second};
 			}
 			else
-			{ return &*insert_result.first; }
+			{ return ret_type{&insert_result.first.first, &insert_result.first.second}; }
 		}
 
 		template<class Self, class T, class KeyLike>
-		mutable_map_node store_value_as(this Self& self, T&& value, KeyLike&& key)
+		auto store_value_as(this Self& self, T&& value, KeyLike&& key)
 		{
 			auto res = self.try_store_value_as(std::forward<T>(value), std::forward<KeyLike>(key));
-			if(!res)
+			if(res.first == nullptr)
 			{
 				throw std::runtime_error{
 					"This generic value is not an object, or the property has already been set"
 				};
 			}
-			return *res;
+			return std::pair<key_type const&, generic_value&>{*res.first, *res.second};
 		}
 
 		template<class Self, class T>
