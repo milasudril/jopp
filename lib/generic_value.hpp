@@ -33,6 +33,11 @@ namespace jopp2
 		using map_value_type = object::value_type;
 		static_assert(sequence_container<SequenceContainerType<leaf_value_type>>);
 
+		template<class T>
+		static constexpr auto is_leaf_value = requires(T&& x){
+			{ leaf_value_type{std::forward<T>(x)} };
+		};
+
 		using variant_type = concatenate_variants_t<
 			wrap_in_variant_t<leaf_value_type>,
 			wrap_in_variant_t<object>,
@@ -144,24 +149,21 @@ namespace jopp2
 				.values_to_visit = {}
 			};
 
-			state.values_to_visit.push(
-				std::visit(
-					[](auto& item){ return typename visitor_state::stored_item{&item};},
-					self.m_value
-				)
-			);
-
 			static constexpr overload handle_value{
-				[]<class T>(T&& item, visitor_state& state) static {
+				[]<class T> requires(is_leaf_value<std::remove_cvref_t<T>>)
+				(T&& item, visitor_state& state) static {
 					state.visitor.handle_leaf_node(std::forward<T>(item));
 				},
-				[]<sequence_container Seq>(Seq& seq, visitor_state& state) static {
+				[]<class Seq> requires sequence_container<std::remove_cvref_t<Seq>>
+				(Seq&& seq, visitor_state& state) static {
 					state.values_to_visit.push(&seq);
 				},
 				[](object const& obj, visitor_state& state) static {
 					state.values_to_visit.push(&obj);
 				}
 			};
+
+			visit_with_args(self.m_value, handle_value, state);
 
 			while(!state.values_to_visit.empty())
 			{
@@ -170,9 +172,8 @@ namespace jopp2
 				visit_with_args(
 					value_to_visit,
 					overload {
-						[]<class T>(T item, visitor_state& state) static {
-							static_assert(std::is_pointer_v<T>);
-							state.visitor.handle_leaf_node(*item);
+						[]<class T>(T, visitor_state&) static {
+							abort();
 						},
 						[](obj_ptr obj, visitor_state& state) static {
 							state.visitor.handle_begin_of_object();
@@ -183,11 +184,15 @@ namespace jopp2
 								visit_with_args(value.m_value, handle_value, state);
 							}
 						},
-						[]<sequence_container Seq>(Seq* seq, visitor_state& state) static {
+						[]<class Seq> requires sequence_container<std::remove_cvref_t<Seq>>
+						(Seq* seq, visitor_state& state) static {
 							state.visitor.handle_begin_of_array();
 							state.values_to_visit.push(end_of_array{});
-							for(auto&& value: *seq)
-							{ visit_with_args(value.m_value, handle_value, state); }
+							if constexpr(std::is_same_v<typename Seq::value_type, generic_value>)
+							{
+								for(auto&& value: *seq)
+								{ visit_with_args(value.m_value, handle_value, state); }
+							}
 						},
 						[](end_of_object, visitor_state& state) static {
 							state.visitor.handle_end_of_object();
@@ -204,7 +209,7 @@ namespace jopp2
 		template<class Self, class T, class KeyLike>
 		auto try_store_value_as(this Self& self, T&& value, KeyLike&& key)
 		{
-			using ret_type = std::pair<key_type const*, generic_value*>;
+			using ret_type = std::pair<key_type const*, std::remove_cvref_t<T>*>;
 
 			auto i = self.template get_if<object>();
 			if(i == nullptr)
@@ -216,10 +221,10 @@ namespace jopp2
 			{
 				if(!insert_result.second)
 				{ return ret_type{}; }
-				return ret_type{&insert_result.first->first, &insert_result.first->second};
+				return ret_type{&insert_result.first->first, insert_result.first->second.template get_if<T>()};
 			}
 			else
-			{ return ret_type{&insert_result.first.first, &insert_result.first.second}; }
+			{ return ret_type{&insert_result.first.first, insert_result.first.second.template get_if<T>()}; }
 		}
 
 		template<class Self, class T, class KeyLike>
@@ -232,7 +237,7 @@ namespace jopp2
 					"This generic value is not an object, or the property has already been set"
 				};
 			}
-			return std::pair<key_type const&, generic_value&>{*res.first, *res.second};
+			return std::pair<key_type const&, std::remove_cvref_t<T>&>{*res.first, *res.second};
 		}
 
 		template<class Self, class T>

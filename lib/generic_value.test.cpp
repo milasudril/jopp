@@ -4,6 +4,7 @@
 
 #include <flat_map>
 #include <testfwk/testfwk.hpp>
+#include <format>
 
 namespace
 {
@@ -19,26 +20,49 @@ namespace
 		using leaf_value_type = std::string;
 	};
 
+	enum class bool_wrapper:bool{
+		disabled = false,
+		enabled = true
+	};
+
+	struct json_value_traits
+	{
+		using key_type = std::string;
+		using leaf_value_type = std::variant<double, std::string, bool_wrapper, nullptr_t>;
+	};
+
 	struct test_node_visitor
 	{
 		template<class T>
-		void handle_leaf_node(T&)
-		{}
+		void handle_leaf_node(T&&)
+		{abort(); }
 
-		void handle_property_name(std::string_view)
-		{}
+		void handle_leaf_node(std::string const& str)
+		{ puts(str.c_str()); }
+
+		void handle_leaf_node(double value)
+		{ puts(std::format("{}", value).c_str()); }
+
+		void handle_leaf_node(nullptr_t)
+		{ puts("null");}
+
+		void handle_leaf_node(bool_wrapper value)
+		{ puts(value == bool_wrapper::enabled? "true" : "false"); }
+
+		void handle_property_name(std::string const& name)
+		{puts(name.c_str()); }
 
 		void handle_begin_of_object()
-		{}
+		{ puts("{"); }
 
 		void handle_end_of_object()
-		{}
+		{ puts("}"); }
 
 		void handle_begin_of_array()
-		{}
+		{ puts("["); }
 
 		void handle_end_of_array()
-		{}
+		{ puts("]"); }
 	};
 }
 
@@ -146,7 +170,7 @@ TESTCASE(jopp2_generic_value_store_value_as)
 
 	auto const result_1 = foo.store_value_as(42, "The answer to the question of life the universe and everything");
 	EXPECT_EQ(result_1.first, "The answer to the question of life the universe and everything");
-	EXPECT_EQ(result_1.second.get<int>(), 42);
+	EXPECT_EQ(result_1.second, 42);
 
 	auto const result_2 = foo.try_store_value_as(
 		43,
@@ -234,9 +258,91 @@ TESTCASE(jopp2_generic_value_try_store_at_end_of_typed_container)
 
 TESTCASE(jopp2_generic_value_visit_nodes)
 {
-	using type_with_variant = jopp2::generic_value<std::flat_map, std::vector, my_value_traits_with_variant>;
+/* Test data
+{
+  "heterogeneous_array": [
+    "string_element",
+    42,
+    { "key": "value" },
+    [1, 2, 3],
+    true,
+    null
+  ],
+  "array_of_numbers": [
+    1,
+    2.5,
+    -3,
+    0,
+    1000
+  ],
+  "array_of_strings": [
+    "apple",
+    "banana",
+    "cherry",
+    "date"
+  ],
+  "array_of_nulls": [
+    null,
+    null,
+    null
+  ],
+  "array_of_booleans": [
+    true,
+    false,
+    true,
+    true
+  ],
+  "array_of_arrays": [
+    [1, 2],
+    ["a", "b"],
+    [true, false]
+  ],
+  "array_of_objects": [
+    {
+      "id": 1,
+      "name": "Alice"
+    },
+    {
+      "id": 2,
+      "name": "Bob"
+    }
+  ],
+  "object_value": {
+    "nested_key_1": "nested_value",
+    "nested_key_2": 123
+  },
+  "string_value": "Hello, world!",
+  "number_value": 3.14159,
+  "null_value": null,
+  "boolean_value": true
+}
+*/
 
-	type_with_variant foo{type_with_variant::object{}};
+	using json_value = jopp2::generic_value<std::flat_map, std::vector, json_value_traits>;
 
-	std::as_const(foo).visit_nodes(test_node_visitor{});
+	static_assert(json_value::is_leaf_value<double>);
+	static_assert(!json_value::is_leaf_value<int>);
+
+	json_value value{json_value::object{}};
+	{
+		auto const res = value.store_value_as(std::vector<json_value>{}, "heterogeneous_array");
+		res.second.emplace_back("string_element");
+		res.second.emplace_back(json_value{42.0});
+		{
+			res.second.emplace_back(json_value::object{});
+			res.second.back().store_value_as(std::string{"value"}, "key");
+		}
+
+		{
+			res.second.emplace_back(std::vector<json_value>{});
+			res.second.back().try_store_at_end(1.0);
+			res.second.back().try_store_at_end(2.0);
+			res.second.back().try_store_at_end(3.0);
+		}
+
+		res.second.emplace_back(bool_wrapper::enabled);
+		res.second.emplace_back(nullptr);
+	}
+
+	std::as_const(value).visit_nodes(test_node_visitor{});
 }
