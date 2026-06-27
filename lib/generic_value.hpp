@@ -123,25 +123,16 @@ namespace jopp2
 				object*
 			>;
 
-			struct object_begin{};
-			struct object_end{};
-			struct array_begin{};
-			struct array_end{};
-
-			using object_property_ptr = std::pair<
-				key_type const*,
-				std::conditional_t<is_const, generic_value const*, generic_value*>
-			>;
-
+			struct begin_of_object{};
+			struct end_of_object{};
+			struct begin_of_array{};
+			struct end_of_array{};
 			struct visitor_state
 			{
 				using stored_item = concatenate_variants_t<
 					value_pointer_type,
-					wrap_in_variant_t<object_property_ptr>,
-					wrap_in_variant_t<object_begin>,
-					wrap_in_variant_t<object_end>,
-					wrap_in_variant_t<array_begin>,
-					wrap_in_variant_t<array_end>
+					wrap_in_variant_t<end_of_object>,
+					wrap_in_variant_t<end_of_array>
 				>;
 
 				Visitor visitor;
@@ -167,30 +158,60 @@ namespace jopp2
 				visit_with_args(
 					value_to_visit,
 					overload {
-						[]<class T>(T, visitor_state&) static {
+						[]<class T>(T item, visitor_state& state) static {
 							static_assert(std::is_pointer_v<T>);
-							printf("T\n");
+							state.visitor.handle_leaf_node(*item);
 						},
-						[](obj_ptr, visitor_state&) static {
-							printf("obj_ptr\n");
+						[](obj_ptr obj, visitor_state& state) static {
+							state.visitor.handle_begin_of_object();
+							state.values_to_visit.push(end_of_object{});
+							for(auto&& [key, value]: *obj)
+							{
+								state.visitor.handle_property_name(key);
+								visit_with_args(
+									value.m_value,
+									overload{
+										[]<class T>(T&& item, visitor_state& state) static {
+											state.visitor.handle_leaf_node(std::forward<T>(item));
+										},
+										[]<sequence_container Seq>(Seq& seq, visitor_state& state) static {
+											state.values_to_visit.push(&seq);
+										},
+										[](object const& obj, visitor_state& state) static {
+											state.values_to_visit.push(&obj);
+										}
+									},
+									state
+								);
+							}
 						},
-						[]<sequence_container Seq>(Seq*, visitor_state&) static {
-							printf("Seq\n");
+						[]<sequence_container Seq>(Seq* seq, visitor_state& state) static {
+							state.visitor.handle_begin_of_array();
+							state.values_to_visit.push(end_of_array{});
+							for(auto&& value: *seq)
+							{
+								visit_with_args(
+									value.m_value,
+									overload{
+										[]<class T>(T&& item, visitor_state& state) static {
+											state.visitor.handle_leaf_node(std::forward<T>(item));
+										},
+										[]<sequence_container InnerSeq>(InnerSeq& seq, visitor_state& state) static {
+											state.values_to_visit.push(&seq);
+										},
+										[](object const& obj, visitor_state& state) static {
+											state.values_to_visit.push(&obj);
+										}
+									},
+									state
+								);
+							}
 						},
-						[](object_property_ptr, visitor_state&) static{
-							printf("object_property_ptr\n");
+						[](end_of_object, visitor_state& state) static {
+							state.visitor.handle_end_of_object();
 						},
-						[](object_begin, visitor_state&) static {
-							printf("object_begin\n");
-						},
-						[](object_end, visitor_state&) static {
-							printf("object_end\n");
-						},
-						[](array_begin, visitor_state&) static {
-							printf("array_begin\n");
-						},
-						[](array_end, visitor_state&) static {
-							printf("array_end\n");
+						[](end_of_array, visitor_state& state) static {
+							state.visitor.handle_end_of_array();
 						}
 					},
 					state

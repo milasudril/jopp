@@ -18,6 +18,28 @@ namespace
 		using key_type = std::string;
 		using leaf_value_type = std::string;
 	};
+
+	struct test_node_visitor
+	{
+		template<class T>
+		void handle_leaf_node(T&)
+		{}
+
+		void handle_property_name(std::string_view)
+		{}
+
+		void handle_begin_of_object()
+		{}
+
+		void handle_end_of_object()
+		{}
+
+		void handle_begin_of_array()
+		{}
+
+		void handle_end_of_array()
+		{}
+	};
 }
 
 TESTCASE(jopp2_generic_value_static_properties)
@@ -216,10 +238,5 @@ TESTCASE(jopp2_generic_value_visit_nodes)
 
 	type_with_variant foo{type_with_variant::object{}};
 
-	struct visitor
-	{
-
-	};
-
-	std::as_const(foo).visit_nodes(visitor{});
+	std::as_const(foo).visit_nodes(test_node_visitor{});
 }
