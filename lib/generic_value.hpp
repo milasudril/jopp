@@ -151,6 +151,18 @@ namespace jopp2
 				)
 			);
 
+			static constexpr overload handle_value{
+				[]<class T>(T&& item, visitor_state& state) static {
+					state.visitor.handle_leaf_node(std::forward<T>(item));
+				},
+				[]<sequence_container Seq>(Seq& seq, visitor_state& state) static {
+					state.values_to_visit.push(&seq);
+				},
+				[](object const& obj, visitor_state& state) static {
+					state.values_to_visit.push(&obj);
+				}
+			};
+
 			while(!state.values_to_visit.empty())
 			{
 				auto value_to_visit = state.values_to_visit.top();
@@ -168,44 +180,14 @@ namespace jopp2
 							for(auto&& [key, value]: *obj)
 							{
 								state.visitor.handle_property_name(key);
-								visit_with_args(
-									value.m_value,
-									overload{
-										[]<class T>(T&& item, visitor_state& state) static {
-											state.visitor.handle_leaf_node(std::forward<T>(item));
-										},
-										[]<sequence_container Seq>(Seq& seq, visitor_state& state) static {
-											state.values_to_visit.push(&seq);
-										},
-										[](object const& obj, visitor_state& state) static {
-											state.values_to_visit.push(&obj);
-										}
-									},
-									state
-								);
+								visit_with_args(value.m_value, handle_value, state);
 							}
 						},
 						[]<sequence_container Seq>(Seq* seq, visitor_state& state) static {
 							state.visitor.handle_begin_of_array();
 							state.values_to_visit.push(end_of_array{});
 							for(auto&& value: *seq)
-							{
-								visit_with_args(
-									value.m_value,
-									overload{
-										[]<class T>(T&& item, visitor_state& state) static {
-											state.visitor.handle_leaf_node(std::forward<T>(item));
-										},
-										[]<sequence_container InnerSeq>(InnerSeq& seq, visitor_state& state) static {
-											state.values_to_visit.push(&seq);
-										},
-										[](object const& obj, visitor_state& state) static {
-											state.values_to_visit.push(&obj);
-										}
-									},
-									state
-								);
-							}
+							{ visit_with_args(value.m_value, handle_value, state); }
 						},
 						[](end_of_object, visitor_state& state) static {
 							state.visitor.handle_end_of_object();
