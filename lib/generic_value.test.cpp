@@ -344,5 +344,90 @@ TESTCASE(jopp2_generic_value_visit_nodes)
 		res.second.emplace_back(nullptr);
 	}
 
+	{
+		auto const res = value.store_value_as(std::vector<double>{}, "array_of_numbers");
+		res.second.emplace_back(1.0);
+		res.second.emplace_back(2.5);
+		res.second.emplace_back(-3.0);
+		res.second.emplace_back(0.0);
+		res.second.emplace_back(1000.0);
+	}
+
+	{
+		auto const res = value.store_value_as(std::vector<std::string>{}, "array_of_strings");
+		res.second.emplace_back("apple");
+		res.second.emplace_back("banana");
+		res.second.emplace_back("cherry");
+		res.second.emplace_back("date");
+	}
+
+	{
+		auto const res = value.store_value_as(std::vector<nullptr_t>{}, "array_of_nulls");
+		res.second.emplace_back(nullptr);
+		res.second.emplace_back(nullptr);
+		res.second.emplace_back(nullptr);
+		res.second.emplace_back(nullptr);
+	}
+
+	{
+		auto const res = value.store_value_as(std::vector<bool_wrapper>{}, "array_of_booleans");
+		res.second.emplace_back(bool_wrapper::enabled);
+		res.second.emplace_back(bool_wrapper::disabled);
+		res.second.emplace_back(bool_wrapper::enabled);
+		res.second.emplace_back(bool_wrapper::enabled);
+	}
+
+	{
+		auto const res = value.store_value_as(std::vector<json_value>{}, "array_of_arrays");
+		{
+			res.second.emplace_back(std::vector<json_value>{});
+			auto& inner = res.second.back();
+			inner.try_store_at_end(1.0);
+			inner.try_store_at_end(2.0);
+		}
+
+		{
+			res.second.emplace_back(std::vector<json_value>{});
+			auto& inner = res.second.back();
+			inner.try_store_at_end(std::string{"a"});
+			inner.try_store_at_end(std::string{"b"});
+		}
+
+		{
+			res.second.emplace_back(std::vector<json_value>{});
+			auto& inner = res.second.back();
+			inner.try_store_at_end(bool_wrapper::enabled);
+			inner.try_store_at_end(bool_wrapper::disabled);
+		}
+	}
+
+	{
+		auto const res = value.store_value_as(std::vector<json_value::object>{}, "array_of_objects");
+		{
+			res.second.emplace_back(json_value::object{});
+			auto& inner = res.second.back();
+			inner.emplace("id", 1.0);
+			inner.emplace("name", "Alice");
+		}
+
+		{
+			res.second.emplace_back(json_value::object{});
+			auto& inner = res.second.back();
+			inner.emplace("id", 2.0);
+			inner.emplace("name", "Bob");
+		}
+	}
+
+	{
+		auto const res = value.store_value_as(json_value::object{}, "object_value");
+		res.second.emplace("nested_key_1", "nested_value");
+		res.second.emplace("nested_key_2", 123.0);
+	}
+
+	value.store_value_as(std::string{"Hello, world!"}, "string_value");
+	value.store_value_as(3.14159, "number_value");
+	value.store_value_as(nullptr, "null_value");
+	value.store_value_as(bool_wrapper::enabled, "boolean_value");
+
 	std::as_const(value).visit_nodes(test_node_visitor{});
 }
