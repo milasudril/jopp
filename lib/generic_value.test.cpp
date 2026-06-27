@@ -209,3 +209,17 @@ TESTCASE(jopp2_generic_value_try_store_at_end_of_typed_container)
 	REQUIRE_NE(container, nullptr);
 	EXPECT_EQ(res, &container->back());
 }
+
+TESTCASE(jopp2_generic_value_visit_nodes)
+{
+	using type_with_variant = jopp2::generic_value<std::flat_map, std::vector, my_value_traits_with_variant>;
+
+	type_with_variant foo{type_with_variant::object{}};
+
+	struct visitor
+	{
+
+	};
+
+	std::as_const(foo).visit_nodes(visitor{});
+}

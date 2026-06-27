@@ -4,8 +4,8 @@
 #include "./variant_utils.hpp"
 #include "./utils.hpp"
 
-#include <optional>
 #include <stdexcept>
+#include <stack>
 
 namespace jopp2
 {
@@ -32,6 +32,11 @@ namespace jopp2
 		using object = AssociativeContainerType<key_type, generic_value>;
 		using map_value_type = object::value_type;
 		static_assert(sequence_container<SequenceContainerType<leaf_value_type>>);
+		using mutable_map_node = std::conditional_t<
+			std::is_same_v<typename object::reference, std::pair<key_type const&, generic_value&>>,
+			typename object::reference,
+			std::pair<key_type const, generic_value>&
+		>;
 
 		using variant_type = concatenate_variants_t<
 			wrap_in_variant_t<leaf_value_type>,
@@ -104,6 +109,100 @@ namespace jopp2
 			return std::forward_like<Self>(*retval);
 		}
 
+		template<class T>
+		using pointer_to_const = T const*;
+
+		template<class Self, class Visitor>
+		void visit_nodes(this Self&& self, Visitor&& visitor)
+		{
+			static constexpr auto is_const = std::is_const_v<std::remove_reference_t<Self>>;
+			using value_pointer_type = std::conditional_t<
+				is_const,
+				wrap_variant_element_t<variant_type, pointer_to_const>,
+				wrap_variant_element_t<variant_type, std::add_pointer_t>
+			>;
+
+			using obj_ptr = std::conditional_t<
+				is_const,
+				object const*,
+				object*
+			>;
+
+			struct object_begin{};
+			struct object_end{};
+			struct array_begin{};
+			struct array_end{};
+
+			using object_property_ptr = std::pair<
+				key_type const*,
+				std::conditional_t<is_const, generic_value const*, generic_value*>
+			>;
+
+			struct visitor_state
+			{
+				using stored_item = concatenate_variants_t<
+					value_pointer_type,
+					wrap_in_variant_t<object_property_ptr>,
+					wrap_in_variant_t<object_begin>,
+					wrap_in_variant_t<object_end>,
+					wrap_in_variant_t<array_begin>,
+					wrap_in_variant_t<array_end>
+				>;
+
+				Visitor visitor;
+				std::stack<stored_item> values_to_visit;
+			};
+
+			visitor_state state{
+				.visitor = std::forward<Visitor>(visitor),
+				.values_to_visit = {}
+			};
+
+			state.values_to_visit.push(
+				std::visit(
+					[](auto& item){ return typename visitor_state::stored_item{&item};},
+					self.m_value
+				)
+			);
+
+			while(!state.values_to_visit.empty())
+			{
+				auto value_to_visit = state.values_to_visit.top();
+				state.values_to_visit.pop();
+				visit_with_args(
+					value_to_visit,
+					overload {
+						[]<class T>(T, visitor_state&) static {
+							static_assert(std::is_pointer_v<T>);
+							printf("T\n");
+						},
+						[](obj_ptr, visitor_state&) static {
+							printf("obj_ptr\n");
+						},
+						[]<sequence_container Seq>(Seq*, visitor_state&) static {
+							printf("Seq\n");
+						},
+						[](object_property_ptr, visitor_state&) static{
+							printf("object_property_ptr\n");
+						},
+						[](object_begin, visitor_state&) static {
+							printf("object_begin\n");
+						},
+						[](object_end, visitor_state&) static {
+							printf("object_end\n");
+						},
+						[](array_begin, visitor_state&) static {
+							printf("array_begin\n");
+						},
+						[](array_end, visitor_state&) static {
+							printf("array_end\n");
+						}
+					},
+					state
+				);
+			}
+		}
+
 		template<class Self, class T, class KeyLike>
 		auto try_store_value_as(this Self& self, T&& value, KeyLike&& key)
 		{
@@ -131,11 +230,7 @@ namespace jopp2
 		}
 
 		template<class Self, class T, class KeyLike>
-		std::conditional_t<
-			std::is_same_v<typename object::reference, std::pair<key_type const&, generic_value&>>,
-			typename object::reference,
-			std::pair<key_type const, generic_value>&
-		> store_value_as(this Self& self, T&& value, KeyLike&& key)
+		mutable_map_node store_value_as(this Self& self, T&& value, KeyLike&& key)
 		{
 			auto res = self.try_store_value_as(std::forward<T>(value), std::forward<KeyLike>(key));
 			if(!res)
