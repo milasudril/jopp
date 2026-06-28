@@ -33,36 +33,78 @@ namespace
 
 	struct test_node_visitor
 	{
+		void do_indent()
+		{
+			for(size_t k = 0; k != indentation; ++k)
+			{
+				fputs("    ", stdout);
+			}
+		}
+
+
 		template<class T>
-		void handle_leaf_node(T&&)
+		void handle_leaf_value(T&&)
 		{abort(); }
 
-		void handle_leaf_node(std::string const& str)
-		{ puts(str.c_str()); }
+		void handle_leaf_value(std::string const& str)
+		{
+			do_indent();
+			puts(str.c_str());
+		}
 
-		void handle_leaf_node(double value)
-		{ puts(std::format("{}", value).c_str()); }
+		void handle_leaf_value(double value)
+		{
+			do_indent();
+			puts(std::format("{}", value).c_str());
+		}
 
-		void handle_leaf_node(nullptr_t)
-		{ puts("null");}
+		void handle_leaf_value(nullptr_t)
+		{
+			do_indent();
+			puts("null");
+		}
 
-		void handle_leaf_node(bool_wrapper value)
-		{ puts(value == bool_wrapper::enabled? "true" : "false"); }
+		void handle_leaf_value(bool_wrapper value)
+		{
+			do_indent();
+			puts(value == bool_wrapper::enabled? "true" : "false");
+		}
 
 		void handle_property_name(std::string const& name)
-		{puts(name.c_str()); }
+		{
+			do_indent();
+			puts(name.c_str());
+		}
 
 		void handle_begin_of_object()
-		{ puts("{"); }
+		{
+			do_indent();
+			puts("{");
+			++indentation;
+		}
 
 		void handle_end_of_object()
-		{ puts("}"); }
+		{
+			--indentation;
+			do_indent();
+			puts("}");
+		}
 
 		void handle_begin_of_array()
-		{ puts("["); }
+		{
+			do_indent();
+			puts("[");
+			++indentation;
+		}
 
 		void handle_end_of_array()
-		{ puts("]"); }
+		{
+			--indentation;
+			do_indent();
+			puts("]");
+		}
+
+		size_t indentation = 0;
 	};
 }
 
