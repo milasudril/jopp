@@ -209,7 +209,6 @@ namespace jopp2
 		template<class VariantType, class Visitor>
 		static void do_visit_nodes(VariantType&& root, Visitor&& visitor)
 		{
-#if 1
 			struct begin_of_object{};
 			struct end_of_object{};
 			struct begin_of_array{};
@@ -328,61 +327,7 @@ namespace jopp2
 					},
 					current_state
 				);
-
 			}
-#else
-			using obj_ref = std::conditional_t<
-				std::is_const_v<std::remove_reference_t<VariantType>>,
-				object const&,
-				object&
-			>;
-
-			static constexpr auto handle_object = []<class V> (obj_ref object, V&& visitor) static {
-				visitor.handle_begin_of_object();
-				for(auto&& item: object)
-				{
-					visitor.handle_property_name(item.first);
-					do_visit_nodes(item.second.m_value, visitor);
-				}
-				visitor.handle_end_of_object();
-			};
-
-			static constexpr overload node_handler{
-				handle_object,
-				[]<class Seq>
-				requires sequence_container<std::remove_cvref_t<Seq>>
-				(Seq& seq, Visitor&& visitor) {
-					visitor.handle_begin_of_array();
-					using seq_type = std::remove_cvref_t<Seq>;
-					if constexpr(std::is_same_v<typename seq_type::value_type, generic_value>)
-					{
-						for(auto&& item: seq)
-						{ do_visit_nodes(item.m_value, visitor); }
-					}
-					else
-					if constexpr(std::is_same_v<typename seq_type::value_type, object>)
-					{
-						for(auto&& item: seq)
-						{ handle_object(item, visitor);}
-					}
-					else
-					{
-						for(auto&& item: seq)
-						{ visitor.handle_leaf_value(item); }
-					}
-					visitor.handle_end_of_array();
-				},
-				[]<class LeafValue> requires(is_leaf_value<LeafValue>)(LeafValue&& value, Visitor&& visitor){
-					std::forward<Visitor>(visitor).handle_leaf_value(std::forward<LeafValue>(value));
-				}
-			};
-
-			visit_with_args(
-				std::forward<VariantType>(root),
-				node_handler,
-				std::forward<Visitor>(visitor)
-			);
-#endif
 		}
 
 		variant_type m_value;
