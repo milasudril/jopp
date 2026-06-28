@@ -250,7 +250,8 @@ namespace jopp2
 					}
 					visitor.handle_end_of_array();
 				},
-				[]<class LeafValue> requires(is_leaf_value<LeafValue>)(LeafValue&, Visitor&&){
+				[]<class LeafValue> requires(is_leaf_value<LeafValue>)(LeafValue&& value, Visitor&& visitor){
+					std::forward<Visitor>(visitor).handle_leaf_value(std::forward<LeafValue>(value));
 				}
 			};
 

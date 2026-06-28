@@ -43,8 +43,7 @@ namespace
 
 
 		template<class T>
-		void handle_leaf_value(T&&)
-		{abort(); }
+		void handle_leaf_value(T&&) = delete;
 
 		void handle_leaf_value(std::string const& str)
 		{
@@ -73,7 +72,7 @@ namespace
 		void handle_property_name(std::string const& name)
 		{
 			do_indent();
-			puts(name.c_str());
+			printf("%s:\n", name.c_str());
 		}
 
 		void handle_begin_of_object()
