@@ -209,6 +209,128 @@ namespace jopp2
 		template<class VariantType, class Visitor>
 		static void do_visit_nodes(VariantType&& root, Visitor&& visitor)
 		{
+#if 1
+			struct begin_of_object{};
+			struct end_of_object{};
+			struct begin_of_array{};
+			struct end_of_array{};
+
+			using node = concatenate_variants_t<
+				wrap_variant_element_t<
+					std::conditional_t<
+						std::is_const_v<std::remove_reference_t<VariantType>>,
+						wrap_variant_element_t<std::remove_cvref_t<VariantType>, std::add_const_t>,
+						std::remove_cvref_t<VariantType>
+					>,
+					std::add_pointer_t
+				>,
+				std::variant<
+					std::pair<key_type const*, std::remove_reference_t<VariantType>*>,
+					begin_of_object,
+					end_of_object,
+					begin_of_array,
+					end_of_array
+				>
+			>;
+
+			using obj_ptr = std::conditional_t<
+				std::is_const_v<std::remove_reference_t<VariantType>>,
+				object const*,
+				object*
+			>;
+
+			struct visitation_state
+			{
+				Visitor visitor;
+				std::stack<node> nodes_to_visit;
+			};
+
+			visitation_state current_state{
+				.visitor = std::forward<Visitor>(visitor),
+				.nodes_to_visit = {}
+			};
+
+			static constexpr auto make_node = [](VariantType& item) static {
+				return 	std::visit(
+					[](auto& item){return node{&item};},
+					item
+				);
+			};
+
+			current_state.nodes_to_visit.push(make_node(root));
+
+			while(!current_state.nodes_to_visit.empty())
+			{
+				auto current_node = current_state.nodes_to_visit.top();
+				current_state.nodes_to_visit.pop();
+
+				static constexpr auto handle_object = [](obj_ptr obj, visitation_state& state) static {
+					state.nodes_to_visit.push(end_of_object{});
+					for(auto&& item: std::ranges::reverse_view{*obj})
+					{ state.nodes_to_visit.push(std::pair{&item.first, &item.second.m_value}); }
+					state.nodes_to_visit.push(begin_of_object{});
+				};
+
+				visit_with_args(
+					current_node,
+					overload{
+						handle_object,
+						[]<class LeafValue> requires(is_leaf_value<LeafValue>)(LeafValue* value, visitation_state& state){
+							state.visitor.handle_leaf_value(*value);
+						},
+						[]<class Seq>
+						requires sequence_container<std::remove_cvref_t<Seq>>
+						(Seq* seq, visitation_state& state) {
+							using seq_type = std::remove_cvref_t<Seq>;
+							if constexpr(std::is_same_v<typename seq_type::value_type, generic_value>)
+							{
+								state.nodes_to_visit.push(end_of_array{});
+								for(auto&& item: std::ranges::reverse_view{*seq})
+								{ state.nodes_to_visit.push(make_node(item.m_value)); }
+								state.nodes_to_visit.push(begin_of_array{});
+							}
+							else
+							if constexpr(std::is_same_v<typename seq_type::value_type, object>)
+							{
+								state.nodes_to_visit.push(end_of_array{});
+								for(auto&& item: std::ranges::reverse_view{*seq})
+								{ handle_object(&item, state); }
+								state.nodes_to_visit.push(begin_of_array{});
+							}
+							else
+							{
+								state.visitor.handle_begin_of_array();
+								for(auto&& item: *seq)
+								{ state.visitor.handle_leaf_value(item); }
+								state.visitor.handle_end_of_array();
+							}
+						},
+						[](
+							std::pair<key_type const*, std::remove_reference_t<VariantType>*> kv_ptr,
+							visitation_state& state
+						) {
+							state.visitor.handle_property_name(*kv_ptr.first);
+							state.nodes_to_visit.push(make_node(*kv_ptr.second));
+						},
+						[](begin_of_object, visitation_state& state) {
+							state.visitor.handle_begin_of_object();
+						},
+						[](end_of_object, visitation_state& state) {
+							state.visitor.handle_end_of_object();
+						},
+						[](begin_of_array, visitation_state& state) {
+							state.visitor.handle_begin_of_array();
+						},
+						[](end_of_array, visitation_state& state) {
+							state.visitor.handle_end_of_array();
+						},
+						[](auto&&, visitation_state&){}
+					},
+					current_state
+				);
+
+			}
+#else
 			using obj_ref = std::conditional_t<
 				std::is_const_v<std::remove_reference_t<VariantType>>,
 				object const&,
@@ -260,6 +382,7 @@ namespace jopp2
 				node_handler,
 				std::forward<Visitor>(visitor)
 			);
+#endif
 		}
 
 		variant_type m_value;

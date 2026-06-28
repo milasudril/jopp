@@ -470,5 +470,6 @@ TESTCASE(jopp2_generic_value_visit_nodes)
 	value.store_value_as(nullptr, "null_value");
 	value.store_value_as(bool_wrapper::enabled, "boolean_value");
 
+//	value.visit_nodes(test_node_visitor{});
 	std::as_const(value).visit_nodes(test_node_visitor{});
 }
