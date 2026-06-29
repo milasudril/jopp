@@ -128,15 +128,10 @@ namespace jopp2
 			{ return ret_type{}; }
 
 			auto const insert_result = i->emplace(std::forward<KeyLike>(key), std::forward<T>(value));
+			if(!insert_result.second)
+			{ return ret_type{}; }
 
-			if constexpr(std::is_same_v<typename object::reference, std::pair<key_type const&, generic_value&>>)
-			{
-				if(!insert_result.second)
-				{ return ret_type{}; }
-				return ret_type{&insert_result.first->first, insert_result.first->second.template get_if<T>()};
-			}
-			else
-			{ return ret_type{&insert_result.first.first, insert_result.first.second.template get_if<T>()}; }
+			return ret_type{&insert_result.first->first, insert_result.first->second.template get_if<T>()};
 		}
 
 		template<class Self, class T, class KeyLike>
@@ -265,8 +260,16 @@ namespace jopp2
 
 				static constexpr auto handle_object = [](obj_ptr obj, visitation_state& state) static {
 					state.nodes_to_visit.push(end_of_object{});
-					for(auto&& item: std::ranges::reverse_view{*obj})
-					{ state.nodes_to_visit.push(std::pair{&item.first, &item.second.m_value}); }
+					if constexpr(std::ranges::bidirectional_range<object>)
+					{
+						for(auto&& item: std::ranges::reverse_view{*obj})
+						{ state.nodes_to_visit.push(std::pair{&item.first, &item.second.m_value}); }
+					}
+					else
+					{
+						for(auto&& item: *obj)
+						{ state.nodes_to_visit.push(std::pair{&item.first, &item.second.m_value}); }
+					}
 					state.nodes_to_visit.push(begin_of_object{});
 				};
 
