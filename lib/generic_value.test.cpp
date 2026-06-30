@@ -359,7 +359,7 @@ TESTCASE(jopp2_generic_value_visit_nodes)
 }
 */
 
-	using json_value = jopp2::generic_value<std::unordered_map, std::vector, json_value_traits>;
+	using json_value = jopp2::generic_value<std::flat_map, std::vector, json_value_traits>;
 
 	static_assert(json_value::is_leaf_value<double>);
 	static_assert(!json_value::is_leaf_value<int>);

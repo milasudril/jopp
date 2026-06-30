@@ -260,15 +260,23 @@ namespace jopp2
 
 				static constexpr auto handle_object = [](obj_ptr obj, visitation_state& state) static {
 					state.nodes_to_visit.push(end_of_object{});
-					if constexpr(std::ranges::bidirectional_range<object>)
+					if(!obj->empty())
 					{
-						for(auto&& item: std::ranges::reverse_view{*obj})
-						{ state.nodes_to_visit.push(std::pair{&item.first, &item.second.m_value}); }
-					}
-					else
-					{
-						for(auto&& item: *obj)
-						{ state.nodes_to_visit.push(std::pair{&item.first, &item.second.m_value}); }
+						if constexpr(std::ranges::bidirectional_range<object>)
+						{
+							std::ranges::reverse_view output_view{*obj};
+							auto&& first = output_view.front();
+							state.nodes_to_visit.push(std::pair{&first.first, &first.second.m_value});
+							for(auto&& item: std::ranges::drop_view{output_view, 1})
+							{ state.nodes_to_visit.push(std::pair{&item.first, &item.second.m_value}); }
+						}
+						else
+						{
+							auto&& first = *(obj->begin());
+							state.nodes_to_visit.push(std::pair{&first.first, &first.second.m_value});
+							for(auto&& item: std::ranges::drop_view{*obj, 1})
+							{ state.nodes_to_visit.push(std::pair{&item.first, &item.second.m_value}); }
+						}
 					}
 					state.nodes_to_visit.push(begin_of_object{});
 				};
@@ -287,23 +295,39 @@ namespace jopp2
 							if constexpr(std::is_same_v<typename seq_type::value_type, generic_value>)
 							{
 								state.nodes_to_visit.push(end_of_array{});
-								for(auto&& item: std::ranges::reverse_view{*seq})
-								{ state.nodes_to_visit.push(make_node(item.m_value)); }
+								if(!seq->empty())
+								{
+									std::ranges::reverse_view output_view{*seq};
+									auto&& first = output_view.front();
+									state.nodes_to_visit.push(make_node(first.m_value));
+									for(auto&& item: std::ranges::drop_view{output_view, 1})
+									{ state.nodes_to_visit.push(make_node(item.m_value)); }
+								}
 								state.nodes_to_visit.push(begin_of_array{});
 							}
 							else
 							if constexpr(std::is_same_v<typename seq_type::value_type, object>)
 							{
 								state.nodes_to_visit.push(end_of_array{});
-								for(auto&& item: std::ranges::reverse_view{*seq})
-								{ handle_object(&item, state); }
+								if(!seq->empty())
+								{
+									std::ranges::reverse_view output_view{*seq};
+									auto&& first = output_view.front();
+									handle_object(&first, state);
+									for(auto&& item: std::ranges::drop_view{output_view, 1})
+									{ handle_object(&item, state); }
+								}
 								state.nodes_to_visit.push(begin_of_array{});
 							}
 							else
 							{
 								state.visitor.handle_begin_of_array();
-								for(auto&& item: *seq)
-								{ state.visitor.handle_leaf_value(item); }
+								if(!seq->empty())
+								{
+									for(auto&& item: std::ranges::take_view{*seq, std::ssize(*seq) - 1})
+									{ state.visitor.handle_leaf_value(item); }
+									state.visitor.handle_leaf_value(seq->back());
+								}
 								state.visitor.handle_end_of_array();
 							}
 						},
