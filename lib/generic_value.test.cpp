@@ -35,6 +35,12 @@ namespace
 	{
 		void do_indent()
 		{
+			if(skip_indent)
+			{
+				skip_indent = false;
+				return;
+			}
+
 			for(size_t k = 0; k != indentation; ++k)
 			{
 				fputs("    ", stdout);
@@ -48,31 +54,32 @@ namespace
 		void handle_leaf_value(std::string const& str)
 		{
 			do_indent();
-			puts(str.c_str());
+			printf("%s,\n", str.c_str());
 		}
 
 		void handle_leaf_value(double value)
 		{
 			do_indent();
-			puts(std::format("{}", value).c_str());
+			puts(std::format("{},", value).c_str());
 		}
 
 		void handle_leaf_value(nullptr_t)
 		{
 			do_indent();
-			puts("null");
+			puts("null,");
 		}
 
 		void handle_leaf_value(bool_wrapper value)
 		{
 			do_indent();
-			puts(value == bool_wrapper::enabled? "true" : "false");
+			puts(value == bool_wrapper::enabled? "true," : "false,");
 		}
 
 		void handle_property_name(std::string const& name)
 		{
 			do_indent();
-			printf("%s:\n", name.c_str());
+			printf("%s: ", name.c_str());
+			skip_indent = true;
 		}
 
 		void handle_begin_of_object()
@@ -86,7 +93,7 @@ namespace
 		{
 			--indentation;
 			do_indent();
-			puts("}");
+			puts("},");
 		}
 
 		void handle_begin_of_array()
@@ -100,10 +107,11 @@ namespace
 		{
 			--indentation;
 			do_indent();
-			puts("]");
+			puts("],");
 		}
 
 		size_t indentation = 0;
+		bool skip_indent = false;
 	};
 }
 
