@@ -209,7 +209,7 @@ namespace jopp2
 			struct begin_of_array{};
 			struct end_of_array{};
 
-			using node = concatenate_variants_t<
+			using node_value = concatenate_variants_t<
 				wrap_variant_element_t<
 					std::conditional_t<
 						std::is_const_v<std::remove_reference_t<VariantType>>,
@@ -236,7 +236,7 @@ namespace jopp2
 			struct visitation_state
 			{
 				Visitor visitor;
-				std::stack<node> nodes_to_visit;
+				std::stack<node_value> nodes_to_visit;
 			};
 
 			visitation_state current_state{
@@ -244,14 +244,14 @@ namespace jopp2
 				.nodes_to_visit = {}
 			};
 
-			static constexpr auto make_node = [](VariantType& item) static {
+			static constexpr auto make_node_value = [](VariantType& item) static {
 				return 	std::visit(
-					[](auto& item){return node{&item};},
+					[](auto& item){return node_value{&item};},
 					item
 				);
 			};
 
-			current_state.nodes_to_visit.push(make_node(root));
+			current_state.nodes_to_visit.push(make_node_value(root));
 
 			while(!current_state.nodes_to_visit.empty())
 			{
@@ -288,7 +288,7 @@ namespace jopp2
 							{
 								state.nodes_to_visit.push(end_of_array{});
 								for(auto&& item: std::ranges::reverse_view{*seq})
-								{ state.nodes_to_visit.push(make_node(item.m_value)); }
+								{ state.nodes_to_visit.push(make_node_value(item.m_value)); }
 								state.nodes_to_visit.push(begin_of_array{});
 							}
 							else
@@ -313,7 +313,7 @@ namespace jopp2
 							visitation_state& state
 						) {
 							state.visitor.handle_property_name(*kv_ptr.first);
-							state.nodes_to_visit.push(make_node(*kv_ptr.second));
+							state.nodes_to_visit.push(make_node_value(*kv_ptr.second));
 						},
 						[](begin_of_object, visitation_state& state) {
 							state.visitor.handle_begin_of_object();
