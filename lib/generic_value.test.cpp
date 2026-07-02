@@ -75,6 +75,42 @@ namespace
 			puts(value == bool_wrapper::enabled? "true," : "false,");
 		}
 
+		void handle_leaf_value(std::string const& str, size_t index, size_t num_elems)
+		{
+			do_indent();
+			if(index != num_elems - 1)
+			{ printf("%s,\n", str.c_str()); }
+			else
+			{ printf("%s\n", str.c_str()); }
+		}
+
+		void handle_leaf_value(double value, size_t index, size_t num_elems)
+		{
+			do_indent();
+			if(index != num_elems - 1)
+			{ puts(std::format("{},", value).c_str()); }
+			else
+			{ puts(std::format("{}", value).c_str()); }
+		}
+
+		void handle_leaf_value(nullptr_t, size_t index, size_t num_elems)
+		{
+			do_indent();
+			if(index != num_elems - 1)
+			{ puts("null,"); }
+			else
+			{ puts("null"); }
+		}
+
+		void handle_leaf_value(bool_wrapper value, size_t index, size_t num_elems)
+		{
+			do_indent();
+			if(index != num_elems - 1)
+			{ puts(value == bool_wrapper::enabled? "true," : "false,"); }
+			else
+			{ puts("null"); }
+		}
+
 		void handle_property_name(std::string const& name)
 		{
 			do_indent();

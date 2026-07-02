@@ -302,8 +302,9 @@ namespace jopp2
 							else
 							{
 								state.visitor.handle_begin_of_array();
-								for(auto&& item: *seq)
-								{ state.visitor.handle_leaf_value(item); }
+								auto const num_elems = std::size(*seq);
+								for(auto&& [index, item]: std::ranges::enumerate_view{*seq})
+								{ state.visitor.handle_leaf_value(item, index, num_elems); }
 								state.visitor.handle_end_of_array();
 							}
 						},
