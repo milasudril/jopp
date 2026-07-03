@@ -51,46 +51,22 @@ namespace
 		template<class T>
 		void handle_leaf_value(T&&) = delete;
 
-		void handle_leaf_value(std::string const& str)
-		{
-			do_indent();
-			printf("%s,\n", str.c_str());
-		}
-
-		void handle_leaf_value(double value)
-		{
-			do_indent();
-			puts(std::format("{},", value).c_str());
-		}
-
-		void handle_leaf_value(nullptr_t)
-		{
-			do_indent();
-			puts("null,");
-		}
-
-		void handle_leaf_value(bool_wrapper value)
-		{
-			do_indent();
-			puts(value == bool_wrapper::enabled? "true," : "false,");
-		}
-
 		void handle_leaf_value(std::string const& str, size_t index, size_t num_elems)
 		{
 			do_indent();
 			if(index != num_elems - 1)
-			{ printf("%s,\n", str.c_str()); }
+			{ printf("(%zu) %s,\n", index, str.c_str()); }
 			else
-			{ printf("%s\n", str.c_str()); }
+			{ printf("(%zu) %s\n", index, str.c_str()); }
 		}
 
 		void handle_leaf_value(double value, size_t index, size_t num_elems)
 		{
 			do_indent();
 			if(index != num_elems - 1)
-			{ puts(std::format("{},", value).c_str()); }
+			{ puts(std::format("({}) {},", index, value).c_str()); }
 			else
-			{ puts(std::format("{}", value).c_str()); }
+			{ puts(std::format("({}) {}", index, value).c_str()); }
 		}
 
 		void handle_leaf_value(nullptr_t, size_t index, size_t num_elems)
@@ -118,32 +94,38 @@ namespace
 			skip_indent = true;
 		}
 
-		void handle_begin_of_object()
+		void handle_begin_of_object(size_t, size_t)
 		{
 			do_indent();
 			puts("{");
 			++indentation;
 		}
 
-		void handle_end_of_object()
+		void handle_end_of_object(size_t index, size_t num_elems)
 		{
 			--indentation;
 			do_indent();
-			puts("},");
+			if(index != num_elems - 1)
+			{ puts("},"); }
+			else
+			{ puts("}"); }
 		}
 
-		void handle_begin_of_array()
+		void handle_begin_of_array(size_t, size_t)
 		{
 			do_indent();
 			puts("[");
 			++indentation;
 		}
 
-		void handle_end_of_array()
+		void handle_end_of_array(size_t index, size_t num_elems)
 		{
 			--indentation;
 			do_indent();
-			puts("],");
+			if(index != num_elems - 1)
+			{ puts("],"); }
+			else
+			{ puts("]"); }
 		}
 
 		size_t indentation = 0;

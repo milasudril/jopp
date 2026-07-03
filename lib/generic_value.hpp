@@ -233,10 +233,17 @@ namespace jopp2
 				object*
 			>;
 
+			struct node
+			{
+				node_value value;
+				ssize_t index;
+				size_t parent_container_size;
+			};
+
 			struct visitation_state
 			{
 				Visitor visitor;
-				std::stack<node_value> nodes_to_visit;
+				std::stack<node> nodes_to_visit;
 			};
 
 			visitation_state current_state{
@@ -251,85 +258,167 @@ namespace jopp2
 				);
 			};
 
-			current_state.nodes_to_visit.push(make_node_value(root));
+			current_state.nodes_to_visit.push(
+				node{
+					.value = make_node_value(root),
+					.index = 0,
+					.parent_container_size = 1
+				}
+			);
 
 			while(!current_state.nodes_to_visit.empty())
 			{
 				auto current_node = current_state.nodes_to_visit.top();
 				current_state.nodes_to_visit.pop();
 
-				static constexpr auto handle_object = [](obj_ptr obj, visitation_state& state) static {
-					state.nodes_to_visit.push(end_of_object{});
+				static constexpr auto handle_object = [](
+					obj_ptr obj,
+					visitation_state& state,
+					ssize_t index,
+					size_t parent_container_size
+				) static {
+					state.nodes_to_visit.push(
+						node{
+							.value = end_of_object{},
+							.index = index,
+							.parent_container_size = parent_container_size
+						}
+					);
+					auto const container_size = std::size(*obj);
 					if constexpr(std::ranges::bidirectional_range<object>)
 					{
-						for(auto&& item: std::ranges::reverse_view{*obj})
-						{ state.nodes_to_visit.push(std::pair{&item.first, &item.second.m_value}); }
+						for(auto&& [index, item]: std::ranges::reverse_view{std::ranges::enumerate_view{*obj}})
+						{
+							state.nodes_to_visit.push(
+								node{
+									.value = std::pair{&item.first, &item.second.m_value},
+									.index = index,
+									.parent_container_size = container_size
+								}
+							);
+						}
 					}
 					else
 					{
-						for(auto&& item: *obj)
-						{ state.nodes_to_visit.push(std::pair{&item.first, &item.second.m_value}); }
+						for(auto&& [index, item]: std::ranges::enumerate_view{*obj})
+						{
+							state.nodes_to_visit.push(
+								node{
+									.value = std::pair{&item.first, &item.second.m_value},
+									.index = static_cast<ssize_t>(container_size - index) - 1,
+									.parent_container_size = container_size
+								}
+							);
+						}
 					}
-					state.nodes_to_visit.push(begin_of_object{});
+					state.nodes_to_visit.push(
+						node{
+							.value = begin_of_object{},
+							.index = index,
+							.parent_container_size = parent_container_size
+						}
+					);
 				};
 
 				visit_with_args(
-					current_node,
+					current_node.value,
 					overload{
 						handle_object,
-						[]<class LeafValue> requires(is_leaf_value<LeafValue>)(LeafValue* value, visitation_state& state){
-							state.visitor.handle_leaf_value(*value);
+						[]<class LeafValue> requires(is_leaf_value<LeafValue>)
+						(LeafValue* value, visitation_state& state, ssize_t index, size_t parent_container_size){
+							state.visitor.handle_leaf_value(*value, index, parent_container_size);
 						},
 						[]<class Seq>
 						requires sequence_container<std::remove_cvref_t<Seq>>
-						(Seq* seq, visitation_state& state) {
+						(Seq* seq, visitation_state& state, ssize_t index, size_t parent_container_size) {
 							using seq_type = std::remove_cvref_t<Seq>;
+							auto const container_size = std::size(*seq);
 							if constexpr(std::is_same_v<typename seq_type::value_type, generic_value>)
 							{
-								state.nodes_to_visit.push(end_of_array{});
-								for(auto&& item: std::ranges::reverse_view{*seq})
-								{ state.nodes_to_visit.push(make_node_value(item.m_value)); }
-								state.nodes_to_visit.push(begin_of_array{});
+								state.nodes_to_visit.push(
+									node{
+										.value = end_of_array{},
+										.index = index,
+										.parent_container_size = parent_container_size
+									}
+								);
+								for(auto&& [index, item]: std::ranges::enumerate_view{std::ranges::reverse_view{*seq}})
+								{
+									state.nodes_to_visit.push(
+										node{
+											.value = make_node_value(item.m_value),
+											.index = index,
+											.parent_container_size = container_size
+										}
+									);
+								}
+								state.nodes_to_visit.push(
+									node{
+										.value = begin_of_array{},
+										.index = index,
+										.parent_container_size = parent_container_size
+									}
+								);
 							}
 							else
 							if constexpr(std::is_same_v<typename seq_type::value_type, object>)
 							{
-								state.nodes_to_visit.push(end_of_array{});
-								for(auto&& item: std::ranges::reverse_view{*seq})
-								{ handle_object(&item, state); }
-								state.nodes_to_visit.push(begin_of_array{});
+								state.nodes_to_visit.push(
+									node{
+										.value = end_of_array{},
+										.index = index,
+										.parent_container_size = parent_container_size
+									}
+								);
+								for(auto&& [index, item]: std::ranges::enumerate_view{std::ranges::reverse_view{*seq}})
+								{ handle_object(&item, state, index, container_size); }
+								state.nodes_to_visit.push(
+									node{
+										.value = begin_of_array{},
+										.index = index,
+										.parent_container_size = container_size
+									}
+								);
 							}
 							else
 							{
-								state.visitor.handle_begin_of_array();
-								auto const num_elems = std::size(*seq);
+								state.visitor.handle_begin_of_array(index, parent_container_size);
 								for(auto&& [index, item]: std::ranges::enumerate_view{*seq})
-								{ state.visitor.handle_leaf_value(item, index, num_elems); }
-								state.visitor.handle_end_of_array();
+								{ state.visitor.handle_leaf_value(item, index, container_size); }
+								state.visitor.handle_end_of_array(index, parent_container_size);
 							}
 						},
 						[](
 							std::pair<key_type const*, std::remove_reference_t<VariantType>*> kv_ptr,
-							visitation_state& state
+							visitation_state& state,
+							ssize_t index,
+							size_t parent_container_size
 						) {
 							state.visitor.handle_property_name(*kv_ptr.first);
-							state.nodes_to_visit.push(make_node_value(*kv_ptr.second));
+							state.nodes_to_visit.push(
+								node{
+									.value = make_node_value(*kv_ptr.second),
+									.index = index,
+									.parent_container_size = parent_container_size
+								}
+							);
 						},
-						[](begin_of_object, visitation_state& state) {
-							state.visitor.handle_begin_of_object();
+						[](begin_of_object, visitation_state& state, ssize_t index, size_t parent_container_size) {
+							state.visitor.handle_begin_of_object(index, parent_container_size);
 						},
-						[](end_of_object, visitation_state& state) {
-							state.visitor.handle_end_of_object();
+						[](end_of_object, visitation_state& state, ssize_t index, size_t parent_container_size) {
+							state.visitor.handle_end_of_object(index, parent_container_size);
 						},
-						[](begin_of_array, visitation_state& state) {
-							state.visitor.handle_begin_of_array();
+						[](begin_of_array, visitation_state& state, ssize_t index, size_t parent_container_size) {
+							state.visitor.handle_begin_of_array(index, parent_container_size);
 						},
-						[](end_of_array, visitation_state& state) {
-							state.visitor.handle_end_of_array();
-						},
-						[](auto&&, visitation_state&){}
+						[](end_of_array, visitation_state& state, ssize_t index, size_t parent_container_size) {
+							state.visitor.handle_end_of_array(index, parent_container_size);
+						}
 					},
-					current_state
+					current_state,
+					current_node.index,
+					current_node.parent_container_size
 				);
 			}
 		}
