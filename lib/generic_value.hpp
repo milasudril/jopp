@@ -19,6 +19,12 @@ namespace jopp2
 		{obj.empty()} -> std::same_as<bool>;
 	};
 
+	struct value_visitation_context
+	{
+		size_t node_index;
+		size_t parent_container_size;
+	};
+
 	template<
 		template<class KeyType, class MappedType, class...> class AssociativeContainerType,
 		template<class ValueType, class...> class SequenceContainerType,
@@ -236,9 +242,7 @@ namespace jopp2
 			struct node
 			{
 				node_value value;
-				size_t index;
-				size_t parent_container_size;
-				size_t push_location;
+				value_visitation_context context;
 			};
 
 			struct visitation_state
@@ -262,9 +266,10 @@ namespace jopp2
 			current_state.nodes_to_visit.push(
 				node{
 					.value = make_node_value(root),
-					.index = 0,
-					.parent_container_size = 1,
-					.push_location = __LINE__
+					.context = value_visitation_context{
+						.node_index = 0,
+						.parent_container_size = 1
+					}
 				}
 			);
 
@@ -276,15 +281,12 @@ namespace jopp2
 				static constexpr auto handle_object = [](
 					obj_ptr obj,
 					visitation_state& state,
-					size_t index,
-					size_t parent_container_size
+					value_visitation_context context
 				) static {
 					state.nodes_to_visit.push(
 						node{
 							.value = end_of_object{},
-							.index = index,
-							.parent_container_size = parent_container_size,
-							.push_location = __LINE__
+							.context = context
 						}
 					);
 					auto const container_size = std::size(*obj);
@@ -295,9 +297,10 @@ namespace jopp2
 							state.nodes_to_visit.push(
 								node{
 									.value = std::pair{&item.first, &item.second.m_value},
-									.index = index,
-									.parent_container_size = container_size,
-									.push_location = __LINE__
+									.context = value_visitation_context{
+										.node_index = index,
+										.parent_container_size = container_size
+									}
 								}
 							);
 						}
@@ -309,9 +312,10 @@ namespace jopp2
 							state.nodes_to_visit.push(
 								node{
 									.value = std::pair{&item.first, &item.second.m_value},
-									.index = container_size - static_cast<size_t>(index) - 1,
-									.parent_container_size = container_size,
-									.push_location = __LINE__
+									.context = value_visitation_context{
+										.node_index = container_size - static_cast<size_t>(index) - 1,
+										.parent_container_size = container_size
+									}
 								}
 							);
 						}
@@ -319,9 +323,7 @@ namespace jopp2
 					state.nodes_to_visit.push(
 						node{
 							.value = begin_of_object{},
-							.index = index,
-							.parent_container_size = parent_container_size,
-							.push_location = __LINE__
+							.context = context
 						}
 					);
 				};
@@ -331,13 +333,12 @@ namespace jopp2
 					overload{
 						handle_object,
 						[]<class LeafValue> requires(is_leaf_value<LeafValue>)
-						(LeafValue* value, visitation_state& state, size_t index, size_t parent_container_size){
-							state.visitor.handle_leaf_value(*value, index, parent_container_size);
+						(LeafValue* value, visitation_state& state, value_visitation_context context){
+							state.visitor.handle_leaf_value(*value, context.node_index, context.parent_container_size);
 						},
 						[]<class Seq>
 						requires sequence_container<std::remove_cvref_t<Seq>>
-						(Seq* seq, visitation_state& state, size_t index, size_t parent_container_size) {
-							assert(index < parent_container_size);
+						(Seq* seq, visitation_state& state, value_visitation_context context) {
 							using seq_type = std::remove_cvref_t<Seq>;
 							auto const container_size = std::size(*seq);
 							if constexpr(std::is_same_v<typename seq_type::value_type, generic_value>)
@@ -345,9 +346,7 @@ namespace jopp2
 								state.nodes_to_visit.push(
 									node{
 										.value = end_of_array{},
-										.index = index,
-										.parent_container_size = parent_container_size,
-										.push_location = __LINE__
+										.context = context
 									}
 								);
 								for(auto&& [index, item]: std::ranges::reverse_view{std::ranges::enumerate_view{*seq}})
@@ -355,18 +354,17 @@ namespace jopp2
 									state.nodes_to_visit.push(
 										node{
 											.value = make_node_value(item.m_value),
-											.index = static_cast<size_t>(index),
-											.parent_container_size = container_size,
-											.push_location = __LINE__
+											.context = value_visitation_context{
+												.node_index = static_cast<size_t>(index),
+												.parent_container_size = container_size,
+											}
 										}
 									);
 								}
 								state.nodes_to_visit.push(
 									node{
 										.value = begin_of_array{},
-										.index = index,
-										.parent_container_size = parent_container_size,
-										.push_location = __LINE__
+										.context = context
 									}
 								);
 							}
@@ -376,62 +374,62 @@ namespace jopp2
 								state.nodes_to_visit.push(
 									node{
 										.value = end_of_array{},
-										.index = index,
-										.parent_container_size = parent_container_size,
-										.push_location = __LINE__
+										.context = context
 									}
 								);
 								for(auto&& [index, item]: std::ranges::reverse_view{std::ranges::enumerate_view{*seq}})
-								{ handle_object(&item, state, static_cast<size_t>(index), container_size); }
+								{
+									handle_object(
+										&item, state,
+										value_visitation_context{
+											.node_index = static_cast<size_t>(index),
+											.parent_container_size = container_size
+										}
+									);
+								}
 								state.nodes_to_visit.push(
 									node{
 										.value = begin_of_array{},
-										.index = index,
-										.parent_container_size = parent_container_size,
-										.push_location = __LINE__
+										.context = context
 									}
 								);
 							}
 							else
 							{
-								state.visitor.handle_begin_of_array(index, parent_container_size);
+								state.visitor.handle_begin_of_array(context.node_index, context.parent_container_size);
 								for(auto&& [index, item]: std::ranges::enumerate_view{*seq})
 								{ state.visitor.handle_leaf_value(item, static_cast<size_t>(index), container_size); }
-								state.visitor.handle_end_of_array(index, parent_container_size);
+								state.visitor.handle_end_of_array(context.node_index, context.parent_container_size);
 							}
 						},
 						[](
 							std::pair<key_type const*, std::remove_reference_t<VariantType>*> kv_ptr,
 							visitation_state& state,
-							size_t index,
-							size_t parent_container_size
+							value_visitation_context context
 						) {
 							state.visitor.handle_property_name(*kv_ptr.first);
 							state.nodes_to_visit.push(
 								node{
 									.value = make_node_value(*kv_ptr.second),
-									.index = index,
-									.parent_container_size = parent_container_size,
-									.push_location = __LINE__
+									.context = context
 								}
 							);
 						},
-						[](begin_of_object, visitation_state& state, size_t index, size_t parent_container_size) {
-							state.visitor.handle_begin_of_object(index, parent_container_size);
+						[](begin_of_object, visitation_state& state, value_visitation_context context) {
+							state.visitor.handle_begin_of_object(context.node_index, context.parent_container_size);
 						},
-						[](end_of_object, visitation_state& state, size_t index, size_t parent_container_size) {
-							state.visitor.handle_end_of_object(index, parent_container_size);
+						[](end_of_object, visitation_state& state, value_visitation_context context) {
+							state.visitor.handle_end_of_object(context.node_index, context.parent_container_size);
 						},
-						[](begin_of_array, visitation_state& state, size_t index, size_t parent_container_size) {
-							state.visitor.handle_begin_of_array(index, parent_container_size);
+						[](begin_of_array, visitation_state& state, value_visitation_context context) {
+							state.visitor.handle_begin_of_array(context.node_index, context.parent_container_size);
 						},
-						[](end_of_array, visitation_state& state, size_t index, size_t parent_container_size) {
-							state.visitor.handle_end_of_array(index, parent_container_size);
+						[](end_of_array, visitation_state& state, value_visitation_context context) {
+							state.visitor.handle_end_of_array(context.node_index, context.parent_container_size);
 						}
 					},
 					current_state,
-					current_node.index,
-					current_node.parent_container_size
+					current_node.context
 				);
 			}
 		}
