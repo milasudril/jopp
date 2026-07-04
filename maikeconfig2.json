@@ -29,15 +29,14 @@
                 "compiler": {
                     "config": {
                         "cflags": [
+                            "-I.",
                             "-Wall",
-                            "-march=native",
                             "-Wextra",
                             "-Werror",
                             "-Wconversion",
+                            "-Wsign-conversion",
                             "-Wno-maybe-uninitialized",
-                            "-Wno-psabi",
                             "-Wno-error=maybe-uninitialized",
-                            "-I.",
                             "-fconcepts-diagnostics-depth=2"
                         ],
                         "iquote": [
@@ -59,13 +58,12 @@
                     "actions":["link", "run"],
                         "cflags": [
                             "-I.",
-                            "-march=native",
                             "-Wall",
                             "-Wextra",
-                            "-Wconversion",
-                            "-Wno-psabi",
-                            "-Wno-maybe-uninitialized",
                             "-Werror",
+                            "-Wconversion",
+                            "-Wsign-conversion",
+                            "-Wno-maybe-uninitialized",
                             "-Wno-error=maybe-uninitialized",
                             "-fconcepts-diagnostics-depth=2"
                         ],

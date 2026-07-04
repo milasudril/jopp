@@ -56,7 +56,7 @@ int main()
 		{
 			auto const res = serializer.serialize(buffer);
 			auto write_ptr = std::begin(buffer);
-			auto bytes_to_write = res.ptr - std::begin(buffer);
+			auto bytes_to_write = static_cast<size_t>(res.ptr - std::begin(buffer));
 			while(bytes_to_write != 0)
 			{
 				auto const bytes_written = ::write(STDOUT_FILENO, write_ptr, bytes_to_write);
@@ -71,7 +71,7 @@ int main()
 				}
 
 				write_ptr += bytes_written;
-				bytes_to_write -= bytes_written;
+				bytes_to_write -= static_cast<size_t>(bytes_written);
 			}
 
 			if(res.ec == jopp::serializer_error_code::completed)

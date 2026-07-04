@@ -51,8 +51,8 @@ namespace jopp
 		auto const n = std::min(std::size(src), std::size(dest));
 		std::copy_n(std::begin(src), n, std::begin(dest));
 		return write_buffer_result{
-			.in =Input{std::begin(src) + n, std::end(src)},
-			.out = Output{std::begin(dest) + n, std::end(dest)}
+			.in =Input{std::begin(src) + static_cast<ssize_t>(n), std::end(src)},
+			.out = Output{std::begin(dest) + static_cast<ssize_t>(n), std::end(dest)}
 		};
 	}
 

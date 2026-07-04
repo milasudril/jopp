@@ -236,7 +236,7 @@ namespace jopp2
 			struct node
 			{
 				node_value value;
-				ssize_t index;
+				size_t index;
 				size_t parent_container_size;
 			};
 
@@ -274,7 +274,7 @@ namespace jopp2
 				static constexpr auto handle_object = [](
 					obj_ptr obj,
 					visitation_state& state,
-					ssize_t index,
+					size_t index,
 					size_t parent_container_size
 				) static {
 					state.nodes_to_visit.push(
@@ -305,7 +305,7 @@ namespace jopp2
 							state.nodes_to_visit.push(
 								node{
 									.value = std::pair{&item.first, &item.second.m_value},
-									.index = static_cast<ssize_t>(container_size - index) - 1,
+									.index = container_size - static_cast<size_t>(index) - 1,
 									.parent_container_size = container_size
 								}
 							);
@@ -325,12 +325,12 @@ namespace jopp2
 					overload{
 						handle_object,
 						[]<class LeafValue> requires(is_leaf_value<LeafValue>)
-						(LeafValue* value, visitation_state& state, ssize_t index, size_t parent_container_size){
+						(LeafValue* value, visitation_state& state, size_t index, size_t parent_container_size){
 							state.visitor.handle_leaf_value(*value, index, parent_container_size);
 						},
 						[]<class Seq>
 						requires sequence_container<std::remove_cvref_t<Seq>>
-						(Seq* seq, visitation_state& state, ssize_t index, size_t parent_container_size) {
+						(Seq* seq, visitation_state& state, size_t index, size_t parent_container_size) {
 							using seq_type = std::remove_cvref_t<Seq>;
 							auto const container_size = std::size(*seq);
 							if constexpr(std::is_same_v<typename seq_type::value_type, generic_value>)
@@ -347,7 +347,7 @@ namespace jopp2
 									state.nodes_to_visit.push(
 										node{
 											.value = make_node_value(item.m_value),
-											.index = index,
+											.index = static_cast<size_t>(index),
 											.parent_container_size = container_size
 										}
 									);
@@ -371,7 +371,7 @@ namespace jopp2
 									}
 								);
 								for(auto&& [index, item]: std::ranges::enumerate_view{std::ranges::reverse_view{*seq}})
-								{ handle_object(&item, state, index, container_size); }
+								{ handle_object(&item, state, static_cast<size_t>(index), container_size); }
 								state.nodes_to_visit.push(
 									node{
 										.value = begin_of_array{},
@@ -384,14 +384,14 @@ namespace jopp2
 							{
 								state.visitor.handle_begin_of_array(index, parent_container_size);
 								for(auto&& [index, item]: std::ranges::enumerate_view{*seq})
-								{ state.visitor.handle_leaf_value(item, index, container_size); }
+								{ state.visitor.handle_leaf_value(item, static_cast<size_t>(index), container_size); }
 								state.visitor.handle_end_of_array(index, parent_container_size);
 							}
 						},
 						[](
 							std::pair<key_type const*, std::remove_reference_t<VariantType>*> kv_ptr,
 							visitation_state& state,
-							ssize_t index,
+							size_t index,
 							size_t parent_container_size
 						) {
 							state.visitor.handle_property_name(*kv_ptr.first);
@@ -403,16 +403,16 @@ namespace jopp2
 								}
 							);
 						},
-						[](begin_of_object, visitation_state& state, ssize_t index, size_t parent_container_size) {
+						[](begin_of_object, visitation_state& state, size_t index, size_t parent_container_size) {
 							state.visitor.handle_begin_of_object(index, parent_container_size);
 						},
-						[](end_of_object, visitation_state& state, ssize_t index, size_t parent_container_size) {
+						[](end_of_object, visitation_state& state, size_t index, size_t parent_container_size) {
 							state.visitor.handle_end_of_object(index, parent_container_size);
 						},
-						[](begin_of_array, visitation_state& state, ssize_t index, size_t parent_container_size) {
+						[](begin_of_array, visitation_state& state, size_t index, size_t parent_container_size) {
 							state.visitor.handle_begin_of_array(index, parent_container_size);
 						},
-						[](end_of_array, visitation_state& state, ssize_t index, size_t parent_container_size) {
+						[](end_of_array, visitation_state& state, size_t index, size_t parent_container_size) {
 							state.visitor.handle_end_of_array(index, parent_container_size);
 						}
 					},
