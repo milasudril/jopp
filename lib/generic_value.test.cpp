@@ -112,6 +112,7 @@ namespace
 
 		void handle_begin_of_array(size_t index, size_t num_elems)
 		{
+			assert(index < num_elems);
 			do_indent();
 			printf("(%zu of %zu) [\n", index + 1, num_elems);
 			++indentation;

@@ -238,6 +238,7 @@ namespace jopp2
 				node_value value;
 				size_t index;
 				size_t parent_container_size;
+				size_t push_location;
 			};
 
 			struct visitation_state
@@ -262,7 +263,8 @@ namespace jopp2
 				node{
 					.value = make_node_value(root),
 					.index = 0,
-					.parent_container_size = 1
+					.parent_container_size = 1,
+					.push_location = __LINE__
 				}
 			);
 
@@ -281,7 +283,8 @@ namespace jopp2
 						node{
 							.value = end_of_object{},
 							.index = index,
-							.parent_container_size = parent_container_size
+							.parent_container_size = parent_container_size,
+							.push_location = __LINE__
 						}
 					);
 					auto const container_size = std::size(*obj);
@@ -293,7 +296,8 @@ namespace jopp2
 								node{
 									.value = std::pair{&item.first, &item.second.m_value},
 									.index = index,
-									.parent_container_size = container_size
+									.parent_container_size = container_size,
+									.push_location = __LINE__
 								}
 							);
 						}
@@ -306,7 +310,8 @@ namespace jopp2
 								node{
 									.value = std::pair{&item.first, &item.second.m_value},
 									.index = container_size - static_cast<size_t>(index) - 1,
-									.parent_container_size = container_size
+									.parent_container_size = container_size,
+									.push_location = __LINE__
 								}
 							);
 						}
@@ -315,7 +320,8 @@ namespace jopp2
 						node{
 							.value = begin_of_object{},
 							.index = index,
-							.parent_container_size = parent_container_size
+							.parent_container_size = parent_container_size,
+							.push_location = __LINE__
 						}
 					);
 				};
@@ -331,6 +337,7 @@ namespace jopp2
 						[]<class Seq>
 						requires sequence_container<std::remove_cvref_t<Seq>>
 						(Seq* seq, visitation_state& state, size_t index, size_t parent_container_size) {
+							assert(index < parent_container_size);
 							using seq_type = std::remove_cvref_t<Seq>;
 							auto const container_size = std::size(*seq);
 							if constexpr(std::is_same_v<typename seq_type::value_type, generic_value>)
@@ -339,16 +346,18 @@ namespace jopp2
 									node{
 										.value = end_of_array{},
 										.index = index,
-										.parent_container_size = parent_container_size
+										.parent_container_size = parent_container_size,
+										.push_location = __LINE__
 									}
 								);
-								for(auto&& [index, item]: std::ranges::enumerate_view{std::ranges::reverse_view{*seq}})
+								for(auto&& [index, item]: std::ranges::reverse_view{std::ranges::enumerate_view{*seq}})
 								{
 									state.nodes_to_visit.push(
 										node{
 											.value = make_node_value(item.m_value),
 											.index = static_cast<size_t>(index),
-											.parent_container_size = container_size
+											.parent_container_size = container_size,
+											.push_location = __LINE__
 										}
 									);
 								}
@@ -356,7 +365,8 @@ namespace jopp2
 									node{
 										.value = begin_of_array{},
 										.index = index,
-										.parent_container_size = parent_container_size
+										.parent_container_size = parent_container_size,
+										.push_location = __LINE__
 									}
 								);
 							}
@@ -367,16 +377,18 @@ namespace jopp2
 									node{
 										.value = end_of_array{},
 										.index = index,
-										.parent_container_size = parent_container_size
+										.parent_container_size = parent_container_size,
+										.push_location = __LINE__
 									}
 								);
-								for(auto&& [index, item]: std::ranges::enumerate_view{std::ranges::reverse_view{*seq}})
+								for(auto&& [index, item]: std::ranges::reverse_view{std::ranges::enumerate_view{*seq}})
 								{ handle_object(&item, state, static_cast<size_t>(index), container_size); }
 								state.nodes_to_visit.push(
 									node{
 										.value = begin_of_array{},
 										.index = index,
-										.parent_container_size = container_size
+										.parent_container_size = parent_container_size,
+										.push_location = __LINE__
 									}
 								);
 							}
@@ -399,7 +411,8 @@ namespace jopp2
 								node{
 									.value = make_node_value(*kv_ptr.second),
 									.index = index,
-									.parent_container_size = parent_container_size
+									.parent_container_size = parent_container_size,
+									.push_location = __LINE__
 								}
 							);
 						},
