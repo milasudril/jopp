@@ -23,6 +23,9 @@ namespace jopp2
 	{
 		size_t node_index;
 		size_t parent_container_size;
+
+		constexpr bool is_last_node() const
+		{ return node_index == parent_container_size - 1; }
 	};
 
 	template<
@@ -334,7 +337,7 @@ namespace jopp2
 						handle_object,
 						[]<class LeafValue> requires(is_leaf_value<LeafValue>)
 						(LeafValue* value, visitation_state& state, value_visitation_context context){
-							state.visitor.handle_leaf_value(*value, context.node_index, context.parent_container_size);
+							state.visitor.handle_leaf_value(*value, context);
 						},
 						[]<class Seq>
 						requires sequence_container<std::remove_cvref_t<Seq>>
@@ -396,10 +399,18 @@ namespace jopp2
 							}
 							else
 							{
-								state.visitor.handle_begin_of_array(context.node_index, context.parent_container_size);
+								state.visitor.handle_begin_of_array(context);
 								for(auto&& [index, item]: std::ranges::enumerate_view{*seq})
-								{ state.visitor.handle_leaf_value(item, static_cast<size_t>(index), container_size); }
-								state.visitor.handle_end_of_array(context.node_index, context.parent_container_size);
+								{
+									state.visitor.handle_leaf_value(
+										item,
+										value_visitation_context{
+											.node_index = static_cast<size_t>(index),
+											.parent_container_size = container_size
+										}
+									);
+								}
+								state.visitor.handle_end_of_array(context);
 							}
 						},
 						[](
@@ -416,16 +427,16 @@ namespace jopp2
 							);
 						},
 						[](begin_of_object, visitation_state& state, value_visitation_context context) {
-							state.visitor.handle_begin_of_object(context.node_index, context.parent_container_size);
+							state.visitor.handle_begin_of_object(context);
 						},
 						[](end_of_object, visitation_state& state, value_visitation_context context) {
-							state.visitor.handle_end_of_object(context.node_index, context.parent_container_size);
+							state.visitor.handle_end_of_object(context);
 						},
 						[](begin_of_array, visitation_state& state, value_visitation_context context) {
-							state.visitor.handle_begin_of_array(context.node_index, context.parent_container_size);
+							state.visitor.handle_begin_of_array(context);
 						},
 						[](end_of_array, visitation_state& state, value_visitation_context context) {
-							state.visitor.handle_end_of_array(context.node_index, context.parent_container_size);
+							state.visitor.handle_end_of_array(context);
 						}
 					},
 					current_state,

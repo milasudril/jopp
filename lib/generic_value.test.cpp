@@ -47,43 +47,40 @@ namespace
 			}
 		}
 
-		template<class T>
-		void handle_leaf_value(T&&) = delete;
-
-		void handle_leaf_value(std::string const& str, size_t index, size_t num_elems)
+		void handle_leaf_value(std::string const& str, jopp2::value_visitation_context context)
 		{
 			do_indent();
-			if(index != num_elems - 1)
-			{ printf("(%zu of %zu) %s,\n", index + 1, num_elems, str.c_str()); }
+			if(!context.is_last_node())
+			{ printf("(%zu of %zu) %s,\n", context.node_index + 1, context.parent_container_size, str.c_str()); }
 			else
-			{ printf("(%zu of %zu) %s\n", index + 1, num_elems, str.c_str()); }
+			{ printf("(%zu of %zu) %s\n", context.node_index + 1, context.parent_container_size, str.c_str()); }
 		}
 
-		void handle_leaf_value(double value, size_t index, size_t num_elems)
+		void handle_leaf_value(double value, jopp2::value_visitation_context context)
 		{
 			do_indent();
-			if(index != num_elems - 1)
-			{ puts(std::format("({} of {}) {},", index + 1, num_elems, value).c_str()); }
+			if(!context.is_last_node())
+			{ puts(std::format("({} of {}) {},", context.node_index + 1, context.parent_container_size, value).c_str()); }
 			else
-			{ puts(std::format("({} of {}) {}", index + 1, num_elems, value).c_str()); }
+			{ puts(std::format("({} of {}) {}", context.node_index + 1, context.parent_container_size, value).c_str()); }
 		}
 
-		void handle_leaf_value(std::nullptr_t, size_t index, size_t num_elems)
+		void handle_leaf_value(std::nullptr_t, jopp2::value_visitation_context context)
 		{
 			do_indent();
-			if(index != num_elems - 1)
-			{ printf("(%zu of %zu) null,\n", index + 1, num_elems); }
+			if(!context.is_last_node())
+			{ printf("(%zu of %zu) null,\n", context.node_index + 1, context.parent_container_size); }
 			else
-			{ printf("(%zu of %zu) null\n", index + 1, num_elems); }
+			{ printf("(%zu of %zu) null\n", context.node_index + 1, context.parent_container_size); }
 		}
 
-		void handle_leaf_value(bool_wrapper value, size_t index, size_t num_elems)
+		void handle_leaf_value(bool_wrapper value, jopp2::value_visitation_context context)
 		{
 			do_indent();
-			if(index != num_elems - 1)
-			{ printf("(%zu of %zu) %s,\n", index + 1, num_elems, value == bool_wrapper::enabled? "true": "false"); }
+			if(!context.is_last_node())
+			{ printf("(%zu of %zu) %s,\n", context.node_index + 1, context.parent_container_size, value == bool_wrapper::enabled? "true": "false"); }
 			else
-			{ printf("(%zu of %zu) %s\n", index + 1, num_elems, value == bool_wrapper::enabled? "true": "false"); }
+			{ printf("(%zu of %zu) %s\n", context.node_index + 1, context.parent_container_size, value == bool_wrapper::enabled? "true": "false"); }
 		}
 
 		void handle_property_name(std::string const& name)
@@ -93,36 +90,36 @@ namespace
 			skip_indent = true;
 		}
 
-		void handle_begin_of_object(size_t index, size_t num_elems)
+		void handle_begin_of_object(jopp2::value_visitation_context context)
 		{
 			do_indent();
-			printf("(%zu of %zu) {\n", index + 1, num_elems);
+			printf("(%zu of %zu) {\n", context.node_index + 1, context.parent_container_size);
 			++indentation;
 		}
 
-		void handle_end_of_object(size_t index, size_t num_elems)
+		void handle_end_of_object(jopp2::value_visitation_context context)
 		{
 			--indentation;
 			do_indent();
-			if(index != num_elems - 1)
+			if(!context.is_last_node())
 			{ puts("},"); }
 			else
 			{ puts("}"); }
 		}
 
-		void handle_begin_of_array(size_t index, size_t num_elems)
+		void handle_begin_of_array(jopp2::value_visitation_context context)
 		{
-			assert(index < num_elems);
+			assert(context.node_index < context.parent_container_size);
 			do_indent();
-			printf("(%zu of %zu) [\n", index + 1, num_elems);
+			printf("(%zu of %zu) [\n", context.node_index + 1, context.parent_container_size);
 			++indentation;
 		}
 
-		void handle_end_of_array(size_t index, size_t num_elems)
+		void handle_end_of_array(jopp2::value_visitation_context context)
 		{
 			--indentation;
 			do_indent();
-			if(index != num_elems - 1)
+			if(!context.is_last_node())
 			{ puts("],"); }
 			else
 			{ puts("]"); }
