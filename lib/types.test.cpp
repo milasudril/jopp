@@ -1,4 +1,4 @@
-//@	{"target":{"name":"types.test"}}
+//	{"target":{"name":"types.test"}}
 
 #include "./types.hpp"
 
@@ -275,6 +275,6 @@ TESTCASE(jopp_item_pointer_value)
 	jopp::item_pointer ptr{&val};
 
 	EXPECT_EQ(ptr.has_value(), true);
-	EXPECT_EQ(ptr.get_key(), std::string_view{});
+	EXPECT_EQ(ptr.get_key().empty(), true);
 	EXPECT_EQ(ptr.get_value(), jopp::value{124.0});
 }

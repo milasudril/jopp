@@ -28,7 +28,7 @@ namespace
 	struct json_value_traits
 	{
 		using key_type = std::string;
-		using leaf_value_type = std::variant<double, std::string, bool_wrapper, nullptr_t>;
+		using leaf_value_type = std::variant<double, std::string, bool_wrapper, std::nullptr_t>;
 	};
 
 	struct test_node_visitor
@@ -47,7 +47,6 @@ namespace
 			}
 		}
 
-
 		template<class T>
 		void handle_leaf_value(T&&) = delete;
 
@@ -55,36 +54,36 @@ namespace
 		{
 			do_indent();
 			if(index != num_elems - 1)
-			{ printf("(%zu) %s,\n", index, str.c_str()); }
+			{ printf("(%zu of %zu) %s,\n", index + 1, num_elems, str.c_str()); }
 			else
-			{ printf("(%zu) %s\n", index, str.c_str()); }
+			{ printf("(%zu of %zu) %s\n", index + 1, num_elems, str.c_str()); }
 		}
 
 		void handle_leaf_value(double value, size_t index, size_t num_elems)
 		{
 			do_indent();
 			if(index != num_elems - 1)
-			{ puts(std::format("({}) {},", index, value).c_str()); }
+			{ puts(std::format("({} of {}) {},", index + 1, num_elems, value).c_str()); }
 			else
-			{ puts(std::format("({}) {}", index, value).c_str()); }
+			{ puts(std::format("({} of {}) {}", index + 1, num_elems, value).c_str()); }
 		}
 
-		void handle_leaf_value(nullptr_t, size_t index, size_t num_elems)
+		void handle_leaf_value(std::nullptr_t, size_t index, size_t num_elems)
 		{
 			do_indent();
 			if(index != num_elems - 1)
-			{ puts("null,"); }
+			{ printf("(%zu of %zu) null,\n", index + 1, num_elems); }
 			else
-			{ puts("null"); }
+			{ printf("(%zu of %zu) null\n", index + 1, num_elems); }
 		}
 
 		void handle_leaf_value(bool_wrapper value, size_t index, size_t num_elems)
 		{
 			do_indent();
 			if(index != num_elems - 1)
-			{ puts(value == bool_wrapper::enabled? "true," : "false,"); }
+			{ printf("(%zu of %zu) %s,\n", index + 1, num_elems, value == bool_wrapper::enabled? "true": "false"); }
 			else
-			{ puts("null"); }
+			{ printf("(%zu of %zu) %s\n", index + 1, num_elems, value == bool_wrapper::enabled? "true": "false"); }
 		}
 
 		void handle_property_name(std::string const& name)
@@ -94,10 +93,10 @@ namespace
 			skip_indent = true;
 		}
 
-		void handle_begin_of_object(size_t, size_t)
+		void handle_begin_of_object(size_t index, size_t num_elems)
 		{
 			do_indent();
-			puts("{");
+			printf("(%zu of %zu) {\n", index + 1, num_elems);
 			++indentation;
 		}
 
@@ -111,10 +110,10 @@ namespace
 			{ puts("}"); }
 		}
 
-		void handle_begin_of_array(size_t, size_t)
+		void handle_begin_of_array(size_t index, size_t num_elems)
 		{
 			do_indent();
-			puts("[");
+			printf("(%zu of %zu) [\n", index + 1, num_elems);
 			++indentation;
 		}
 
@@ -429,7 +428,7 @@ TESTCASE(jopp2_generic_value_visit_nodes)
 	}
 
 	{
-		auto const res = value.store_value_as(std::vector<nullptr_t>{}, "array_of_nulls");
+		auto const res = value.store_value_as(std::vector<std::nullptr_t>{}, "array_of_nulls");
 		res.second.emplace_back(nullptr);
 		res.second.emplace_back(nullptr);
 		res.second.emplace_back(nullptr);

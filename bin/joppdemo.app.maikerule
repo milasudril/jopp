@@ -1,4 +1,0 @@
-{
-	"target":{"name":"joppdemo"},
-	"dependencies":[{"ref":"./joppdemo.o", "rel":"implementation"}]
-}

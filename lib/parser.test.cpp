@@ -1,4 +1,4 @@
-//@	{"target":{"name":"parser.test"}}
+//	{"target":{"name":"parser.test"}}
 
 #include "./parser.hpp"
 
@@ -230,11 +230,9 @@ TESTCASE(jopp_parser_parse_data_multiple_blocks)
 			EXPECT_EQ(*res.ptr, 'S');
 			break;
 		}
-		else
-		{
-			EXPECT_EQ(ptr, res.ptr);
-			EXPECT_EQ(res.ec, jopp::parser_error_code::more_data_needed);
-		}
+
+		EXPECT_EQ(ptr, res.ptr);
+		EXPECT_EQ(res.ec, jopp::parser_error_code::more_data_needed);
 	}
 
 	auto const& root = *val.get_if<jopp::object>();

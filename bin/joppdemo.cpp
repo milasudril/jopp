@@ -1,5 +1,3 @@
-//@	{"target":{"name":"joppdemo.o"}}
-
 #include "lib/parser.hpp"
 #include "lib/serializer.hpp"
 #include <unistd.h>
@@ -37,7 +35,7 @@ int main()
 			auto const res = parser.parse(std::span{std::data(buffer), static_cast<size_t>(bytes_read)});
 			if(res.ec == jopp::parser_error_code::completed)
 			{ break; }
-			else
+
 			if(res.ec != jopp::parser_error_code::more_data_needed)
 			{
 				fprintf(stderr, "error: %s\n", to_string(res.ec));

@@ -128,7 +128,7 @@ namespace jopp2
 		>
 	);
 
-	template<class VariantType, template<class> class Wrapper>
+	template<class VariantType, template<class, class...> class Wrapper, class... OtherArgs>
 	struct wrap_variant_element
 	{
 	private:
@@ -137,7 +137,7 @@ namespace jopp2
 		{
 			return std::type_identity<
 				std::variant<
-					Wrapper<std::variant_alternative_t<I, VariantType>>...
+					Wrapper<std::variant_alternative_t<I, VariantType>, OtherArgs...>...
 				>
 			>{};
 		}
@@ -147,8 +147,8 @@ namespace jopp2
 		)::type;
 	};
 
-	template<class VariantType, template<class> class Wrapper>
-	using wrap_variant_element_t = wrap_variant_element<VariantType,Wrapper>::type;
+	template<class VariantType, template<class, class...> class Wrapper, class... OtherArgs>
+	using wrap_variant_element_t = wrap_variant_element<VariantType, Wrapper, OtherArgs...>::type;
 
 	template<class Variant, class Visitor, class... VisitorArgs>
 	constexpr decltype(auto) visit_with_args(Variant&& to_visit, Visitor&& visitor, VisitorArgs&&... args)

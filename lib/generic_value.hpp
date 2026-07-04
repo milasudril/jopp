@@ -20,8 +20,8 @@ namespace jopp2
 	};
 
 	template<
-		template<class KeyType, class MappedType> class AssociativeContainerType,
-		template<class ValueType> class SequenceContainerType,
+		template<class KeyType, class MappedType, class...> class AssociativeContainerType,
+		template<class ValueType, class...> class SequenceContainerType,
 		class ValueTraits
 	>
 	class generic_value

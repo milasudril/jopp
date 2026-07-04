@@ -28,6 +28,7 @@
             "cxx": {
                 "compiler": {
                     "config": {
+                        "actions":["compile", "sanitize"],
                         "cflags": [
                             "-I.",
                             "-Wall",
@@ -36,8 +37,7 @@
                             "-Wconversion",
                             "-Wsign-conversion",
                             "-Wno-maybe-uninitialized",
-                            "-Wno-error=maybe-uninitialized",
-                            "-fconcepts-diagnostics-depth=2"
+                            "-Wno-error=maybe-uninitialized"
                         ],
                         "iquote": [
                           "."
@@ -55,7 +55,7 @@
             "cxx_test": {
                 "compiler": {
                     "config": {
-                    "actions":["link", "run"],
+                    "actions":["link", "run", "sanitize"],
                         "cflags": [
                             "-I.",
                             "-Wall",
@@ -64,8 +64,7 @@
                             "-Wconversion",
                             "-Wsign-conversion",
                             "-Wno-maybe-uninitialized",
-                            "-Wno-error=maybe-uninitialized",
-                            "-fconcepts-diagnostics-depth=2"
+                            "-Wno-error=maybe-uninitialized"
                         ],
                         "iquote": [
                           "."

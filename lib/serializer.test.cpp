@@ -1,4 +1,4 @@
-//@	{"target":{"name":"serializer.test"}}
+//	{"target":{"name":"serializer.test"}}
 
 #include "./serializer.hpp"
 
