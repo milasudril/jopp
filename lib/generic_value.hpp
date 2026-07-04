@@ -60,6 +60,8 @@ namespace jopp2
 			wrap_in_variant_t<SequenceContainerType<generic_value>>
 		>;
 
+		using generic_sequence_container = SequenceContainerType<generic_value>;
+
 		static constexpr size_t first_sequence_type_index()
 		{ return std::variant_size_v<wrap_in_variant_t<leaf_value_type>> + 1; }
 
@@ -143,7 +145,10 @@ namespace jopp2
 			if(!insert_result.second)
 			{ return ret_type{}; }
 
-			return ret_type{&insert_result.first->first, insert_result.first->second.template get_if<T>()};
+			if constexpr(std::is_same_v<std::remove_cvref_t<T>, generic_value>)
+			{ return ret_type{&insert_result.first->first, &insert_result.first->second}; }
+			else
+			{ return ret_type{&insert_result.first->first, insert_result.first->second.template get_if<T>()}; }
 		}
 
 		template<class Self, class T, class KeyLike>
@@ -160,16 +165,16 @@ namespace jopp2
 		}
 
 		template<class Self, class T>
-		T* try_store_at_end(this Self& self, T&& value)
+		std::remove_cvref_t<T>* try_store_at_end(this Self& self, T&& value)
 		{
 			return visit_with_args(
 				self.m_value,
 				overload{
-					[](SequenceContainerType<std::remove_cvref_t<T>>& seq, T&& value) {
+					[](SequenceContainerType<std::remove_cvref_t<T>>& seq, T&& value) -> std::remove_cvref_t<T>* {
 						seq.emplace_back(std::forward<T>(value));
 						return &seq.back();
 					},
-					[&self]<sequence_container Seq>(Seq& seq, T&& value) {
+					[&self]<sequence_container Seq>(Seq& seq, T&& value)  -> std::remove_cvref_t<T>* {
 						if(seq.empty())
 						{
 							SequenceContainerType<std::remove_cvref_t<T>> new_container{};
@@ -204,8 +209,8 @@ namespace jopp2
 							return ret;
 						}
 					},
-					[](auto const&...) {
-						return static_cast<T*>(nullptr);
+					[](auto const&...)  -> std::remove_cvref_t<T>* {
+						return static_cast<std::remove_cvref_t<T>*>(nullptr);
 					}
 				},
 				std::forward<T>(value)
@@ -304,7 +309,7 @@ namespace jopp2
 								node{
 									.value = std::pair{&item.first, &item.second.m_value},
 									.context = value_visitation_context{
-										.node_index = index,
+										.node_index = static_cast<size_t>(index),
 										.parent_container_size = container_size
 									}
 								}
@@ -450,6 +455,105 @@ namespace jopp2
 
 		variant_type m_value;
 	};
+
+	template<class GenericValueOut>
+	class clone_visitor
+	{
+	public:
+		explicit clone_visitor(GenericValueOut& output_value)
+		{
+			m_contexts.push(
+				context{
+					.parent_node = nullptr,
+					.output_value = &output_value
+				}
+			);
+		}
+
+		template<class T>
+		void handle_leaf_value(T&& value, value_visitation_context)
+		{
+			if(m_contexts.top().output_value == nullptr)
+			{
+				// TODO:
+				//	m_contexts.top().output_value = m_contexts.top().parent_node->try_store_at_end(
+				//		std::forward<T>(value)
+				//	);
+			}
+			else
+			{ *m_contexts.top().output_value = GenericValueOut{std::forward<T>(value)}; }
+		}
+
+		template<class T>
+		void handle_property_name(T&& prop_name, value_visitation_context)
+		{
+			auto const res = m_contexts.top().parent_node->try_store_value_as(
+				GenericValueOut{},
+				std::forward<T>(prop_name)
+			);
+			m_contexts.top().output_value = res.second;
+		}
+
+		void handle_begin_of_object(value_visitation_context)
+		{
+			*m_contexts.top().output_value = GenericValueOut{typename GenericValueOut::object{}};
+			m_contexts.push(
+				context{
+					.parent_node = m_contexts.top().output_value,
+					.output_value = nullptr
+				}
+			);
+		}
+
+		void handle_end_of_object(value_visitation_context)
+		{ m_contexts.pop(); }
+
+		void handle_begin_of_array(value_visitation_context)
+		{
+#if 0
+			// TODO
+			if(m_contexts.top().output_value == nullptr)
+			{ return; }
+
+			*m_contexts.top().output_value = GenericValueOut{
+				typename GenericValueOut::generic_sequence_container{}
+			};
+			m_contexts.push(
+				context{
+					.parent_node = m_contexts.top().output_value,
+					.output_value = nullptr
+				}
+			);
+#endif
+		}
+
+		void handle_end_of_array(value_visitation_context)
+		{
+#if 0
+			// TODO:
+			m_contexts.pop();
+#endif
+		}
+
+		struct context
+		{
+			GenericValueOut* parent_node;
+			GenericValueOut* output_value;
+		};
+
+	private:
+		std::stack<context> m_contexts;
+	};
+
+	template<class GenericValueOut, class GenericValueIn>
+	auto clone(GenericValueIn const& src)
+	{
+		GenericValueOut ret;
+
+		src.visit_nodes(clone_visitor{ret});
+
+		return ret;
+	}
 }
 
 #endif

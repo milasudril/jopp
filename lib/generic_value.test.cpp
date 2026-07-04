@@ -493,6 +493,11 @@ TESTCASE(jopp2_generic_value_visit_nodes)
 	value.store_value_as(nullptr, "null_value");
 	value.store_value_as(bool_wrapper::enabled, "boolean_value");
 
+	using json_value_sorted = jopp2::generic_value<std::flat_map, std::vector, json_value_traits>;
+
+	auto result = clone<json_value_sorted>(value);
+	result.visit_nodes(test_node_visitor{});
+
 //	value.visit_nodes(test_node_visitor{});
-	std::as_const(value).visit_nodes(test_node_visitor{});
+//	std::as_const(value).visit_nodes(test_node_visitor{});
 }
