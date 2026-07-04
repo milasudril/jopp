@@ -83,10 +83,10 @@ namespace
 			{ printf("(%zu of %zu) %s\n", context.node_index + 1, context.parent_container_size, value == bool_wrapper::enabled? "true": "false"); }
 		}
 
-		void handle_property_name(std::string const& name)
+		void handle_property_name(std::string const& name, jopp2::value_visitation_context context)
 		{
 			do_indent();
-			printf("%s: ", name.c_str());
+			printf("%s (%zu of %zu): ", name.c_str(), context.node_index + 1, context.parent_container_size);
 			skip_indent = true;
 		}
 

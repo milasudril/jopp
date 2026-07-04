@@ -26,6 +26,9 @@ namespace jopp2
 
 		constexpr bool is_last_node() const
 		{ return node_index == parent_container_size - 1; }
+
+		constexpr bool is_first_node () const
+		{ return node_index == 0; }
 	};
 
 	template<
@@ -418,7 +421,7 @@ namespace jopp2
 							visitation_state& state,
 							value_visitation_context context
 						) {
-							state.visitor.handle_property_name(*kv_ptr.first);
+							state.visitor.handle_property_name(*kv_ptr.first, context);
 							state.nodes_to_visit.push(
 								node{
 									.value = make_node_value(*kv_ptr.second),
