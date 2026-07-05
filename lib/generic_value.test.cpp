@@ -153,7 +153,6 @@ TESTCASE(jopp2_generic_value_static_properties)
 		true
 	);
 	EXPECT_EQ(std::is_constructible_v<type_with_variant>, true);
-	EXPECT_EQ(type_with_variant::first_sequence_type_index(), 5);
 	EXPECT_EQ(std::is_copy_constructible_v<type_with_variant>, false);
 	EXPECT_EQ(std::is_copy_assignable_v<type_with_variant>, false);
 	EXPECT_EQ(std::is_move_constructible_v<type_with_variant>, true);
@@ -176,7 +175,6 @@ TESTCASE(jopp2_generic_value_static_properties)
 		true
 	);
 	EXPECT_EQ(std::is_constructible_v<type_with_no_variant>, true);
-	EXPECT_EQ(type_with_no_variant::first_sequence_type_index(), 2);
 	EXPECT_EQ(std::is_copy_constructible_v<type_with_no_variant>, false);
 	EXPECT_EQ(std::is_copy_assignable_v<type_with_no_variant>, false);
 	EXPECT_EQ(std::is_move_constructible_v<type_with_no_variant>, true);

@@ -62,9 +62,6 @@ namespace jopp2
 
 		using generic_sequence_container = SequenceContainerType<generic_value>;
 
-		static constexpr size_t first_sequence_type_index()
-		{ return std::variant_size_v<wrap_in_variant_t<leaf_value_type>> + 1; }
-
 		generic_value() = default;
 
 		generic_value(generic_value const&) = delete;
