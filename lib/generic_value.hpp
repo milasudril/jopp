@@ -80,8 +80,9 @@ namespace jopp2
 			m_value{std::forward<Args>(args)...}
 		{}
 
-		auto const& get() const
-		{ return m_value; }
+		template<class Self>
+		auto&& get_value(this Self&& self)
+		{ return std::forward_like<Self>(self.m_value); }
 
 		template<class T, class Self>
 		auto get_if(this Self&& self)
