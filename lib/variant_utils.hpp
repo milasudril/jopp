@@ -160,5 +160,33 @@ namespace jopp2
 			std::forward<Variant>(to_visit)
 		);
 	}
+
+	template<class VariantType>
+	requires(std::is_reference_v<VariantType> && !std::is_rvalue_reference_v<VariantType>)
+	auto make_variant_of_pointers(VariantType&& variant)
+	{
+		using raw_type = std::remove_cvref_t<VariantType>;
+
+		using ret_type = wrap_variant_element_t<
+			std::conditional_t<
+				std::is_const_v<std::remove_reference_t<VariantType>>,
+				wrap_variant_element_t<raw_type, std::add_const_t>,
+				raw_type
+			>,
+			std::add_pointer_t
+		>;
+
+		using fallback_type = std::variant_alternative_t<0, ret_type>;
+
+		if (variant.valueless_by_exception()) [[unlikely]]
+		{ return ret_type{static_cast<fallback_type>(nullptr)}; }
+
+		return std::visit(
+			[](auto&& arg) {
+				return ret_type{&arg};
+			},
+			variant
+		);
+	}
 }
 #endif
