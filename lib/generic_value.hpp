@@ -124,15 +124,6 @@ namespace jopp2
 			return std::forward_like<Self>(*retval);
 		}
 
-		template<class T>
-		using pointer_to_const = T const*;
-
-		template<class Self, class Visitor>
-		void visit_nodes(this Self&& self, Visitor&& visitor)
-		{
-			do_visit_nodes(self.m_value, std::forward<Visitor>(visitor));
-		}
-
 		template<class Self, class T, class KeyLike>
 		auto try_store_value_as(this Self& self, T&& value, KeyLike&& key)
 		{
@@ -219,243 +210,250 @@ namespace jopp2
 		}
 
 	private:
-		template<class VariantType, class Visitor>
-		static void do_visit_nodes(VariantType&& root, Visitor&& visitor)
-		{
-			struct begin_of_object{};
-			struct end_of_object{};
-			struct begin_of_array{};
-			struct end_of_array{};
+		variant_type m_value;
+	};
 
-			using node_value = concatenate_variants_t<
-				wrap_variant_element_t<
-					std::conditional_t<
-						std::is_const_v<std::remove_reference_t<VariantType>>,
-						wrap_variant_element_t<std::remove_cvref_t<VariantType>, std::add_const_t>,
-						std::remove_cvref_t<VariantType>
-					>,
-					std::add_pointer_t
+	void do_stuff_with(int);
+
+	template<class GenericValue, class Visitor>
+	void visit_nodes(GenericValue&& root, Visitor&& visitor)
+	{
+		struct begin_of_object{};
+		struct end_of_object{};
+		struct begin_of_array{};
+		struct end_of_array{};
+
+		using generic_value = std::remove_cvref_t<GenericValue>;
+		using variant_type = typename generic_value::variant_type;
+		using key_type = typename generic_value::key_type;
+
+		using node_value = concatenate_variants_t<
+			wrap_variant_element_t<
+				std::conditional_t<
+					std::is_const_v<std::remove_reference_t<variant_type>>,
+					wrap_variant_element_t<std::remove_cvref_t<variant_type>, std::add_const_t>,
+					std::remove_cvref_t<variant_type>
 				>,
-				std::variant<
-					std::pair<key_type const*, std::remove_reference_t<VariantType>*>,
-					begin_of_object,
-					end_of_object,
-					begin_of_array,
-					end_of_array
-				>
-			>;
+				std::add_pointer_t
+			>,
+			std::variant<
+				std::pair<key_type const*, std::remove_reference_t<variant_type>*>,
+				begin_of_object,
+				end_of_object,
+				begin_of_array,
+				end_of_array
+			>
+		>;
 
+
+		struct node
+		{
+			node_value value;
+			value_visitation_context context;
+		};
+
+		struct visitation_state
+		{
+			Visitor visitor;
+			std::stack<node> nodes_to_visit;
+		};
+
+		visitation_state current_state{
+			.visitor = std::forward<Visitor>(visitor),
+			.nodes_to_visit = {}
+		};
+		static constexpr auto make_node_value = [](variant_type& item) static {
+			return std::visit(
+				[](auto& item){return node_value{&item};},
+				item
+			);
+		};
+
+		current_state.nodes_to_visit.push(
+			node{
+				.value = make_node_value(root.get_value()),
+				.context = value_visitation_context{
+					.node_index = 0,
+					.parent_container_size = 1
+				}
+			}
+		);
+
+		while(!current_state.nodes_to_visit.empty())
+		{
+			auto current_node = current_state.nodes_to_visit.top();
+			current_state.nodes_to_visit.pop();
+
+			using object = typename generic_value::object;
 			using obj_ptr = std::conditional_t<
-				std::is_const_v<std::remove_reference_t<VariantType>>,
+				std::is_const_v<std::remove_reference_t<variant_type>>,
 				object const*,
 				object*
 			>;
 
-			struct node
-			{
-				node_value value;
-				value_visitation_context context;
-			};
-
-			struct visitation_state
-			{
-				Visitor visitor;
-				std::stack<node> nodes_to_visit;
-			};
-
-			visitation_state current_state{
-				.visitor = std::forward<Visitor>(visitor),
-				.nodes_to_visit = {}
-			};
-
-			static constexpr auto make_node_value = [](VariantType& item) static {
-				return 	std::visit(
-					[](auto& item){return node_value{&item};},
-					item
+			static constexpr auto handle_object = [](
+				obj_ptr obj,
+				visitation_state& state,
+				value_visitation_context context
+			) static {
+				state.nodes_to_visit.push(
+					node{
+						.value = end_of_object{},
+						.context = context
+					}
+				);
+				auto const container_size = std::size(*obj);
+				if constexpr(std::ranges::bidirectional_range<object>)
+				{
+					for(auto&& [index, item]: std::ranges::reverse_view{std::ranges::enumerate_view{*obj}})
+					{
+						state.nodes_to_visit.push(
+							node{
+								.value = std::pair{&item.first, &item.second.get_value()},
+								.context = value_visitation_context{
+									.node_index = static_cast<size_t>(index),
+									.parent_container_size = container_size
+								}
+							}
+						);
+					}
+				}
+				else
+				{
+					for(auto&& [index, item]: std::ranges::enumerate_view{*obj})
+					{
+						state.nodes_to_visit.push(
+							node{
+								.value = std::pair{&item.first, &item.second.get_value()},
+								.context = value_visitation_context{
+									.node_index = container_size - static_cast<size_t>(index) - 1,
+									.parent_container_size = container_size
+								}
+							}
+						);
+					}
+				}
+				state.nodes_to_visit.push(
+					node{
+						.value = begin_of_object{},
+						.context = context
+					}
 				);
 			};
 
-			current_state.nodes_to_visit.push(
-				node{
-					.value = make_node_value(root),
-					.context = value_visitation_context{
-						.node_index = 0,
-						.parent_container_size = 1
-					}
-				}
-			);
-
-			while(!current_state.nodes_to_visit.empty())
-			{
-				auto current_node = current_state.nodes_to_visit.top();
-				current_state.nodes_to_visit.pop();
-
-				static constexpr auto handle_object = [](
-					obj_ptr obj,
-					visitation_state& state,
-					value_visitation_context context
-				) static {
-					state.nodes_to_visit.push(
-						node{
-							.value = end_of_object{},
-							.context = context
-						}
-					);
-					auto const container_size = std::size(*obj);
-					if constexpr(std::ranges::bidirectional_range<object>)
-					{
-						for(auto&& [index, item]: std::ranges::reverse_view{std::ranges::enumerate_view{*obj}})
+			visit_with_args(
+				current_node.value,
+				overload{
+					handle_object,
+					[]<class LeafValue> requires(generic_value::template is_leaf_value<LeafValue>)
+					(LeafValue* value, visitation_state& state, value_visitation_context context){
+						state.visitor.handle_leaf_value(*value, context);
+					},
+					[]<class Seq>
+					requires sequence_container<std::remove_cvref_t<Seq>>
+					(Seq* seq, visitation_state& state, value_visitation_context context) {
+						using seq_type = std::remove_cvref_t<Seq>;
+						auto const container_size = std::size(*seq);
+						if constexpr(std::is_same_v<typename seq_type::value_type, generic_value>)
 						{
 							state.nodes_to_visit.push(
 								node{
-									.value = std::pair{&item.first, &item.second.m_value},
-									.context = value_visitation_context{
-										.node_index = static_cast<size_t>(index),
-										.parent_container_size = container_size
-									}
-								}
-							);
-						}
-					}
-					else
-					{
-						for(auto&& [index, item]: std::ranges::enumerate_view{*obj})
-						{
-							state.nodes_to_visit.push(
-								node{
-									.value = std::pair{&item.first, &item.second.m_value},
-									.context = value_visitation_context{
-										.node_index = container_size - static_cast<size_t>(index) - 1,
-										.parent_container_size = container_size
-									}
-								}
-							);
-						}
-					}
-					state.nodes_to_visit.push(
-						node{
-							.value = begin_of_object{},
-							.context = context
-						}
-					);
-				};
-
-				visit_with_args(
-					current_node.value,
-					overload{
-						handle_object,
-						[]<class LeafValue> requires(is_leaf_value<LeafValue>)
-						(LeafValue* value, visitation_state& state, value_visitation_context context){
-							state.visitor.handle_leaf_value(*value, context);
-						},
-						[]<class Seq>
-						requires sequence_container<std::remove_cvref_t<Seq>>
-						(Seq* seq, visitation_state& state, value_visitation_context context) {
-							using seq_type = std::remove_cvref_t<Seq>;
-							auto const container_size = std::size(*seq);
-							if constexpr(std::is_same_v<typename seq_type::value_type, generic_value>)
-							{
-								state.nodes_to_visit.push(
-									node{
-										.value = end_of_array{},
-										.context = context
-									}
-								);
-								for(auto&& [index, item]: std::ranges::reverse_view{std::ranges::enumerate_view{*seq}})
-								{
-									state.nodes_to_visit.push(
-										node{
-											.value = make_node_value(item.m_value),
-											.context = value_visitation_context{
-												.node_index = static_cast<size_t>(index),
-												.parent_container_size = container_size,
-											}
-										}
-									);
-								}
-								state.nodes_to_visit.push(
-									node{
-										.value = begin_of_array{},
-										.context = context
-									}
-								);
-							}
-							else
-							if constexpr(std::is_same_v<typename seq_type::value_type, object>)
-							{
-								state.nodes_to_visit.push(
-									node{
-										.value = end_of_array{},
-										.context = context
-									}
-								);
-								for(auto&& [index, item]: std::ranges::reverse_view{std::ranges::enumerate_view{*seq}})
-								{
-									handle_object(
-										&item, state,
-										value_visitation_context{
-											.node_index = static_cast<size_t>(index),
-											.parent_container_size = container_size
-										}
-									);
-								}
-								state.nodes_to_visit.push(
-									node{
-										.value = begin_of_array{},
-										.context = context
-									}
-								);
-							}
-							else
-							{
-								state.visitor.handle_begin_of_array(context);
-								for(auto&& [index, item]: std::ranges::enumerate_view{*seq})
-								{
-									state.visitor.handle_leaf_value(
-										item,
-										value_visitation_context{
-											.node_index = static_cast<size_t>(index),
-											.parent_container_size = container_size
-										}
-									);
-								}
-								state.visitor.handle_end_of_array(context);
-							}
-						},
-						[](
-							std::pair<key_type const*, std::remove_reference_t<VariantType>*> kv_ptr,
-							visitation_state& state,
-							value_visitation_context context
-						) {
-							state.visitor.handle_property_name(*kv_ptr.first, context);
-							state.nodes_to_visit.push(
-								node{
-									.value = make_node_value(*kv_ptr.second),
+									.value = end_of_array{},
 									.context = context
 								}
 							);
-						},
-						[](begin_of_object, visitation_state& state, value_visitation_context context) {
-							state.visitor.handle_begin_of_object(context);
-						},
-						[](end_of_object, visitation_state& state, value_visitation_context context) {
-							state.visitor.handle_end_of_object(context);
-						},
-						[](begin_of_array, visitation_state& state, value_visitation_context context) {
+							for(auto&& [index, item]: std::ranges::reverse_view{std::ranges::enumerate_view{*seq}})
+							{
+								state.nodes_to_visit.push(
+									node{
+										.value = make_node_value(item.get_value()),
+										.context = value_visitation_context{
+											.node_index = static_cast<size_t>(index),
+											.parent_container_size = container_size,
+										}
+									}
+								);
+							}
+							state.nodes_to_visit.push(
+								node{
+									.value = begin_of_array{},
+									.context = context
+								}
+							);
+						}
+						else
+						if constexpr(std::is_same_v<typename seq_type::value_type, object>)
+						{
+							state.nodes_to_visit.push(
+								node{
+									.value = end_of_array{},
+									.context = context
+								}
+							);
+							for(auto&& [index, item]: std::ranges::reverse_view{std::ranges::enumerate_view{*seq}})
+							{
+								handle_object(
+									&item, state,
+									value_visitation_context{
+										.node_index = static_cast<size_t>(index),
+										.parent_container_size = container_size
+									}
+								);
+							}
+							state.nodes_to_visit.push(
+								node{
+									.value = begin_of_array{},
+									.context = context
+								}
+							);
+						}
+						else
+						{
 							state.visitor.handle_begin_of_array(context);
-						},
-						[](end_of_array, visitation_state& state, value_visitation_context context) {
+							for(auto&& [index, item]: std::ranges::enumerate_view{*seq})
+							{
+								state.visitor.handle_leaf_value(
+									item,
+									value_visitation_context{
+										.node_index = static_cast<size_t>(index),
+										.parent_container_size = container_size
+									}
+								);
+							}
 							state.visitor.handle_end_of_array(context);
 						}
 					},
-					current_state,
-					current_node.context
-				);
-			}
+					[](
+						std::pair<key_type const*, std::remove_reference_t<variant_type>*> kv_ptr,
+						visitation_state& state,
+						value_visitation_context context
+					) {
+						state.visitor.handle_property_name(*kv_ptr.first, context);
+						state.nodes_to_visit.push(
+							node{
+								.value = make_node_value(*kv_ptr.second),
+								.context = context
+							}
+						);
+					},
+					[](begin_of_object, visitation_state& state, value_visitation_context context) {
+						state.visitor.handle_begin_of_object(context);
+					},
+					[](end_of_object, visitation_state& state, value_visitation_context context) {
+						state.visitor.handle_end_of_object(context);
+					},
+					[](begin_of_array, visitation_state& state, value_visitation_context context) {
+						state.visitor.handle_begin_of_array(context);
+					},
+					[](end_of_array, visitation_state& state, value_visitation_context context) {
+						state.visitor.handle_end_of_array(context);
+					}
+				},
+				current_state,
+				current_node.context
+			);
 		}
-
-		variant_type m_value;
-	};
+	}
 
 	template<class GenericValueOut>
 	class clone_visitor
@@ -547,12 +545,10 @@ namespace jopp2
 	};
 
 	template<class GenericValueOut, class GenericValueIn>
-	auto clone(GenericValueIn const& src)
+	auto clone(GenericValueIn&& src)
 	{
 		GenericValueOut ret;
-
-		src.visit_nodes(clone_visitor{ret});
-
+		visit_nodes(std::forward<GenericValueIn>(src), clone_visitor{ret});
 		return ret;
 	}
 }
