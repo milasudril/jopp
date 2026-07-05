@@ -459,6 +459,11 @@ namespace jopp2
 	class clone_visitor
 	{
 	public:
+		using generic_value_out = wrap_variant_element_t<
+			typename GenericValueOut::variant_type,
+			std::add_pointer_t
+		>;
+
 		explicit clone_visitor(GenericValueOut& output_value)
 		{
 			m_contexts.push(
@@ -474,10 +479,9 @@ namespace jopp2
 		{
 			if(m_contexts.top().output_value == nullptr)
 			{
-				// TODO:
-				//	m_contexts.top().output_value = m_contexts.top().parent_node->try_store_at_end(
-				//		std::forward<T>(value)
-				//	);
+			//	m_contexts.top().output_value = m_contexts.top().parent_node->try_store_at_end(
+			//		std::forward<T>(value)
+			//	);
 			}
 			else
 			{ *m_contexts.top().output_value = GenericValueOut{std::forward<T>(value)}; }
@@ -486,16 +490,21 @@ namespace jopp2
 		template<class T>
 		void handle_property_name(T&& prop_name, value_visitation_context)
 		{
-			auto const res = m_contexts.top().parent_node->try_store_value_as(
-				GenericValueOut{},
-				std::forward<T>(prop_name)
-			);
-			m_contexts.top().output_value = res.second;
+			if(m_contexts.top().parent_node != nullptr)
+			{
+				auto const res = m_contexts.top().parent_node->try_store_value_as(
+					GenericValueOut{},
+					std::forward<T>(prop_name)
+				);
+				m_contexts.top().output_value = res.second;
+			}
 		}
 
 		void handle_begin_of_object(value_visitation_context)
 		{
-			*m_contexts.top().output_value = GenericValueOut{typename GenericValueOut::object{}};
+			if(m_contexts.top().output_value != nullptr)
+			{ *m_contexts.top().output_value = GenericValueOut{typename GenericValueOut::object{}}; }
+
 			m_contexts.push(
 				context{
 					.parent_node = m_contexts.top().output_value,
@@ -509,29 +518,24 @@ namespace jopp2
 
 		void handle_begin_of_array(value_visitation_context)
 		{
-#if 0
-			// TODO
-			if(m_contexts.top().output_value == nullptr)
-			{ return; }
+			if(m_contexts.top().output_value != nullptr)
+			{
+				*m_contexts.top().output_value = GenericValueOut{
+					typename GenericValueOut::generic_sequence_container{}
+				};
+			}
 
-			*m_contexts.top().output_value = GenericValueOut{
-				typename GenericValueOut::generic_sequence_container{}
-			};
 			m_contexts.push(
 				context{
 					.parent_node = m_contexts.top().output_value,
 					.output_value = nullptr
 				}
 			);
-#endif
 		}
 
 		void handle_end_of_array(value_visitation_context)
 		{
-#if 0
-			// TODO:
 			m_contexts.pop();
-#endif
 		}
 
 		struct context

@@ -9,7 +9,7 @@
 				{
 					"config":
 					{
-						"cflags":["-s"]
+						"cflags":[]
 					}
 				}
 			},
@@ -19,7 +19,7 @@
 				{
 					"config":
 					{
-						"cflags": ["-O3", "-ftree-vectorize"]
+						"cflags": ["-O3", "-g", "-ftree-vectorize"]
 					}
 				}
 			},
@@ -29,7 +29,7 @@
 				{
 					"config":
 					{
-						"cflags": ["-O3", "-ftree-vectorize"]
+						"cflags": ["-O3", "-g", "-ftree-vectorize"]
 					}
 				}
 			}
