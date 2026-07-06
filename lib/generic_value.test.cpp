@@ -107,7 +107,8 @@ namespace
 			{ puts("}"); }
 		}
 
-		void handle_begin_of_array(jopp2::value_visitation_context context)
+		template<class T>
+		void handle_begin_of_array(std::type_identity<T> /*unused*/, jopp2::value_visitation_context context)
 		{
 			assert(context.node_index < context.parent_container_size);
 			do_indent();
@@ -115,7 +116,8 @@ namespace
 			++indentation;
 		}
 
-		void handle_end_of_array(jopp2::value_visitation_context context)
+		template<class T>
+		void handle_end_of_array(std::type_identity<T> /*unused*/, jopp2::value_visitation_context context)
 		{
 			--indentation;
 			do_indent();

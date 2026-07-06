@@ -210,19 +210,23 @@ namespace jopp2
 		variant_type m_value;
 	};
 
-	void do_stuff_with(int);
+	struct begin_of_object{};
+
+	struct end_of_object{};
+
+	template<class ValueType>
+	struct begin_of_array{};
+
+	template<class ValueType>
+	struct end_of_array{};
 
 	template<class GenericValue, class Visitor>
 	void visit_nodes(GenericValue&& root, Visitor&& visitor)
 	{
-		struct begin_of_object{};
-		struct end_of_object{};
-		struct begin_of_array{};
-		struct end_of_array{};
-
 		using generic_value = std::remove_cvref_t<GenericValue>;
 		using variant_type = typename generic_value::variant_type;
 		using key_type = typename generic_value::key_type;
+		using object = typename generic_value::object;
 
 		using node_value = concatenate_variants_t<
 			wrap_variant_element_t<
@@ -237,8 +241,10 @@ namespace jopp2
 				std::pair<key_type const*, std::remove_reference_t<variant_type>*>,
 				begin_of_object,
 				end_of_object,
-				begin_of_array,
-				end_of_array
+				begin_of_array<generic_value>,
+				end_of_array<generic_value>,
+				begin_of_array<object>,
+				end_of_array<object>
 			>
 		>;
 
@@ -281,7 +287,6 @@ namespace jopp2
 			auto current_node = current_state.nodes_to_visit.top();
 			current_state.nodes_to_visit.pop();
 
-			using object = typename generic_value::object;
 			using obj_ptr = std::conditional_t<
 				std::is_const_v<std::remove_reference_t<variant_type>>,
 				object const*,
@@ -351,11 +356,12 @@ namespace jopp2
 					(Seq* seq, visitation_state& state, value_visitation_context context) {
 						using seq_type = std::remove_cvref_t<Seq>;
 						auto const container_size = std::size(*seq);
-						if constexpr(std::is_same_v<typename seq_type::value_type, generic_value>)
+						using value_type = typename seq_type::value_type;
+						if constexpr(std::is_same_v<value_type, generic_value>)
 						{
 							state.nodes_to_visit.push(
 								node{
-									.value = end_of_array{},
+									.value = end_of_array<value_type>{},
 									.context = context
 								}
 							);
@@ -373,17 +379,17 @@ namespace jopp2
 							}
 							state.nodes_to_visit.push(
 								node{
-									.value = begin_of_array{},
+									.value = begin_of_array<value_type>{},
 									.context = context
 								}
 							);
 						}
 						else
-						if constexpr(std::is_same_v<typename seq_type::value_type, object>)
+						if constexpr(std::is_same_v<value_type, object>)
 						{
 							state.nodes_to_visit.push(
 								node{
-									.value = end_of_array{},
+									.value = end_of_array<value_type>{},
 									.context = context
 								}
 							);
@@ -399,14 +405,14 @@ namespace jopp2
 							}
 							state.nodes_to_visit.push(
 								node{
-									.value = begin_of_array{},
+									.value = begin_of_array<value_type>{},
 									.context = context
 								}
 							);
 						}
 						else
 						{
-							state.visitor.handle_begin_of_array(context);
+							state.visitor.handle_begin_of_array(std::type_identity<value_type>{}, context);
 							for(auto&& [index, item]: std::ranges::enumerate_view{*seq})
 							{
 								state.visitor.handle_leaf_value(
@@ -417,7 +423,7 @@ namespace jopp2
 									}
 								);
 							}
-							state.visitor.handle_end_of_array(context);
+							state.visitor.handle_end_of_array(std::type_identity<value_type>{}, context);
 						}
 					},
 					[](
@@ -439,11 +445,11 @@ namespace jopp2
 					[](end_of_object, visitation_state& state, value_visitation_context context) {
 						state.visitor.handle_end_of_object(context);
 					},
-					[](begin_of_array, visitation_state& state, value_visitation_context context) {
-						state.visitor.handle_begin_of_array(context);
+					[]<class T>(begin_of_array<T>, visitation_state& state, value_visitation_context context) {
+						state.visitor.handle_begin_of_array(std::type_identity<T>{}, context);
 					},
-					[](end_of_array, visitation_state& state, value_visitation_context context) {
-						state.visitor.handle_end_of_array(context);
+					[]<class T>(end_of_array<T>, visitation_state& state, value_visitation_context context) {
+						state.visitor.handle_end_of_array(std::type_identity<T>{}, context);
 					}
 				},
 				current_state,
@@ -512,7 +518,8 @@ namespace jopp2
 		void handle_end_of_object(value_visitation_context)
 		{ m_contexts.pop(); }
 
-		void handle_begin_of_array(value_visitation_context)
+		template<class T>
+		void handle_begin_of_array(std::type_identity<T> /*unused*/, value_visitation_context)
 		{
 			if(m_contexts.top().output_value != nullptr)
 			{
@@ -529,7 +536,8 @@ namespace jopp2
 			);
 		}
 
-		void handle_end_of_array(value_visitation_context)
+		template<class T>
+		void handle_end_of_array(std::type_identity<T> /*unused*/, value_visitation_context)
 		{
 			m_contexts.pop();
 		}
