@@ -476,9 +476,8 @@ namespace jopp2
 		{
 			if(m_contexts.top().output_value == nullptr)
 			{
-			//	m_contexts.top().output_value = m_contexts.top().parent_node->try_store_at_end(
-			//		std::forward<T>(value)
-			//	);
+				if(m_contexts.top().parent_node != nullptr)
+				{ m_contexts.top().parent_node->try_store_at_end(std::forward<T>(value)); }
 			}
 			else
 			{ *m_contexts.top().output_value = GenericValueOut{std::forward<T>(value)}; }
