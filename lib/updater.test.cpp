@@ -31,6 +31,12 @@ TESTCASE(jopp2_updater_update_value)
 	updater.update(std::string{"Foobar"});
 	EXPECT_EQ(std::get<std::string>(value), "Foobar");
 
+	std::string moved_from_value{"Foobar 2"};
+	updater.update(std::move(moved_from_value));
+	EXPECT_EQ(std::get<std::string>(value), "Foobar 2");
+	// NOLINTNEXTLINE
+	EXPECT_EQ(moved_from_value.empty(), true);
+
 	int some_l_value = 123;
 	updater.update(some_l_value);
 	EXPECT_EQ(std::get<int>(value), 123);
