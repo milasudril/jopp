@@ -12,18 +12,12 @@ namespace jopp2
 	struct is_passed_in_register
 	{
 		// 1. Must be trivial for the purpose of calls (per C++ ABI)
-		static constexpr bool is_trivial_abi = std::is_trivially_copyable_v<T>;
+		static constexpr bool is_trivial_abi = std::is_trivially_copyable_v<T> || std::is_reference_v<T>;
 
 		// 2. Size must be between 1 and 16 bytes (or be an empty struct/fundamental)
 		static constexpr bool valid_size = (sizeof(T) <= 16);
 
-		// 3. Must not have unaligned layout
-		// If the alignment of the type is less than the standard alignment of its size,
-		// or if it lacks natural alignment matching its layout, the ABI rejects it.
-		static constexpr bool valid_alignment = (alignof(T) >= 1) &&
-				(sizeof(T) <= 8 ? (alignof(T) >= sizeof(T) || sizeof(T) == 0) : (alignof(T) >= 8));
-
-		static constexpr bool value = is_trivial_abi && valid_size && valid_alignment;
+		static constexpr bool value = is_trivial_abi && valid_size;
 	};
 
 	template<class T>
