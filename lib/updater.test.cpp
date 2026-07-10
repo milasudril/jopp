@@ -9,10 +9,10 @@ namespace
 {
 	struct test_updater_traits
 	{
-		static void update(std::variant<std::string, int>& sink, int value)
+		static void update(std::variant<std::string, int>& sink, jopp2::update_param_t<int> value)
 		{ sink = value; }
 
-		static void update(std::variant<std::string, int>& sink, std::string&& value)
+		static void update(std::variant<std::string, int>& sink, jopp2::update_param_t<std::string> value)
 		{ sink = std::move(value); }
 	};
 }

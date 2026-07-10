@@ -33,14 +33,14 @@ namespace jopp2
 	inline constexpr auto pass_by_value_v = pass_by_value<T>::value;
 
 	template <class T>
-	using using_optimal_sink_t = std::conditional_t<
+	using update_param_t = std::conditional_t<
 		pass_by_value_v<T>,
 		T,
 		std::conditional_t<std::is_trivially_copyable_v<T>, T const&, T&&>
 	>;
 
 	template <class T>
-	using using_optimal_param_t = std::conditional_t<pass_by_value_v<T>, T, T const&>;
+	using query_param_t = std::conditional_t<pass_by_value_v<T>, T, T const&>;
 
 	template<class... Types>
 	class updater
@@ -76,7 +76,7 @@ namespace jopp2
 
 	private:
 		template<class T>
-		using callback_type = void (*)(void*, using_optimal_sink_t<T>) THISCALL;
+		using callback_type = void (*)(void*, update_param_t<T>) THISCALL;
 		using vtable = std::tuple<callback_type<Types>...>;
 
 		void* m_handle;
@@ -84,7 +84,7 @@ namespace jopp2
 
 		template<class Sink, class UpdateTraits>
 		static constexpr vtable s_vtable{
-			[](void* target, using_optimal_sink_t<Types> value) THISCALL {
+			[](void* target, update_param_t<Types> value) THISCALL {
 				if constexpr(pass_by_value_v<Types> || std::is_trivially_copyable_v<Types>)
 				{ UpdateTraits::update(*static_cast<Sink*>(target), value); }
 				else
