@@ -8,6 +8,9 @@
 release:
 	maike2 --configfiles=maikeconfig2.json,maikeconfig2-rel.json --target-dir=__targets_rel
 
+release32:
+	maike2 --configfiles=maikeconfig2_32.json,maikeconfig2-rel.json --target-dir=__targets_rel_32
+
 debug:
 	maike2 --configfiles=maikeconfig2.json,maikeconfig2-dbg.json --target-dir=__targets_dbg
 
