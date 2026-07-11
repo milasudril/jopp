@@ -4,6 +4,7 @@
 #include "./variant_utils.hpp"
 #include "./utils.hpp"
 #include "./template_param_pack.hpp"
+#include "./updater.hpp"
 
 #include <stdexcept>
 #include <stack>
@@ -471,13 +472,28 @@ namespace jopp2
 		}
 	}
 
-	template<class InputValuePack, class GenericValueOut>
+	template<class Lhs, class Rhs>
+	struct clone_visitor_value_update_traits_impl
+	{
+		THISCALL static void update(Lhs& lhs, update_param_t<Rhs> rhs)
+		{
+			lhs = Lhs{maybe_move(rhs)};
+		}
+	};
+
+	template<class SrcValueTemplateParamPack, class GenericValueOut>
 	class clone_visitor
 	{
 	public:
-		using generic_value_out = wrap_variant_element_t<
-			typename GenericValueOut::value_type,
-			std::add_pointer_t
+		template<class... SrcValueTypes>
+		struct clone_visitor_value_update_traits:
+			clone_visitor_value_update_traits_impl<GenericValueOut, SrcValueTypes>...
+		{
+		};
+
+		using update_traits = map_template_param_pack_to_type_t<
+			clone_visitor_value_update_traits,
+			SrcValueTemplateParamPack
 		>;
 
 		explicit clone_visitor(GenericValueOut& output_value)
@@ -565,20 +581,20 @@ namespace jopp2
 		std::stack<context> m_contexts;
 	};
 
-	template<class InputValuePack, class GenericValueOut>
+	template<class SrcValueTemplateParamPack, class GenericValueOut>
 	auto make_clone_visitor(GenericValueOut& ret)
 	{
-		return clone_visitor<InputValuePack, GenericValueOut>(ret);
+		return clone_visitor<SrcValueTemplateParamPack, GenericValueOut>(ret);
 	}
 
 	template<class GenericValueOut, class GenericValueIn>
 	auto clone(GenericValueIn&& src)
 	{
-		using input_value_value_template_param_pack = typename std::remove_cvref_t<GenericValueIn>::leaf_value_template_param_pack;
+		using src_value_template_param_pack = typename std::remove_cvref_t<GenericValueIn>::leaf_value_template_param_pack;
 		GenericValueOut ret;
 		visit_nodes(
 			std::forward<GenericValueIn>(src),
-			make_clone_visitor<input_value_value_template_param_pack>(ret)
+			make_clone_visitor<src_value_template_param_pack>(ret)
 		);
 		return ret;
 	}
