@@ -7,19 +7,35 @@ namespace jopp2
 	struct template_param_pack
 	{};
 
+
+
 	template<template<class...> class, class ... Types>
 	struct map_template_param_pack_to_type
 	{};
 
 	template<template<class...> class TargetType, class... Types>
 	struct map_template_param_pack_to_type<TargetType, template_param_pack<Types...>>
-	{
-		using type = TargetType<Types...>;
-	};
+	{ using type = TargetType<Types...>; };
 
 	template<template<class...> class TargetType, class... Types>
 	using map_template_param_pack_to_type_t = map_template_param_pack_to_type<TargetType, Types...>::type;
 
+
+
+	template<class T>
+	struct wrap_in_template_param_pack
+	{
+		using type = template_param_pack<T>;
+	};
+
+	template<class ... Args>
+	struct wrap_in_template_param_pack<template_param_pack<Args...>>
+	{
+		using type = template_param_pack<Args...>;
+	};
+
+	template<class T>
+	using wrap_in_template_param_pack_t = wrap_in_template_param_pack<T>::type;
 }
 
 #endif

@@ -8,13 +8,13 @@
 
 namespace
 {
-	struct my_value_traits_with_variant
+	struct my_value_traits_with_pack
 	{
 		using key_type = std::string;
-		using leaf_value_type = std::variant<int, double, std::string, char>;
+		using leaf_value_type = jopp2::template_param_pack<int, double, std::string, char>;
 	};
 
-	struct my_value_traits_with_no_variant
+	struct my_value_traits_with_no_pack
 	{
 		using key_type = std::string;
 		using leaf_value_type = std::string;
@@ -28,7 +28,7 @@ namespace
 	struct json_value_traits
 	{
 		using key_type = std::string;
-		using leaf_value_type = std::variant<double, std::string, bool_wrapper, std::nullptr_t>;
+		using leaf_value_type = jopp2::template_param_pack<double, std::string, bool_wrapper, std::nullptr_t>;
 	};
 
 	struct test_node_visitor
@@ -134,7 +134,7 @@ namespace
 
 TESTCASE(jopp2_generic_value_static_properties)
 {
-	using type_with_variant = jopp2::generic_value<std::flat_map, std::vector, my_value_traits_with_variant>;
+	using type_with_variant = jopp2::generic_value<std::flat_map, std::vector, my_value_traits_with_pack>;
 	EXPECT_EQ(
 		(std::is_same_v<
 			type_with_variant::variant_type,
@@ -162,7 +162,7 @@ TESTCASE(jopp2_generic_value_static_properties)
 	EXPECT_EQ((std::is_constructible_v<type_with_variant, int>), true);
 	EXPECT_EQ((std::is_constructible_v<type_with_variant, type_with_variant::variant_type>), true);
 
-	using type_with_no_variant = jopp2::generic_value<std::flat_map, std::vector, my_value_traits_with_no_variant>;
+	using type_with_no_variant = jopp2::generic_value<std::flat_map, std::vector, my_value_traits_with_no_pack>;
 		EXPECT_EQ(
 		(std::is_same_v<
 			type_with_no_variant::variant_type,
@@ -187,7 +187,7 @@ TESTCASE(jopp2_generic_value_static_properties)
 
 TESTCASE(jopp2_generic_value_set_field_and_get_value)
 {
-	using type_with_variant = jopp2::generic_value<std::flat_map, std::vector, my_value_traits_with_variant>;
+	using type_with_variant = jopp2::generic_value<std::flat_map, std::vector, my_value_traits_with_pack>;
 	type_with_variant foo{type_with_variant::object{}};
 
 	{
@@ -229,7 +229,7 @@ TESTCASE(jopp2_generic_value_set_field_and_get_value)
 
 TESTCASE(jopp2_generic_value_store_value_as)
 {
-	using type_with_variant = jopp2::generic_value<std::flat_map, std::vector, my_value_traits_with_variant>;
+	using type_with_variant = jopp2::generic_value<std::flat_map, std::vector, my_value_traits_with_pack>;
 	type_with_variant foo{type_with_variant::object{}};
 
 	auto const result_1 = foo.store_value_as(42, "The answer to the question of life the universe and everything");
@@ -252,7 +252,7 @@ TESTCASE(jopp2_generic_value_store_value_as)
 
 TESTCASE(jopp2_generic_value_try_store_at_end_not_a_sequence)
 {
-	using type_with_variant = jopp2::generic_value<std::flat_map, std::vector, my_value_traits_with_variant>;
+	using type_with_variant = jopp2::generic_value<std::flat_map, std::vector, my_value_traits_with_pack>;
 	type_with_variant foo{};
 	auto const res = foo.try_store_at_end(134);
 	EXPECT_EQ(res, nullptr);
@@ -260,7 +260,7 @@ TESTCASE(jopp2_generic_value_try_store_at_end_not_a_sequence)
 
 TESTCASE(jopp2_generic_value_try_store_at_value_is_a_string)
 {
-	using type_with_variant = jopp2::generic_value<std::flat_map, std::vector, my_value_traits_with_variant>;
+	using type_with_variant = jopp2::generic_value<std::flat_map, std::vector, my_value_traits_with_pack>;
 	type_with_variant foo{std::string{"Hej"}};
 	auto const res = foo.try_store_at_end('a');
 	EXPECT_EQ(res, nullptr);
@@ -268,7 +268,7 @@ TESTCASE(jopp2_generic_value_try_store_at_value_is_a_string)
 
 TESTCASE(jopp2_generic_value_try_store_at_end_sequence_empty_wrong_type)
 {
-	using type_with_variant = jopp2::generic_value<std::flat_map, std::vector, my_value_traits_with_variant>;
+	using type_with_variant = jopp2::generic_value<std::flat_map, std::vector, my_value_traits_with_pack>;
 	type_with_variant foo{std::vector<int>{}};
 	auto const res = foo.try_store_at_end(std::string{"foobar"});
 	REQUIRE_NE(res, nullptr);
@@ -280,7 +280,7 @@ TESTCASE(jopp2_generic_value_try_store_at_end_sequence_empty_wrong_type)
 
 TESTCASE(jopp2_generic_value_try_store_at_end_nonempty_generic_sequence)
 {
-	using type_with_variant = jopp2::generic_value<std::flat_map, std::vector, my_value_traits_with_variant>;
+	using type_with_variant = jopp2::generic_value<std::flat_map, std::vector, my_value_traits_with_pack>;
 	std::vector<type_with_variant> initial_value{};
 	initial_value.emplace_back("foobar");
 	initial_value.emplace_back(123);
@@ -297,7 +297,7 @@ TESTCASE(jopp2_generic_value_try_store_at_end_nonempty_generic_sequence)
 
 TESTCASE(jopp2_generic_value_try_store_at_end_different_type_from_typed_sequence)
 {
-	using type_with_variant = jopp2::generic_value<std::flat_map, std::vector, my_value_traits_with_variant>;
+	using type_with_variant = jopp2::generic_value<std::flat_map, std::vector, my_value_traits_with_pack>;
 	type_with_variant foo{std::vector{1,2,3,4}};
 	auto const res = foo.try_store_at_end(std::string{"Foobar"});
 	REQUIRE_NE(res, nullptr);
@@ -310,7 +310,7 @@ TESTCASE(jopp2_generic_value_try_store_at_end_different_type_from_typed_sequence
 
 TESTCASE(jopp2_generic_value_try_store_at_end_of_typed_container)
 {
-	using type_with_variant = jopp2::generic_value<std::flat_map, std::vector, my_value_traits_with_variant>;
+	using type_with_variant = jopp2::generic_value<std::flat_map, std::vector, my_value_traits_with_pack>;
 	type_with_variant foo{std::vector{1,2,3,4}};
 	auto const res = foo.try_store_at_end(5);
 	REQUIRE_NE(res, nullptr);

@@ -16,3 +16,22 @@ TESTCASE(jopp2_map_template_param_pack_to_type)
 		>
 	);
 }
+
+TESTCASE(jopp2_wrap_in_template_param_pack)
+{
+	using my_pack = jopp2::template_param_pack<int, double>;
+
+	static_assert(
+		std::is_same_v<
+			jopp2::wrap_in_template_param_pack_t<my_pack>,
+			my_pack
+		>
+	);
+
+	static_assert(
+		std::is_same_v<
+			jopp2::wrap_in_template_param_pack_t<int>,
+			jopp2::template_param_pack<int>
+		>
+	);
+}

@@ -3,6 +3,7 @@
 
 #include "./variant_utils.hpp"
 #include "./utils.hpp"
+#include "./template_param_pack.hpp"
 
 #include <stdexcept>
 #include <stack>
@@ -39,7 +40,14 @@ namespace jopp2
 	class generic_value
 	{
 	public:
-		using leaf_value_type = typename ValueTraits::leaf_value_type;
+		using leaf_value_template_param_pack = wrap_in_template_param_pack_t<
+			typename ValueTraits::leaf_value_type
+		>;
+
+		using leaf_value_type = map_template_param_pack_to_type_t<
+			std::variant,
+			leaf_value_template_param_pack
+		>;
 		using key_type = typename ValueTraits::key_type;
 		using object = AssociativeContainerType<key_type, generic_value>;
 		using map_value_type = object::value_type;
@@ -51,7 +59,7 @@ namespace jopp2
 		};
 
 		using variant_type = concatenate_variants_t<
-			wrap_in_variant_t<leaf_value_type>,
+			leaf_value_type,
 			wrap_in_variant_t<object>,
 			wrap_variant_element_t<
 				wrap_in_variant_t<leaf_value_type>, SequenceContainerType
