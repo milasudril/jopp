@@ -137,7 +137,7 @@ TESTCASE(jopp2_generic_value_static_properties)
 	using type_with_variant = jopp2::generic_value<std::flat_map, std::vector, my_value_traits_with_pack>;
 	EXPECT_EQ(
 		(std::is_same_v<
-			type_with_variant::variant_type,
+			type_with_variant::value_type,
 			std::variant<
 				int,
 				double,
@@ -160,12 +160,12 @@ TESTCASE(jopp2_generic_value_static_properties)
 	EXPECT_EQ(std::is_move_constructible_v<type_with_variant>, true);
 	EXPECT_EQ(std::is_move_assignable_v<type_with_variant>, true);
 	EXPECT_EQ((std::is_constructible_v<type_with_variant, int>), true);
-	EXPECT_EQ((std::is_constructible_v<type_with_variant, type_with_variant::variant_type>), true);
+	EXPECT_EQ((std::is_constructible_v<type_with_variant, type_with_variant::value_type>), true);
 
 	using type_with_no_variant = jopp2::generic_value<std::flat_map, std::vector, my_value_traits_with_no_pack>;
 		EXPECT_EQ(
 		(std::is_same_v<
-			type_with_no_variant::variant_type,
+			type_with_no_variant::value_type,
 			std::variant<
 				std::string,
 				type_with_no_variant::object,
@@ -182,7 +182,7 @@ TESTCASE(jopp2_generic_value_static_properties)
 	EXPECT_EQ(std::is_move_constructible_v<type_with_no_variant>, true);
 	EXPECT_EQ(std::is_move_assignable_v<type_with_no_variant>, true);
 	EXPECT_EQ((std::is_constructible_v<type_with_no_variant, int>), true);
-	EXPECT_EQ((std::is_constructible_v<type_with_no_variant, type_with_variant::variant_type>), true);
+	EXPECT_EQ((std::is_constructible_v<type_with_no_variant, type_with_variant::value_type>), true);
 }
 
 TESTCASE(jopp2_generic_value_set_field_and_get_value)

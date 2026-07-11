@@ -68,7 +68,7 @@ namespace jopp2
 			template_param_pack<SequenceContainerType<generic_value>>
 		>;
 
-		using variant_type = map_template_param_pack_to_type_t<
+		using value_type = map_template_param_pack_to_type_t<
 			std::variant,
 			value_template_param_pack_type
 		>;
@@ -79,8 +79,8 @@ namespace jopp2
 
 		generic_value(generic_value const&) = delete;
 		generic_value& operator=(generic_value const&) = delete;
-		generic_value(variant_type const&) = delete;
-		generic_value& operator=(variant_type const&) = delete;
+		generic_value(value_type const&) = delete;
+		generic_value& operator=(value_type const&) = delete;
 
 		generic_value(generic_value&&) = default;
 		generic_value& operator=(generic_value&&) = default;
@@ -220,7 +220,7 @@ namespace jopp2
 		}
 
 	private:
-		variant_type m_value;
+		value_type m_value;
 	};
 
 	struct begin_of_object{};
@@ -237,21 +237,21 @@ namespace jopp2
 	void visit_nodes(GenericValue&& root, Visitor&& visitor)
 	{
 		using generic_value = std::remove_cvref_t<GenericValue>;
-		using variant_type = typename generic_value::variant_type;
+		using value_type = typename generic_value::value_type;
 		using key_type = typename generic_value::key_type;
 		using object = typename generic_value::object;
 
 		using node_value = concatenate_variants_t<
 			wrap_variant_element_t<
 				std::conditional_t<
-					std::is_const_v<std::remove_reference_t<variant_type>>,
-					wrap_variant_element_t<std::remove_cvref_t<variant_type>, std::add_const_t>,
-					std::remove_cvref_t<variant_type>
+					std::is_const_v<std::remove_reference_t<value_type>>,
+					wrap_variant_element_t<std::remove_cvref_t<value_type>, std::add_const_t>,
+					std::remove_cvref_t<value_type>
 				>,
 				std::add_pointer_t
 			>,
 			std::variant<
-				std::pair<key_type const*, std::remove_reference_t<variant_type>*>,
+				std::pair<key_type const*, std::remove_reference_t<value_type>*>,
 				begin_of_object,
 				end_of_object,
 				begin_of_array<generic_value>,
@@ -278,7 +278,7 @@ namespace jopp2
 			.visitor = std::forward<Visitor>(visitor),
 			.nodes_to_visit = {}
 		};
-		static constexpr auto make_node_value = [](variant_type& item) static {
+		static constexpr auto make_node_value = [](value_type& item) static {
 			return std::visit(
 				[](auto& item){return node_value{&item};},
 				item
@@ -301,7 +301,7 @@ namespace jopp2
 			current_state.nodes_to_visit.pop();
 
 			using obj_ptr = std::conditional_t<
-				std::is_const_v<std::remove_reference_t<variant_type>>,
+				std::is_const_v<std::remove_reference_t<value_type>>,
 				object const*,
 				object*
 			>;
@@ -440,7 +440,7 @@ namespace jopp2
 						}
 					},
 					[](
-						std::pair<key_type const*, std::remove_reference_t<variant_type>*> kv_ptr,
+						std::pair<key_type const*, std::remove_reference_t<value_type>*> kv_ptr,
 						visitation_state& state,
 						value_visitation_context context
 					) {
@@ -476,7 +476,7 @@ namespace jopp2
 	{
 	public:
 		using generic_value_out = wrap_variant_element_t<
-			typename GenericValueOut::variant_type,
+			typename GenericValueOut::value_type,
 			std::add_pointer_t
 		>;
 
