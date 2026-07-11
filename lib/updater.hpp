@@ -42,11 +42,21 @@ namespace jopp2
 	template <class T>
 	using query_param_t = std::conditional_t<pass_by_value_v<T>, T, T const&>;
 
+	template<class Sink, class T>
+	using update_func_t = void (*)(Sink&, update_param_t<T>) THISCALL;
+
+	template<class UpdateTraits, class Sink, class... Types>
+	concept update_traits = (requires(update_func_t<Sink, Types>& cb)
+	{
+		{ cb = &UpdateTraits::update };
+	}
+	&& ...);
+
 	template<class... Types>
 	class updater
 	{
 	public:
-		template<class Sink, class UpdateTraits>
+		template<class Sink, update_traits<Sink, Types...> UpdateTraits>
 		explicit updater(Sink& target, std::type_identity<UpdateTraits>):
 				m_handle{&target},
 				m_vtable{&s_vtable<Sink, UpdateTraits>}
@@ -60,7 +70,7 @@ namespace jopp2
 		THISCALL void update_with(SourceValue&& value) const
 		{
 			using raw_type = std::remove_cvref_t<SourceValue>;
-			std::get<callback_type<raw_type>>(*m_vtable)(m_handle, std::forward<SourceValue>(value));
+			std::get<update_callback_t<raw_type>>(*m_vtable)(m_handle, std::forward<SourceValue>(value));
 		}
 
 		template<class SourceValue>
@@ -69,15 +79,16 @@ namespace jopp2
 		{
 			using raw_type = std::remove_cvref_t<SourceValue>;
 			if constexpr(std::is_trivially_copyable_v<std::remove_cvref_t<SourceValue>>)
-			{ std::get<callback_type<raw_type>>(*m_vtable)(m_handle, value); }
+			{ std::get<update_callback_t<raw_type>>(*m_vtable)(m_handle, value); }
 			else
-			{ std::get<callback_type<raw_type>>(*m_vtable)(m_handle, raw_type{value}); }
+			{ std::get<update_callback_t<raw_type>>(*m_vtable)(m_handle, raw_type{value}); }
 		}
 
 	private:
 		template<class T>
-		using callback_type = void (*)(void*, update_param_t<T>) THISCALL;
-		using vtable = std::tuple<callback_type<Types>...>;
+		using update_callback_t = void (*)(void*, update_param_t<T>) THISCALL;
+
+		using vtable = std::tuple<update_callback_t<Types>...>;
 
 		void* m_handle;
 		vtable const* m_vtable;
