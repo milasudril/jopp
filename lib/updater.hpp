@@ -74,7 +74,7 @@ namespace jopp2
 		template<class Sink, update_traits<Sink, Types...> UpdateTraits>
 		constexpr explicit updater(Sink& target, std::type_identity<UpdateTraits>):
 				m_handle{&target},
-				m_vtable{&s_vtable<Sink, UpdateTraits>}
+				m_vtable(&s_vtable<Sink, UpdateTraits>)
 		{}
 
 		template<class SourceValue>
@@ -109,8 +109,8 @@ namespace jopp2
 		vtable const* m_vtable;
 
 		template<class Sink, class UpdateTraits>
-		static constexpr vtable s_vtable{
-			[](void* target, update_param_t<Types> value) THISCALL {
+		static constexpr auto s_vtable = std::tuple{
+			+[](void* target, update_param_t<Types> value) static THISCALL {
 				if constexpr(pass_by_value_v<Types> || std::is_trivially_copyable_v<Types>)
 				{ UpdateTraits::update(*static_cast<Sink*>(target), value); }
 				else
