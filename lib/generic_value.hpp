@@ -471,7 +471,7 @@ namespace jopp2
 		}
 	}
 
-	template<class GenericValueOut>
+	template<class InputValuePack, class GenericValueOut>
 	class clone_visitor
 	{
 	public:
@@ -565,11 +565,21 @@ namespace jopp2
 		std::stack<context> m_contexts;
 	};
 
+	template<class InputValuePack, class GenericValueOut>
+	auto make_clone_visitor(GenericValueOut& ret)
+	{
+		return clone_visitor<InputValuePack, GenericValueOut>(ret);
+	}
+
 	template<class GenericValueOut, class GenericValueIn>
 	auto clone(GenericValueIn&& src)
 	{
+		using input_value_value_template_param_pack = typename std::remove_cvref_t<GenericValueIn>::leaf_value_template_param_pack;
 		GenericValueOut ret;
-		visit_nodes(std::forward<GenericValueIn>(src), clone_visitor{ret});
+		visit_nodes(
+			std::forward<GenericValueIn>(src),
+			make_clone_visitor<input_value_value_template_param_pack>(ret)
+		);
 		return ret;
 	}
 }
