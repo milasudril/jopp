@@ -476,9 +476,7 @@ namespace jopp2
 	struct clone_visitor_value_update_traits_impl
 	{
 		THISCALL static void update(Lhs& lhs, update_param_t<Rhs> rhs)
-		{
-			lhs = Lhs{maybe_move(rhs)};
-		}
+		{ lhs = Lhs{maybe_move(rhs)}; }
 	};
 
 	template<class SrcValueTemplateParamPack, class GenericValueOut>
@@ -491,28 +489,41 @@ namespace jopp2
 		struct clone_visitor_value_update_traits:
 			clone_visitor_value_update_traits_impl<GenericValueOut, SrcValueTypes>...
 		{
+			using clone_visitor_value_update_traits_impl<GenericValueOut, SrcValueTypes>::update...;
+
 			THISCALL static void update(GenericValueOut&, update_param_t<kv_item>)
 			{}
 		};
 
-		using update_traits = map_template_param_pack_to_type_t<
+		using pack_with_kv_item = append_to_template_param_pack_t<SrcValueTemplateParamPack, kv_item>;
+
+		using output_value_update_traits = map_template_param_pack_to_type_t<
 			clone_visitor_value_update_traits,
-			append_to_template_param_pack_t<SrcValueTemplateParamPack, kv_item>
+			pack_with_kv_item
+		>;
+
+		using value_updater = map_template_param_pack_to_type_t<
+			updater,
+			pack_with_kv_item
 		>;
 
 		explicit clone_visitor(GenericValueOut& output_value)
 		{
 			m_contexts.push(
 				context{
-					.parent_node = nullptr,
-					.output_value = &output_value
+					.parent_node = {},
+					.output_value = value_updater{
+						output_value,
+						std::type_identity<output_value_update_traits>{}
+					}
 				}
 			);
 		}
 
 		template<class T>
-		void handle_leaf_value(T&& value, value_visitation_context)
+		void handle_leaf_value(T&&, value_visitation_context)
 		{
+#if 0
 			if(m_contexts.top().output_value == nullptr)
 			{
 				if(m_contexts.top().parent_node != nullptr)
@@ -520,11 +531,13 @@ namespace jopp2
 			}
 			else
 			{ *m_contexts.top().output_value = GenericValueOut{std::forward<T>(value)}; }
+#endif
 		}
 
 		template<class T>
-		void handle_property_name(T&& prop_name, value_visitation_context)
+		void handle_property_name(T&&, value_visitation_context)
 		{
+#if 0
 			if(m_contexts.top().parent_node != nullptr)
 			{
 				auto const res = m_contexts.top().parent_node->try_store_value_as(
@@ -533,10 +546,12 @@ namespace jopp2
 				);
 				m_contexts.top().output_value = res.second;
 			}
+#endif
 		}
 
 		void handle_begin_of_object(value_visitation_context)
 		{
+#if 0
 			if(m_contexts.top().output_value != nullptr)
 			{ *m_contexts.top().output_value = GenericValueOut{typename GenericValueOut::object{}}; }
 
@@ -546,14 +561,18 @@ namespace jopp2
 					.output_value = nullptr
 				}
 			);
+#endif
 		}
 
 		void handle_end_of_object(value_visitation_context)
-		{ m_contexts.pop(); }
+		{
+		//	m_contexts.pop();
+		}
 
 		template<class T>
 		void handle_begin_of_array(std::type_identity<T> /*unused*/, value_visitation_context)
 		{
+#if 0
 			if(m_contexts.top().output_value != nullptr)
 			{
 				*m_contexts.top().output_value = GenericValueOut{
@@ -567,18 +586,21 @@ namespace jopp2
 					.output_value = nullptr
 				}
 			);
+#endif
 		}
 
 		template<class T>
 		void handle_end_of_array(std::type_identity<T> /*unused*/, value_visitation_context)
 		{
+#if 0
 			m_contexts.pop();
+#endif
 		}
 
 		struct context
 		{
-			GenericValueOut* parent_node;
-			GenericValueOut* output_value;
+			value_updater parent_node;
+			value_updater output_value;
 		};
 
 	private:

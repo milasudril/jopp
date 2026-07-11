@@ -71,6 +71,8 @@ namespace jopp2
 	class updater
 	{
 	public:
+		constexpr updater() = default;
+
 		template<class Sink, update_traits<Sink, Types...> UpdateTraits>
 		constexpr explicit updater(Sink& target, std::type_identity<UpdateTraits>):
 				m_handle{&target},
@@ -105,8 +107,8 @@ namespace jopp2
 
 		using vtable = std::tuple<update_callback_t<Types>...>;
 
-		void* m_handle;
-		vtable const* m_vtable;
+		void* m_handle{nullptr};
+		vtable const* m_vtable{nullptr};
 
 		template<class Sink, class UpdateTraits>
 		static constexpr vtable s_vtable{
