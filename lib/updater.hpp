@@ -4,6 +4,7 @@
 #include <type_traits>
 #include <cstddef>
 #include <tuple>
+#include <cstdio>
 
 namespace jopp2
 {
@@ -39,6 +40,20 @@ namespace jopp2
 		std::conditional_t<std::is_trivially_copyable_v<T>, T const&, T&&>
 	>;
 
+	template<class T>
+	inline constexpr decltype(auto) maybe_move(T&& src)
+	{
+		if constexpr(std::is_reference_v<T>)
+		{
+			if constexpr(!std::is_const_v<std::remove_reference_t<T>>)
+			{ return std::move(src); }
+			else
+			{ return src; }
+		}
+		else
+		{ return src; }
+	}
+
 	template <class T>
 	using query_param_t = std::conditional_t<pass_by_value_v<T>, T, T const&>;
 
@@ -57,7 +72,7 @@ namespace jopp2
 	{
 	public:
 		template<class Sink, update_traits<Sink, Types...> UpdateTraits>
-		explicit updater(Sink& target, std::type_identity<UpdateTraits>):
+		constexpr explicit updater(Sink& target, std::type_identity<UpdateTraits>):
 				m_handle{&target},
 				m_vtable{&s_vtable<Sink, UpdateTraits>}
 		{}
@@ -67,7 +82,7 @@ namespace jopp2
 			!std::is_lvalue_reference_v<SourceValue> ||
 			pass_by_value_v<std::remove_cvref_t<SourceValue>>
 		)
-		THISCALL void update_with(SourceValue&& value) const
+		THISCALL constexpr void update_with(SourceValue&& value) const
 		{
 			using raw_type = std::remove_cvref_t<SourceValue>;
 			std::get<update_callback_t<raw_type>>(*m_vtable)(m_handle, std::forward<SourceValue>(value));
@@ -75,7 +90,7 @@ namespace jopp2
 
 		template<class SourceValue>
 		requires(!pass_by_value_v<std::remove_cvref_t<SourceValue>>)
-		THISCALL void update_with(SourceValue const& value) const
+		THISCALL constexpr void update_with(SourceValue const& value) const
 		{
 			using raw_type = std::remove_cvref_t<SourceValue>;
 			if constexpr(std::is_trivially_copyable_v<std::remove_cvref_t<SourceValue>>)
