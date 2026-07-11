@@ -1,11 +1,34 @@
 #ifndef JOPP2_TEMPLATE_PARAM_PACK_HPP
 #define JOPP2_TEMPLATE_PARAM_PACK_HPP
 
+#include <type_traits>
+#include <cstddef>
+#include <utility>
+
 namespace jopp2
 {
-	template<class ... Types>
+	template<class... Types>
 	struct template_param_pack
+	{ static constexpr auto size = sizeof...(Types); };
+
+
+
+	template<size_t Index, class TemplateParamPack>
+	struct template_param_pack_type_at_index
 	{};
+
+	template<size_t Index, class Head, class... Tail>
+	struct template_param_pack_type_at_index<Index, template_param_pack<Head, Tail...>>
+	{
+		using type = typename template_param_pack_type_at_index<Index - 1, template_param_pack<Tail...>>::type;
+	};
+
+	template<class Head, class... Tail>
+	struct template_param_pack_type_at_index<0, template_param_pack<Head, Tail...>>
+	{ using type = Head; };
+
+	template<size_t Index, class TemplateParamPack>
+	using template_param_pack_type_at_index_t = template_param_pack_type_at_index<Index, TemplateParamPack>::type;
 
 
 
@@ -36,6 +59,59 @@ namespace jopp2
 
 	template<class T>
 	using wrap_in_template_param_pack_t = wrap_in_template_param_pack<T>::type;
+
+
+
+	template<class PackType, class... TypesToAppend>
+	struct append_to_template_param_pack
+	{
+	private:
+		template<size_t... I>
+		static consteval auto resolve_type(std::index_sequence<I...>)
+		{
+			return std::type_identity<
+				template_param_pack<
+					template_param_pack_type_at_index_t<I, PackType>...,
+					TypesToAppend...
+				>
+			>{};
+		}
+	public:
+		using type = decltype(
+			resolve_type(std::make_index_sequence<PackType::size>{})
+		)::type;
+	};
+
+	template<class PackType, class... TypesToAppend>
+	using append_to_template_param_pack_t = append_to_template_param_pack<PackType,TypesToAppend...>::type;
+
+
+
+	template<class PackA, class PackB, class... Tail>
+	struct concatenate_template_param_packs
+	{
+	private:
+		template<size_t... I>
+		static consteval auto resolve_type(std::index_sequence<I...>)
+		{
+			using next_type = append_to_template_param_pack_t<
+				PackA,
+				template_param_pack_type_at_index_t<I, PackB>...
+			>;
+
+			if constexpr(sizeof...(Tail) == 0)
+			{ return std::type_identity<next_type>{}; }
+			else
+			{ return std::type_identity<typename concatenate_template_param_packs<next_type, Tail...>::type>{}; }
+		}
+	public:
+		using type = decltype(
+			resolve_type(std::make_index_sequence<PackB::size>{})
+		)::type;
+	};
+
+	template<class PackA, class PackB, class... Tail>
+	using concatenate_template_param_packs_t = concatenate_template_param_packs<PackA, PackB, Tail...>::type;
 }
 
 #endif
