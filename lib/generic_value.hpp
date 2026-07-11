@@ -485,15 +485,19 @@ namespace jopp2
 	class clone_visitor
 	{
 	public:
+		using kv_item = std::pair<typename GenericValueOut::key_type, GenericValueOut>;
+
 		template<class... SrcValueTypes>
 		struct clone_visitor_value_update_traits:
 			clone_visitor_value_update_traits_impl<GenericValueOut, SrcValueTypes>...
 		{
+			THISCALL static void update(GenericValueOut&, update_param_t<kv_item>)
+			{}
 		};
 
 		using update_traits = map_template_param_pack_to_type_t<
 			clone_visitor_value_update_traits,
-			SrcValueTemplateParamPack
+			append_to_template_param_pack_t<SrcValueTemplateParamPack, kv_item>
 		>;
 
 		explicit clone_visitor(GenericValueOut& output_value)
