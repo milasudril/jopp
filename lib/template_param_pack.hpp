@@ -112,6 +112,32 @@ namespace jopp2
 
 	template<class PackA, class PackB, class... Tail>
 	using concatenate_template_param_packs_t = concatenate_template_param_packs<PackA, PackB, Tail...>::type;
+
+
+
+	template<class PackType, template<class, class...> class Wrapper, class... OtherArgs>
+	struct wrap_template_param_pack_elements
+	{
+	private:
+		template<size_t... I>
+		static consteval auto resolve_type(std::index_sequence<I...>)
+		{
+			return std::type_identity<
+				template_param_pack<
+					Wrapper<template_param_pack_type_at_index_t<I, PackType>, OtherArgs...>...
+				>
+			>{};
+		}
+
+	public:
+		using type = decltype(
+			resolve_type(std::make_index_sequence<PackType::size>{})
+		)::type;
+	};
+
+	template<class PackType, template<class, class...> class Wrapper, class... OtherArgs>
+	using wrap_template_param_pack_elements_t =
+		wrap_template_param_pack_elements<PackType, Wrapper, OtherArgs...>::type;
 }
 
 #endif

@@ -55,7 +55,7 @@ TESTCASE(jopp2_append_to_template_param_pack)
 	);
 }
 
-TESTCASE(jopp2_cocatenate_template_param_pack)
+TESTCASE(jopp2_concatenate_template_param_pack)
 {
 	using pack_a = jopp2::template_param_pack<float, double>;
 	using pack_b = jopp2::template_param_pack<int, long long>;
@@ -66,6 +66,36 @@ TESTCASE(jopp2_cocatenate_template_param_pack)
 		std::is_same_v<
 			total_pack,
 			jopp2::template_param_pack<float, double, int ,long long>
+		>
+	);
+}
+
+namespace
+{
+	template<class Foo, class Bar>
+	struct type_with_extra_arg
+	{};
+
+	struct test_type
+	{};
+}
+
+TESTCASE(jopp2_wrap_template_param_pack_elements)
+{
+	using my_pack = jopp2::template_param_pack<float, double>;
+	using my_new_pack = jopp2::wrap_template_param_pack_elements_t<
+		my_pack,
+		type_with_extra_arg,
+		test_type
+	>;
+
+	static_assert(
+		std::is_same_v<
+			my_new_pack,
+			jopp2::template_param_pack<
+				type_with_extra_arg<float, test_type>,
+				type_with_extra_arg<double, test_type>
+			>
 		>
 	);
 }
