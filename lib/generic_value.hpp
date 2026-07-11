@@ -58,14 +58,19 @@ namespace jopp2
 			{ leaf_value_type{std::forward<T>(x)} };
 		};
 
-		using variant_type = concatenate_variants_t<
-			leaf_value_type,
-			wrap_in_variant_t<object>,
-			wrap_variant_element_t<
-				wrap_in_variant_t<leaf_value_type>, SequenceContainerType
+		using value_template_param_pack_type = concatenate_template_param_packs_t<
+			leaf_value_template_param_pack,
+			template_param_pack<object>,
+			wrap_template_param_pack_elements_t<
+				leaf_value_template_param_pack, SequenceContainerType
 			>,
-			wrap_in_variant_t<SequenceContainerType<object>>,
-			wrap_in_variant_t<SequenceContainerType<generic_value>>
+			template_param_pack<SequenceContainerType<object>>,
+			template_param_pack<SequenceContainerType<generic_value>>
+		>;
+
+		using variant_type = map_template_param_pack_to_type_t<
+			std::variant,
+			value_template_param_pack_type
 		>;
 
 		using generic_sequence_container = SequenceContainerType<generic_value>;
