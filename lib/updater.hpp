@@ -101,6 +101,9 @@ namespace jopp2
 			{ std::get<update_callback_t<raw_type>>(*m_vtable)(m_handle, raw_type{value}); }
 		}
 
+		THISCALL constexpr operator bool() const
+		{ return m_handle != nullptr; }
+
 	private:
 		template<class T>
 		using update_callback_t = void (*)(void*, update_param_t<T>) THISCALL;

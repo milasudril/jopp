@@ -495,16 +495,19 @@ namespace jopp2
 			{}
 		};
 
-		using pack_with_kv_item = append_to_template_param_pack_t<SrcValueTemplateParamPack, kv_item>;
+		using pack_with_kv_item_and_object = concatenate_template_param_packs_t<
+			SrcValueTemplateParamPack,
+			template_param_pack<kv_item, typename GenericValueOut::object>
+		>;
 
 		using output_value_update_traits = map_template_param_pack_to_type_t<
 			clone_visitor_value_update_traits,
-			pack_with_kv_item
+			pack_with_kv_item_and_object
 		>;
 
 		using value_updater = map_template_param_pack_to_type_t<
 			updater,
-			pack_with_kv_item
+			pack_with_kv_item_and_object
 		>;
 
 		explicit clone_visitor(GenericValueOut& output_value)
@@ -551,22 +554,20 @@ namespace jopp2
 
 		void handle_begin_of_object(value_visitation_context)
 		{
-#if 0
-			if(m_contexts.top().output_value != nullptr)
-			{ *m_contexts.top().output_value = GenericValueOut{typename GenericValueOut::object{}}; }
+			if(m_contexts.top().output_value)
+			{ m_contexts.top().output_value.update_with(typename GenericValueOut::object{}); }
 
 			m_contexts.push(
 				context{
 					.parent_node = m_contexts.top().output_value,
-					.output_value = nullptr
+					.output_value = {}
 				}
 			);
-#endif
 		}
 
 		void handle_end_of_object(value_visitation_context)
 		{
-		//	m_contexts.pop();
+			m_contexts.pop();
 		}
 
 		template<class T>
