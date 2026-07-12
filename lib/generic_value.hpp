@@ -54,7 +54,9 @@ namespace jopp2
 		using key_type = typename ValueTraits::key_type;
 		using object = AssociativeContainerType<key_type, generic_value>;
 		using map_value_type = object::value_type;
-		static_assert(sequence_container<SequenceContainerType<leaf_value_type>>);
+		template<class T>
+		using sequence_container_type = SequenceContainerType<T>;
+		static_assert(sequence_container<sequence_container_type<leaf_value_type>>);
 
 		template<class T>
 		static constexpr auto is_leaf_value = requires(T&& x){
@@ -65,10 +67,10 @@ namespace jopp2
 			leaf_value_template_param_pack,
 			template_param_pack<object>,
 			wrap_template_param_pack_elements_t<
-				leaf_value_template_param_pack, SequenceContainerType
+				leaf_value_template_param_pack, sequence_container_type
 			>,
-			template_param_pack<SequenceContainerType<object>>,
-			template_param_pack<SequenceContainerType<generic_value>>
+			template_param_pack<sequence_container_type<object>>,
+			template_param_pack<sequence_container_type<generic_value>>
 		>;
 
 		using value_type = map_template_param_pack_to_type_t<
@@ -482,6 +484,8 @@ namespace jopp2
 		{
 			if constexpr(std::is_constructible_v<Lhs, Rhs>)
 			{ lhs = Lhs{maybe_move(rhs)}; }
+			else
+			{ puts("Skip"); }
 		}
 	};
 
@@ -517,9 +521,14 @@ namespace jopp2
 			}
 		};
 
+		template<class T>
+		using sequence_container_out = typename GenericValueOut::template sequence_container_type<T>;
+
+		using object_out = typename GenericValueOut::object;
+
 		using pack_with_kv_item_and_object = concatenate_template_param_packs_t<
 			SrcValueTemplateParamPack,
-			template_param_pack<kv_item, typename GenericValueOut::object>
+			template_param_pack<kv_item, object_out, sequence_container_out<object_out>>
 		>;
 
 		using output_value_update_traits = map_template_param_pack_to_type_t<
@@ -615,7 +624,7 @@ namespace jopp2
 
 		void handle_begin_of_array(std::type_identity<src_object> /*unused*/, value_visitation_context)
 		{
-			printf("Object\n");
+			m_contexts.top().output_value.update_with(sequence_container_out<object_out>{});
 		}
 
 		template<class T>
