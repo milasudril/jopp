@@ -1,8 +1,6 @@
 #ifndef JOPP_UPDATER_HPP
 #define JOPP_UPDATER_HPP
 
-#include "./template_param_pack.hpp"
-
 #include <type_traits>
 #include <cstddef>
 #include <tuple>
@@ -87,8 +85,7 @@ namespace jopp2
 		THISCALL constexpr void update_with(SourceValue&& value) const
 		{
 			using raw_type = std::remove_cvref_t<SourceValue>;
-			static constexpr auto index = get_index_of_type<raw_type, Types...>();
-			std::get<index>(*m_vtable)(m_handle, std::forward<SourceValue>(value));
+			std::get<update_callback_t<raw_type>>(*m_vtable)(m_handle, std::forward<SourceValue>(value));
 		}
 
 		template<class SourceValue>
@@ -96,11 +93,10 @@ namespace jopp2
 		THISCALL constexpr void update_with(SourceValue const& value) const
 		{
 			using raw_type = std::remove_cvref_t<SourceValue>;
-			static constexpr auto index = get_index_of_type<raw_type, Types...>();
 			if constexpr(std::is_trivially_copyable_v<std::remove_cvref_t<SourceValue>>)
-			{ std::get<index>(*m_vtable)(m_handle, value); }
+			{ std::get<update_callback_t<raw_type>>(*m_vtable)(m_handle, value); }
 			else
-			{ std::get<index>(*m_vtable)(m_handle, raw_type{value}); }
+			{ std::get<update_callback_t<raw_type>>(*m_vtable)(m_handle, raw_type{value}); }
 		}
 
 	private:
@@ -108,6 +104,10 @@ namespace jopp2
 		using update_callback_t = void (*)(void*, update_param_t<T>) THISCALL;
 
 		using vtable = std::tuple<update_callback_t<Types>...>;
+
+		void* m_handle;
+		vtable const* m_vtable;
+
 		template<class Sink, class UpdateTraits>
 		static constexpr auto s_vtable = std::tuple{
 			+[](void* target, update_param_t<Types> value) static THISCALL {
@@ -117,9 +117,6 @@ namespace jopp2
 				{ UpdateTraits::update(*static_cast<Sink*>(target), std::move(value)); }
 			}...
 		};
-
-		void* m_handle;
-		vtable const* m_vtable;
 	};
 }
 
