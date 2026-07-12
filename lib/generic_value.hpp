@@ -492,6 +492,22 @@ namespace jopp2
 		}
 	};
 
+	template<class OutputArray, class TypeToStore>
+	struct clone_visitor_array_update_traits_impl
+	{
+		THISCALL static TypeToStore* update(OutputArray& out, update_param_t<TypeToStore> val)
+		{
+			using output_value_type = typename OutputArray::value_type;
+			if constexpr(std::is_constructible_v<output_value_type, TypeToStore>)
+			{
+				out.emplace_back(maybe_move(val));
+				return &out.back();
+			}
+			else
+			{ return nullptr; }
+		}
+	};
+
 	template<class T>
 	struct clone_visitor_update_result
 	{ using type = T*; };
@@ -518,6 +534,18 @@ namespace jopp2
 			{
 				// TODO: Add try_store_key_value to generic_value
 				return lhs.try_store_value_as(std::move(item.second), std::move(item.first)).second;
+			}
+		};
+
+		template<class OutputArray, class... SrcValueTypes>
+		struct clone_visitor_array_update_traits:
+			clone_visitor_array_update_traits_impl<OutputArray, SrcValueTypes>...
+		{
+			using clone_visitor_array_update_traits_impl<OutputArray, SrcValueTypes>::update...;
+
+			THISCALL static auto update(OutputArray&, update_param_t<kv_item>)
+			{
+				return static_cast<GenericValueOut*>(nullptr);
 			}
 		};
 
@@ -550,6 +578,15 @@ namespace jopp2
 		using output_value_update_traits = map_template_param_pack_to_type_t<
 			clone_visitor_value_update_traits,
 			complete_pack
+		>;
+
+		template<class OutputArray>
+		using output_array_update_traits = map_template_param_pack_to_type_t<
+			clone_visitor_array_update_traits,
+			concatenate_template_param_packs_t<
+				wrap_in_template_param_pack_t<OutputArray>,
+				complete_pack
+			>
 		>;
 
 		template<class T>
@@ -643,11 +680,15 @@ namespace jopp2
 
 		void handle_begin_of_array(std::type_identity<src_object> /*unused*/, value_visitation_context)
 		{
-			auto _ = m_contexts.top().output_value.update_with(sequence_container_out<object_out>{});
+			auto const old_out = m_contexts.top().output_value;
+			auto ret = old_out.update_with(sequence_container_out<object_out>{});
 			m_contexts.push(
 				context{
-					.parent_node = m_contexts.top().output_value,
-					.output_value = value_updater{}
+					.parent_node = old_out,
+					.output_value = value_updater{
+						*ret,
+						std::type_identity<output_array_update_traits<sequence_container_out<object_out>>>{}
+					}
 				}
 			);
 		}
