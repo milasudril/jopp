@@ -536,16 +536,20 @@ namespace jopp2
 			template_param_pack<sequence_container_out<GenericValueOut>>
 		>;
 
-		using complete_pack_with_kv_item = concatenate_template_param_packs_t<
+		using complete_pack = concatenate_template_param_packs_t<
 			SrcValueTemplateParamPack,
 			template_param_pack<object_out>,
-			array_value_template_param_pack,
-			template_param_pack<kv_item>
+			array_value_template_param_pack
+		>;
+
+		using complete_pack_with_kv_item = append_to_template_param_pack_t<
+			complete_pack,
+			kv_item
 		>;
 
 		using output_value_update_traits = map_template_param_pack_to_type_t<
 			clone_visitor_value_update_traits,
-			complete_pack_with_kv_item
+			complete_pack
 		>;
 
 		template<class T>
