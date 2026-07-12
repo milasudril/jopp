@@ -475,9 +475,16 @@ namespace jopp2
 	template<class Lhs, class Rhs>
 	struct clone_visitor_value_update_traits_impl
 	{
-		THISCALL static void update(Lhs& lhs, update_param_t<Rhs> rhs)
-		{ lhs = Lhs{maybe_move(rhs)}; }
+		THISCALL static int update(Lhs& lhs, update_param_t<Rhs> rhs)
+		{
+			lhs = Lhs{maybe_move(rhs)};
+			return 0;
+		}
 	};
+
+	template<class T>
+	struct clone_visitor_update_result
+	{ using type = int; };
 
 	template<class SrcValueTemplateParamPack, class GenericValueOut>
 	class clone_visitor
@@ -491,8 +498,8 @@ namespace jopp2
 		{
 			using clone_visitor_value_update_traits_impl<GenericValueOut, SrcValueTypes>::update...;
 
-			THISCALL static void update(GenericValueOut&, update_param_t<kv_item>)
-			{}
+			THISCALL static int update(GenericValueOut&, update_param_t<kv_item>)
+			{ return 0; }
 		};
 
 		using pack_with_kv_item_and_object = concatenate_template_param_packs_t<
@@ -505,8 +512,14 @@ namespace jopp2
 			pack_with_kv_item_and_object
 		>;
 
+		template<class T>
+		using update_result_t = typename clone_visitor_update_result<T>::type;
+
+		template<class ... Args>
+		using updater_with_result = updater<update_result_t, Args...>;
+
 		using value_updater = map_template_param_pack_to_type_t<
-			updater,
+			updater_with_result,
 			pack_with_kv_item_and_object
 		>;
 
@@ -555,7 +568,10 @@ namespace jopp2
 		void handle_begin_of_object(value_visitation_context)
 		{
 			if(m_contexts.top().output_value)
-			{ m_contexts.top().output_value.update_with(typename GenericValueOut::object{}); }
+			{
+				std::ignore = m_contexts.top().output_value.update_with(typename GenericValueOut::object{});
+
+			}
 
 			m_contexts.push(
 				context{

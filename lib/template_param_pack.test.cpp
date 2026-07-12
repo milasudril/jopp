@@ -19,6 +19,9 @@ TESTCASE(jopp2_map_template_param_pack_properties)
 			std::variant<int, double>
 		>
 	);
+
+	static_assert(jopp2::get_index_of_type<int, int, double>() == 0);
+	static_assert(jopp2::get_index_of_type<double, int, double>() == 1);
 }
 
 TESTCASE(jopp2_map_template_param_pack_to_type)

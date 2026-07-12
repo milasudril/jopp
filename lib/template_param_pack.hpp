@@ -32,6 +32,26 @@ namespace jopp2
 
 
 
+	template<size_t Current, class Which, class Head, class... Types>
+	inline size_t consteval get_index_of_type_impl()
+	{
+		if constexpr(std::is_same_v<Which, Head>)
+		{ return Current; }
+		else
+		{
+			if constexpr(sizeof...(Types) == 0)
+			{ throw "Type not found"; }
+			else
+			{ return get_index_of_type_impl<Current + 1, Which, Types...>(); }
+		}
+	}
+
+	template<class Which, class Head, class... Types>
+	inline size_t consteval get_index_of_type()
+	{ return get_index_of_type_impl<0, Which, Head, Types...>(); }
+
+
+
 	template<template<class...> class, class ... Types>
 	struct map_template_param_pack_to_type
 	{};
