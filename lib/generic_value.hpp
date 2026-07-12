@@ -492,7 +492,10 @@ namespace jopp2
 				return lhs.template get_if<Rhs>();
 			}
 			else
-			{ return nullptr; }
+			{
+				puts("Hej");
+				return nullptr;
+			}
 		}
 	};
 
@@ -635,7 +638,7 @@ namespace jopp2
 			m_contexts.push(
 				context{
 					.parent_node = m_contexts.top().output_value,
-					.output_value = {}
+					.output_value = value_updater{}
 				}
 			);
 		}
@@ -670,7 +673,7 @@ namespace jopp2
 	template<class GenericValueOut, class GenericValueIn>
 	auto clone(GenericValueIn&& src)
 	{
-		using src_value_template_param_pack = typename std::remove_cvref_t<GenericValueIn>::value_template_param_pack_type;
+		using src_value_template_param_pack = typename std::remove_cvref_t<GenericValueIn>::leaf_value_template_param_pack;
 		GenericValueOut ret;
 		visit_nodes(
 			std::forward<GenericValueIn>(src),
