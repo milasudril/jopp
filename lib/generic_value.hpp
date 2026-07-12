@@ -33,6 +33,8 @@ namespace jopp2
 		{ return node_index == 0; }
 	};
 
+	struct src_object{};
+
 	template<
 		template<class KeyType, class MappedType, class...> class AssociativeContainerType,
 		template<class ValueType, class...> class SequenceContainerType,
@@ -257,8 +259,8 @@ namespace jopp2
 				end_of_object,
 				begin_of_array<generic_value>,
 				end_of_array<generic_value>,
-				begin_of_array<object>,
-				end_of_array<object>
+				begin_of_array<src_object>,
+				end_of_array<src_object>
 			>
 		>;
 
@@ -403,7 +405,7 @@ namespace jopp2
 						{
 							state.nodes_to_visit.push(
 								node{
-									.value = end_of_array<value_type>{},
+									.value = end_of_array<src_object>{},
 									.context = context
 								}
 							);
@@ -419,7 +421,7 @@ namespace jopp2
 							}
 							state.nodes_to_visit.push(
 								node{
-									.value = begin_of_array<value_type>{},
+									.value = begin_of_array<src_object>{},
 									.context = context
 								}
 							);
@@ -590,7 +592,9 @@ namespace jopp2
 		template<class T>
 		void handle_begin_of_array(std::type_identity<T> /*unused*/, value_visitation_context)
 		{
+			printf("%s\n", typeid(T).name());
 #if 0
+			m_contexts.top().output_value.update_with();
 			if(m_contexts.top().output_value != nullptr)
 			{
 				*m_contexts.top().output_value = GenericValueOut{
@@ -605,6 +609,11 @@ namespace jopp2
 				}
 			);
 #endif
+		}
+
+		void handle_begin_of_array(std::type_identity<src_object> /*unused*/, value_visitation_context)
+		{
+			printf("Object\n");
 		}
 
 		template<class T>
