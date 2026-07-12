@@ -562,7 +562,10 @@ namespace jopp2
 
 		template<class T>
 		void handle_leaf_value(T&& value, value_visitation_context)
-		{ auto _ = m_contexts.top().output_value.update_with(std::forward<T>(value)); }
+		{
+			if(m_contexts.top().output_value)
+			{ auto _ = m_contexts.top().output_value.update_with(std::forward<T>(value)); }
+		}
 
 		template<class T>
 		void handle_property_name(T&& prop_name, value_visitation_context)
@@ -625,7 +628,16 @@ namespace jopp2
 		void handle_begin_of_array(std::type_identity<src_object> /*unused*/, value_visitation_context)
 		{
 			auto _ = m_contexts.top().output_value.update_with(sequence_container_out<object_out>{});
+			m_contexts.push(
+				context{
+					.parent_node = m_contexts.top().output_value,
+					.output_value = {}
+				}
+			);
 		}
+
+		void handle_end_of_array(std::type_identity<src_object> /*unused*/, value_visitation_context)
+		{ m_contexts.pop(); }
 
 		template<class T>
 		void handle_end_of_array(std::type_identity<T> /*unused*/, value_visitation_context)
