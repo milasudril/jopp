@@ -549,17 +549,9 @@ namespace jopp2
 		}
 
 		template<class T>
-		void handle_leaf_value(T&&, value_visitation_context)
+		void handle_leaf_value(T&& value, value_visitation_context)
 		{
-#if 0
-			if(m_contexts.top().output_value == nullptr)
-			{
-				if(m_contexts.top().parent_node != nullptr)
-				{ m_contexts.top().parent_node->try_store_at_end(std::forward<T>(value)); }
-			}
-			else
-			{ *m_contexts.top().output_value = GenericValueOut{std::forward<T>(value)}; }
-#endif
+			auto _ = m_contexts.top().output_value.update_with(std::forward<T>(value));
 		}
 
 		template<class T>
