@@ -486,6 +486,15 @@ namespace jopp2
 	struct clone_visitor_update_result
 	{ using type = int; };
 
+	template<class GenericValueOut>
+	struct clone_visitor_update_result<std::pair<typename GenericValueOut::key_type, GenericValueOut>>
+	{
+		using type = std::pair<
+			typename GenericValueOut::key_type const*,
+			GenericValueOut*
+		>;
+	};
+
 	template<class SrcValueTemplateParamPack, class GenericValueOut>
 	class clone_visitor
 	{
@@ -498,8 +507,11 @@ namespace jopp2
 		{
 			using clone_visitor_value_update_traits_impl<GenericValueOut, SrcValueTypes>::update...;
 
-			THISCALL static int update(GenericValueOut&, update_param_t<kv_item>)
-			{ return 0; }
+			THISCALL static auto update(GenericValueOut& lhs, update_param_t<kv_item> item)
+			{
+				// TODO: Add try_store_key_value to generic_value
+				return lhs.try_store_value_as(std::move(item.second), std::move(item.first));
+			}
 		};
 
 		using pack_with_kv_item_and_object = concatenate_template_param_packs_t<
@@ -551,26 +563,28 @@ namespace jopp2
 		}
 
 		template<class T>
-		void handle_property_name(T&&, value_visitation_context)
+		void handle_property_name(T&& prop_name, value_visitation_context)
 		{
-#if 0
-			if(m_contexts.top().parent_node != nullptr)
+			if(m_contexts.top().parent_node)
 			{
-				auto const res = m_contexts.top().parent_node->try_store_value_as(
-					GenericValueOut{},
-					std::forward<T>(prop_name)
+				auto const res = m_contexts.top().parent_node.update_with(
+					std::pair{
+						std::forward<T>(prop_name),
+						GenericValueOut{}
+					}
 				);
-				m_contexts.top().output_value = res.second;
+				m_contexts.top().output_value = value_updater{
+					*res.second,
+					std::type_identity<output_value_update_traits>{}
+				};
 			}
-#endif
 		}
 
 		void handle_begin_of_object(value_visitation_context)
 		{
 			if(m_contexts.top().output_value)
 			{
-				std::ignore = m_contexts.top().output_value.update_with(typename GenericValueOut::object{});
-
+				auto _ = m_contexts.top().output_value.update_with(typename GenericValueOut::object{});
 			}
 
 			m_contexts.push(
