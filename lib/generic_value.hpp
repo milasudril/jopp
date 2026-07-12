@@ -89,6 +89,7 @@ namespace jopp2
 		generic_value& operator=(generic_value&&) = default;
 
 		template<class ... Args>
+		requires(std::is_constructible_v<value_type, Args...>)
 		explicit generic_value(Args&&... args):
 			m_value{std::forward<Args>(args)...}
 		{}
@@ -479,7 +480,8 @@ namespace jopp2
 	{
 		THISCALL static void update(Lhs& lhs, update_param_t<Rhs> rhs)
 		{
-			lhs = Lhs{maybe_move(rhs)};
+			if constexpr(std::is_constructible_v<Lhs, Rhs>)
+			{ lhs = Lhs{maybe_move(rhs)}; }
 		}
 	};
 
@@ -643,7 +645,7 @@ namespace jopp2
 	template<class GenericValueOut, class GenericValueIn>
 	auto clone(GenericValueIn&& src)
 	{
-		using src_value_template_param_pack = typename std::remove_cvref_t<GenericValueIn>::leaf_value_template_param_pack;
+		using src_value_template_param_pack = typename std::remove_cvref_t<GenericValueIn>::value_template_param_pack_type;
 		GenericValueOut ret;
 		visit_nodes(
 			std::forward<GenericValueIn>(src),
