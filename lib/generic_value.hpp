@@ -475,16 +475,15 @@ namespace jopp2
 	template<class Lhs, class Rhs>
 	struct clone_visitor_value_update_traits_impl
 	{
-		THISCALL static int update(Lhs& lhs, update_param_t<Rhs> rhs)
+		THISCALL static void update(Lhs& lhs, update_param_t<Rhs> rhs)
 		{
 			lhs = Lhs{maybe_move(rhs)};
-			return 0;
 		}
 	};
 
 	template<class T>
 	struct clone_visitor_update_result
-	{ using type = int; };
+	{ using type = void; };
 
 	template<class GenericValueOut>
 	struct clone_visitor_update_result<std::pair<typename GenericValueOut::key_type, GenericValueOut>>
@@ -550,9 +549,7 @@ namespace jopp2
 
 		template<class T>
 		void handle_leaf_value(T&& value, value_visitation_context)
-		{
-			auto _ = m_contexts.top().output_value.update_with(std::forward<T>(value));
-		}
+		{ m_contexts.top().output_value.update_with(std::forward<T>(value)); }
 
 		template<class T>
 		void handle_property_name(T&& prop_name, value_visitation_context)
@@ -575,9 +572,7 @@ namespace jopp2
 		void handle_begin_of_object(value_visitation_context)
 		{
 			if(m_contexts.top().output_value)
-			{
-				auto _ = m_contexts.top().output_value.update_with(typename GenericValueOut::object{});
-			}
+			{ m_contexts.top().output_value.update_with(typename GenericValueOut::object{}); }
 
 			m_contexts.push(
 				context{
