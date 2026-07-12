@@ -480,26 +480,26 @@ namespace jopp2
 	template<class Lhs, class Rhs>
 	struct clone_visitor_value_update_traits_impl
 	{
-		THISCALL static void update(Lhs& lhs, update_param_t<Rhs> rhs)
+		THISCALL static Rhs* update(Lhs& lhs, update_param_t<Rhs> rhs)
 		{
 			if constexpr(std::is_constructible_v<Lhs, Rhs>)
-			{ lhs = Lhs{maybe_move(rhs)}; }
+			{
+				lhs = Lhs{maybe_move(rhs)};
+				return lhs.template get_if<Rhs>();
+			}
 			else
-			{ puts("Skip"); }
+			{ return nullptr; }
 		}
 	};
 
 	template<class T>
 	struct clone_visitor_update_result
-	{ using type = void; };
+	{ using type = T*; };
 
 	template<class GenericValueOut>
 	struct clone_visitor_update_result<std::pair<typename GenericValueOut::key_type, GenericValueOut>>
 	{
-		using type = std::pair<
-			typename GenericValueOut::key_type const*,
-			GenericValueOut*
-		>;
+		using type = GenericValueOut*;
 	};
 
 	template<class SrcValueTemplateParamPack, class GenericValueOut>
@@ -517,7 +517,7 @@ namespace jopp2
 			THISCALL static auto update(GenericValueOut& lhs, update_param_t<kv_item> item)
 			{
 				// TODO: Add try_store_key_value to generic_value
-				return lhs.try_store_value_as(std::move(item.second), std::move(item.first));
+				return lhs.try_store_value_as(std::move(item.second), std::move(item.first)).second;
 			}
 		};
 
@@ -562,21 +562,21 @@ namespace jopp2
 
 		template<class T>
 		void handle_leaf_value(T&& value, value_visitation_context)
-		{ m_contexts.top().output_value.update_with(std::forward<T>(value)); }
+		{ auto _ = m_contexts.top().output_value.update_with(std::forward<T>(value)); }
 
 		template<class T>
 		void handle_property_name(T&& prop_name, value_visitation_context)
 		{
 			if(m_contexts.top().parent_node)
 			{
-				auto const res = m_contexts.top().parent_node.update_with(
+				auto res = m_contexts.top().parent_node.update_with(
 					std::pair{
 						std::forward<T>(prop_name),
 						GenericValueOut{}
 					}
 				);
 				m_contexts.top().output_value = value_updater{
-					*res.second,
+					*res,
 					std::type_identity<output_value_update_traits>{}
 				};
 			}
@@ -585,7 +585,7 @@ namespace jopp2
 		void handle_begin_of_object(value_visitation_context)
 		{
 			if(m_contexts.top().output_value)
-			{ m_contexts.top().output_value.update_with(typename GenericValueOut::object{}); }
+			{ auto _ = m_contexts.top().output_value.update_with(typename GenericValueOut::object{}); }
 
 			m_contexts.push(
 				context{
@@ -624,7 +624,7 @@ namespace jopp2
 
 		void handle_begin_of_array(std::type_identity<src_object> /*unused*/, value_visitation_context)
 		{
-			m_contexts.top().output_value.update_with(sequence_container_out<object_out>{});
+			auto _ = m_contexts.top().output_value.update_with(sequence_container_out<object_out>{});
 		}
 
 		template<class T>
