@@ -57,21 +57,21 @@ namespace jopp2
 	template <class T>
 	using query_param_t = std::conditional_t<pass_by_value_v<T>, T, T const&>;
 
-	template<class Sink, class T>
-	using update_func_t = void (*)(Sink&, update_param_t<T>) THISCALL;
+	template<template<class> class UpdateResultType, class Sink, class T>
+	using update_func_t = UpdateResultType<T> (*)(Sink&, update_param_t<T>) THISCALL;
 
-	template<class UpdateTraits, class Sink, class... Types>
-	concept update_traits = (requires(update_func_t<Sink, Types>& cb)
+	template<class UpdateTraits, template<class> class UpdateResultType, class Sink, class... Types>
+	concept update_traits = (requires(update_func_t<UpdateResultType, Sink, Types>& cb)
 	{
 		{ cb = &UpdateTraits::update };
 	}
 	&& ...);
 
-	template<class... Types>
+	template<template<class> class UpdateResultType, class... Types>
 	class updater
 	{
 	public:
-		template<class Sink, update_traits<Sink, Types...> UpdateTraits>
+		template<class Sink, update_traits<UpdateResultType, Sink, Types...> UpdateTraits>
 		constexpr explicit updater(Sink& target, std::type_identity<UpdateTraits>):
 				m_handle{&target},
 				m_vtable(&s_vtable<Sink, UpdateTraits>)
@@ -82,26 +82,26 @@ namespace jopp2
 			!std::is_lvalue_reference_v<SourceValue> ||
 			pass_by_value_v<std::remove_cvref_t<SourceValue>>
 		)
-		THISCALL constexpr void update_with(SourceValue&& value) const
+		THISCALL [[nodiscard]] constexpr auto update_with(SourceValue&& value) const
 		{
 			using raw_type = std::remove_cvref_t<SourceValue>;
-			std::get<update_callback_t<raw_type>>(*m_vtable)(m_handle, std::forward<SourceValue>(value));
+			return std::get<update_callback_t<raw_type>>(*m_vtable)(m_handle, std::forward<SourceValue>(value));
 		}
 
 		template<class SourceValue>
 		requires(!pass_by_value_v<std::remove_cvref_t<SourceValue>>)
-		THISCALL constexpr void update_with(SourceValue const& value) const
+		THISCALL [[nodiscard]] constexpr auto update_with(SourceValue const& value) const
 		{
 			using raw_type = std::remove_cvref_t<SourceValue>;
 			if constexpr(std::is_trivially_copyable_v<std::remove_cvref_t<SourceValue>>)
-			{ std::get<update_callback_t<raw_type>>(*m_vtable)(m_handle, value); }
+			{ return std::get<update_callback_t<raw_type>>(*m_vtable)(m_handle, value); }
 			else
-			{ std::get<update_callback_t<raw_type>>(*m_vtable)(m_handle, raw_type{value}); }
+			{ return std::get<update_callback_t<raw_type>>(*m_vtable)(m_handle, raw_type{value}); }
 		}
 
 	private:
 		template<class T>
-		using update_callback_t = void (*)(void*, update_param_t<T>) THISCALL;
+		using update_callback_t = UpdateResultType<T> (*)(void*, update_param_t<T>) THISCALL;
 
 		using vtable = std::tuple<update_callback_t<Types>...>;
 
@@ -112,9 +112,9 @@ namespace jopp2
 		static constexpr auto s_vtable = std::tuple{
 			+[](void* target, update_param_t<Types> value) static THISCALL {
 				if constexpr(pass_by_value_v<Types> || std::is_trivially_copyable_v<Types>)
-				{ UpdateTraits::update(*static_cast<Sink*>(target), value); }
+				{ return UpdateTraits::update(*static_cast<Sink*>(target), value); }
 				else
-				{ UpdateTraits::update(*static_cast<Sink*>(target), std::move(value)); }
+				{ return UpdateTraits::update(*static_cast<Sink*>(target), std::move(value)); }
 			}...
 		};
 	};
