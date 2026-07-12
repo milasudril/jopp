@@ -533,14 +533,26 @@ namespace jopp2
 
 		using object_out = typename GenericValueOut::object;
 
-		using pack_with_kv_item_and_object = concatenate_template_param_packs_t<
+		using leaf_value_template_param_pack = SrcValueTemplateParamPack;
+
+		using array_value_template_param_pack = concatenate_template_param_packs_t<
+			wrap_template_param_pack_elements_t<
+				leaf_value_template_param_pack, sequence_container_out
+			>,
+			template_param_pack<sequence_container_out<object_out>>,
+			template_param_pack<sequence_container_out<GenericValueOut>>
+		>;
+
+		using complete_pack_with_kv_item = concatenate_template_param_packs_t<
 			SrcValueTemplateParamPack,
-			template_param_pack<kv_item, object_out, sequence_container_out<object_out>>
+			template_param_pack<object_out>,
+			array_value_template_param_pack,
+			template_param_pack<kv_item>
 		>;
 
 		using output_value_update_traits = map_template_param_pack_to_type_t<
 			clone_visitor_value_update_traits,
-			pack_with_kv_item_and_object
+			complete_pack_with_kv_item
 		>;
 
 		template<class T>
@@ -551,7 +563,7 @@ namespace jopp2
 
 		using value_updater = map_template_param_pack_to_type_t<
 			updater_with_result,
-			pack_with_kv_item_and_object
+			complete_pack_with_kv_item
 		>;
 
 		explicit clone_visitor(GenericValueOut& output_value)
