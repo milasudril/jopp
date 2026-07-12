@@ -486,16 +486,9 @@ namespace jopp2
 	{
 		THISCALL static Rhs* update(Lhs& lhs, update_param_t<Rhs> rhs)
 		{
-			if constexpr(std::is_constructible_v<Lhs, Rhs>)
-			{
-				lhs = Lhs{maybe_move(rhs)};
-				return lhs.template get_if<Rhs>();
-			}
-			else
-			{
-				puts("Hej");
-				return nullptr;
-			}
+			static_assert(std::is_constructible_v<Lhs, Rhs>);
+			lhs = Lhs{maybe_move(rhs)};
+			return lhs.template get_if<Rhs>();
 		}
 	};
 
