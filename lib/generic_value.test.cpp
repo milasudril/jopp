@@ -417,7 +417,6 @@ TESTCASE(jopp2_generic_value_visit_nodes)
 		res.second.emplace_back(0.0);
 		res.second.emplace_back(1000.0);
 	}
-#if 0
 
 	{
 		auto const res = value.store_value_as(std::vector<std::string>{}, "array_of_strings");
@@ -442,6 +441,7 @@ TESTCASE(jopp2_generic_value_visit_nodes)
 		res.second.emplace_back(bool_wrapper::enabled);
 		res.second.emplace_back(bool_wrapper::enabled);
 	}
+#if 0
 
 	{
 		auto const res = value.store_value_as(std::vector<json_value>{}, "array_of_arrays");
