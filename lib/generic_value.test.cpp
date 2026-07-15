@@ -483,7 +483,6 @@ TESTCASE(jopp2_generic_value_visit_nodes)
 		}
 	}
 
-#if 0
 	{
 		auto const res = value.store_value_as(json_value::object{}, "object_value");
 		res.second.emplace("nested_key_1", "nested_value");
@@ -494,7 +493,6 @@ TESTCASE(jopp2_generic_value_visit_nodes)
 	value.store_value_as(3.14159, "number_value");
 	value.store_value_as(nullptr, "null_value");
 	value.store_value_as(bool_wrapper::enabled, "boolean_value");
-#endif
 
 	using json_value_sorted = jopp2::generic_value<std::flat_map, std::vector, json_value_traits>;
 
