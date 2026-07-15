@@ -521,7 +521,11 @@ namespace jopp2
 		THISCALL static TypeToStore* update(OutputArray& out, update_param_t<TypeToStore> val)
 		{
 			using output_value_type = typename OutputArray::value_type;
-			if constexpr(std::is_constructible_v<output_value_type, TypeToStore>)
+			printf("Updating array %s %s\n", typeid(TypeToStore).name(), typeid(output_value_type).name());
+			if constexpr(
+				   std::is_constructible_v<output_value_type, TypeToStore>
+				|| std::is_same_v<output_value_type, TypeToStore>
+			)
 			{
 				out.emplace_back(maybe_move(val));
 				if constexpr(requires{{out.back().template get_if<TypeToStore>()};})
@@ -671,6 +675,7 @@ namespace jopp2
 			}
 			else
 			{
+				puts("--- Trying to insert leaf node");
 				assert(m_contexts.top().output_value);
 				auto _ = m_contexts.top().output_value.update_with(std::forward<T>(value));
 			}
@@ -763,12 +768,22 @@ namespace jopp2
 			using output_array = sequence_container_out<T>;
 			if(m_value_after_key != nullptr)
 			{
-				// TODO
-				assert(false);
+				printf("Insert array of %s\n", typeid(T).name());
+				auto const val_ptr = m_value_after_key;
+				m_value_after_key = nullptr;
+				*val_ptr = GenericValueOut{output_array{}};
+				m_contexts.push(
+					context{
+						.parent_node = old_out,
+						.output_value = value_updater{
+							*val_ptr->template get_if<output_array>(),
+							std::type_identity<output_array_update_traits<output_array>>{}
+						}
+					}
+				);
 			}
 			else
 			{
-				printf("--- Adding object to array\n");
 				auto const ret = old_out.update_with(output_array{});
 				m_contexts.push(
 					context{
