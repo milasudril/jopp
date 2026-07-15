@@ -521,7 +521,6 @@ namespace jopp2
 		THISCALL static TypeToStore* update(OutputArray& out, update_param_t<TypeToStore> val)
 		{
 			using output_value_type = typename OutputArray::value_type;
-			printf("Updating array %s %s\n", typeid(TypeToStore).name(), typeid(output_value_type).name());
 			if constexpr(
 				   std::is_constructible_v<output_value_type, TypeToStore>
 				|| std::is_same_v<output_value_type, TypeToStore>
@@ -675,8 +674,6 @@ namespace jopp2
 			}
 			else
 			{
-				puts("--- Trying to insert leaf node");
-				assert(m_contexts.top().output_value);
 				auto _ = m_contexts.top().output_value.update_with(std::forward<T>(value));
 			}
 		}
@@ -719,7 +716,6 @@ namespace jopp2
 			}
 			else
 			{
-				printf("--- Adding object to array\n");
 				auto const ret = old_out.update_with(typename GenericValueOut::object{});
 				m_contexts.push(
 					context{
@@ -731,30 +727,10 @@ namespace jopp2
 					}
 				);
 			}
-#if 0
-			printf(
-				"after push begin of object %zu (parent = %s, current = %s)\n",
-				std::size(m_contexts),
-				old_out.origin(),
-				m_contexts.top().output_value.origin()
-			);
-			fflush(stdout);
-#endif
 		}
 
 		void handle_end_of_object(value_visitation_context)
-		{
-#if 0
-			printf(
-				"before pop end of object %zu (parent = %s, current = %s)\n",
-				std::size(m_contexts),
-				m_contexts.top().parent_node.origin(),
-				m_contexts.top().output_value.origin()
-			);
-			fflush(stdout);
-#endif
-			m_contexts.pop();
-		}
+		{ m_contexts.pop(); }
 
 		template<class T>
 		void handle_begin_of_array(std::type_identity<src_object> /*unused*/, value_visitation_context)
@@ -768,7 +744,6 @@ namespace jopp2
 			using output_array = sequence_container_out<T>;
 			if(m_value_after_key != nullptr)
 			{
-				printf("Insert array of %s\n", typeid(T).name());
 				auto const val_ptr = m_value_after_key;
 				m_value_after_key = nullptr;
 				*val_ptr = GenericValueOut{output_array{}};
@@ -811,7 +786,6 @@ namespace jopp2
 			assert(old_out);
 			if(m_value_after_key != nullptr)
 			{
-				puts("--- Creating heterogenous array");
 				auto const val_ptr = m_value_after_key;
 				m_value_after_key = nullptr;
 				*val_ptr = GenericValueOut{output_array{}};
@@ -852,24 +826,42 @@ namespace jopp2
 
 		void handle_begin_of_array(std::type_identity<src_object> /*unused*/, value_visitation_context)
 		{
-			printf("--- begin of array (parent %s)\n", m_contexts.top().parent_node.origin());
-			fflush(stdout);
 			auto const old_out = m_contexts.top().output_value;
+			using output_array = sequence_container_out<typename GenericValueOut::object>;
 			assert(old_out);
-			if(!old_out)
-			{ return; }
-			printf("--- begin of array inside %s\n", old_out.origin());
-			fflush(stdout);
-			auto const ret = old_out.update_with(sequence_container_out<object_out>{});
-			m_contexts.push(
-				context{
-					.parent_node = old_out,
-					.output_value = value_updater{
-						*ret,
-						std::type_identity<output_array_update_traits<sequence_container_out<object_out>>>{}
+			if(m_value_after_key != nullptr)
+			{
+				auto const val_ptr = m_value_after_key;
+				m_value_after_key = nullptr;
+				*val_ptr = GenericValueOut{output_array{}};
+				m_contexts.push(
+					context{
+						.parent_node = old_out,
+						.output_value = value_updater{
+							*val_ptr->template get_if<output_array>(),
+							std::type_identity<output_array_update_traits<output_array>>{}
+						}
 					}
-				}
-			);
+				);
+			}
+			else
+			{
+				// TODO
+				assert(false);
+
+#if 0
+				auto const ret = old_out.update_with(sequence_container_out<GenericValueOut>{});
+				m_contexts.push(
+					context{
+						.parent_node = old_out,
+						.output_value = value_updater{
+							*ret,
+							std::type_identity<output_value_update_traits>{}
+						}
+					}
+				);
+#endif
+			}
 		}
 
 		void handle_end_of_array(std::type_identity<src_object> /*unused*/, value_visitation_context)

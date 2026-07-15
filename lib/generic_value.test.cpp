@@ -466,7 +466,6 @@ TESTCASE(jopp2_generic_value_visit_nodes)
 		}
 	}
 
-#if 0
 	{
 		auto const res = value.store_value_as(std::vector<json_value::object>{}, "array_of_objects");
 		{
@@ -484,6 +483,7 @@ TESTCASE(jopp2_generic_value_visit_nodes)
 		}
 	}
 
+#if 0
 	{
 		auto const res = value.store_value_as(json_value::object{}, "object_value");
 		res.second.emplace("nested_key_1", "nested_value");
