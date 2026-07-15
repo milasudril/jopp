@@ -733,11 +733,6 @@ namespace jopp2
 		{ m_contexts.pop(); }
 
 		template<class T>
-		void handle_begin_of_array(std::type_identity<src_object> /*unused*/, value_visitation_context)
-		{
-		}
-
-		template<class T>
 		void handle_begin_of_array(std::type_identity<T> /*unused*/,value_visitation_context)
 		{
 			auto const old_out = m_contexts.top().output_value;
