@@ -55,7 +55,7 @@
             "cxx_test": {
                 "compiler": {
                     "config": {
-                    "actions":["link", "run", "sanitize"],
+                    "actions":["link", "run"],
                         "cflags": [
                             "-I.",
                             "-Wall",

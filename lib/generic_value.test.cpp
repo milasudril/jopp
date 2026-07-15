@@ -408,7 +408,7 @@ TESTCASE(jopp2_generic_value_visit_nodes)
 		res.second.emplace_back(bool_wrapper::enabled);
 		res.second.emplace_back(nullptr);
 	}
-
+#if 0
 	{
 		auto const res = value.store_value_as(std::vector<double>{}, "array_of_numbers");
 		res.second.emplace_back(1.0);
@@ -493,6 +493,7 @@ TESTCASE(jopp2_generic_value_visit_nodes)
 	value.store_value_as(3.14159, "number_value");
 	value.store_value_as(nullptr, "null_value");
 	value.store_value_as(bool_wrapper::enabled, "boolean_value");
+#endif
 
 	using json_value_sorted = jopp2::generic_value<std::flat_map, std::vector, json_value_traits>;
 

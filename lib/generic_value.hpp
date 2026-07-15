@@ -35,6 +35,8 @@ namespace jopp2
 
 	struct src_object{};
 
+	struct src_value{};
+
 	template<
 		template<class KeyType, class MappedType, class...> class AssociativeContainerType,
 		template<class ValueType, class...> class SequenceContainerType,
@@ -151,7 +153,11 @@ namespace jopp2
 
 			auto i = self.template get_if<object>();
 			if(i == nullptr)
-			{ return ret_type{}; }
+			{
+				puts("========== Not object ==============");
+				fflush(stdout);
+				return ret_type{};
+			}
 
 			auto const insert_result = i->emplace(std::forward<KeyLike>(key), std::forward<T>(value));
 			if(!insert_result.second)
@@ -160,7 +166,14 @@ namespace jopp2
 			if constexpr(std::is_same_v<std::remove_cvref_t<T>, generic_value>)
 			{ return ret_type{&insert_result.first->first, &insert_result.first->second}; }
 			else
-			{ return ret_type{&insert_result.first->first, insert_result.first->second.template get_if<T>()}; }
+			{
+				if(insert_result.first->second.template get_if<T>() == nullptr)
+				{
+					puts("================ Unexpected return type");
+					fflush(stdout);
+				}
+				return ret_type{&insert_result.first->first, insert_result.first->second.template get_if<T>()};
+			}
 		}
 
 		template<class Self, class T, class KeyLike>
@@ -264,8 +277,8 @@ namespace jopp2
 				std::pair<key_type const*, std::remove_reference_t<value_type>*>,
 				begin_of_object,
 				end_of_object,
-				begin_of_array<generic_value>,
-				end_of_array<generic_value>,
+				begin_of_array<src_value>,
+				end_of_array<src_value>,
 				begin_of_array<src_object>,
 				end_of_array<src_object>
 			>
@@ -384,7 +397,7 @@ namespace jopp2
 						{
 							state.nodes_to_visit.push(
 								node{
-									.value = end_of_array<value_type>{},
+									.value = end_of_array<src_value>{},
 									.context = context
 								}
 							);
@@ -402,7 +415,7 @@ namespace jopp2
 							}
 							state.nodes_to_visit.push(
 								node{
-									.value = begin_of_array<value_type>{},
+									.value = begin_of_array<src_value>{},
 									.context = context
 								}
 							);
@@ -492,6 +505,16 @@ namespace jopp2
 		}
 	};
 
+	template<class Lhs, class Rhs>
+	struct clone_visitor_object_update_traits_impl
+	{
+		THISCALL static Rhs* update(Lhs&, update_param_t<Rhs>)
+		{
+			printf("Unexpected object update %s %s\n", typeid(Lhs).name(), typeid(Rhs).name());
+			return nullptr;
+		}
+	};
+
 	template<class OutputArray, class TypeToStore>
 	struct clone_visitor_array_update_traits_impl
 	{
@@ -501,7 +524,10 @@ namespace jopp2
 			if constexpr(std::is_constructible_v<output_value_type, TypeToStore>)
 			{
 				out.emplace_back(maybe_move(val));
-				return &out.back();
+				if constexpr(requires{{out.back().template get_if<TypeToStore>()};})
+				{ return out.back().template get_if<TypeToStore>(); }
+				else
+				{ return &out.back(); }
 			}
 			else
 			{ return nullptr; }
@@ -523,6 +549,7 @@ namespace jopp2
 	{
 	public:
 		using kv_item = std::pair<typename GenericValueOut::key_type, GenericValueOut>;
+		using object_out = typename GenericValueOut::object;
 
 		template<class... SrcValueTypes>
 		struct clone_visitor_value_update_traits:
@@ -533,7 +560,22 @@ namespace jopp2
 			THISCALL static auto update(GenericValueOut& lhs, update_param_t<kv_item> item)
 			{
 				// TODO: Add try_store_key_value to generic_value
-				return lhs.try_store_value_as(std::move(item.second), std::move(item.first)).second;
+				auto retval = lhs.try_store_value_as(std::move(item.second), std::move(item.first)).second;
+				assert(retval != nullptr);
+				return retval;
+			}
+		};
+
+		template<class... SrcValueTypes>
+		struct clone_visitor_object_update_traits:
+			clone_visitor_object_update_traits_impl<object_out, SrcValueTypes>...
+		{
+			using clone_visitor_object_update_traits_impl<object_out, SrcValueTypes>::update...;
+
+			THISCALL static auto update(object_out& lhs, update_param_t<kv_item> item)
+			{
+				auto const result = lhs.insert(maybe_move(item));
+				return &result.first->second;
 			}
 		};
 
@@ -543,16 +585,15 @@ namespace jopp2
 		{
 			using clone_visitor_array_update_traits_impl<OutputArray, SrcValueTypes>::update...;
 
-			THISCALL static auto update(OutputArray&, update_param_t<kv_item>)
+			THISCALL static auto update(OutputArray&, update_param_t<kv_item> item)
 			{
+				printf("--- Unexpected prop name %s\n", item.first.c_str());
 				return static_cast<GenericValueOut*>(nullptr);
 			}
 		};
 
 		template<class T>
 		using sequence_container_out = typename GenericValueOut::template sequence_container_type<T>;
-
-		using object_out = typename GenericValueOut::object;
 
 		using leaf_value_template_param_pack = SrcValueTemplateParamPack;
 
@@ -577,6 +618,11 @@ namespace jopp2
 
 		using output_value_update_traits = map_template_param_pack_to_type_t<
 			clone_visitor_value_update_traits,
+			complete_pack
+		>;
+
+		using output_object_update_traits = map_template_param_pack_to_type_t<
+			clone_visitor_object_update_traits,
 			complete_pack
 		>;
 
@@ -616,43 +662,92 @@ namespace jopp2
 		template<class T>
 		void handle_leaf_value(T&& value, value_visitation_context)
 		{
-			if(m_contexts.top().output_value)
-			{ auto _ = m_contexts.top().output_value.update_with(std::forward<T>(value)); }
+			if(m_value_after_key != nullptr)
+			{
+				auto const val_ptr = m_value_after_key;
+				m_value_after_key = nullptr;
+				using convert_to = typename std::remove_cvref_t<std::remove_pointer_t<decltype(val_ptr)>>;
+				*val_ptr = convert_to{std::forward<T>(value)};
+			}
+			else
+			{
+				assert(m_contexts.top().output_value);
+				auto _ = m_contexts.top().output_value.update_with(std::forward<T>(value));
+			}
 		}
 
 		template<class T>
 		void handle_property_name(T&& prop_name, value_visitation_context)
 		{
-			if(m_contexts.top().parent_node)
+			assert(!m_contexts.empty());
+			auto& old_out = m_contexts.top().output_value;
+			if(old_out)
 			{
-				auto res = m_contexts.top().parent_node.update_with(
+				printf("Got key: %s\n", prop_name.c_str());
+				m_value_after_key = old_out.update_with(
 					std::pair{
 						std::forward<T>(prop_name),
 						GenericValueOut{}
 					}
 				);
-				m_contexts.top().output_value = value_updater{
-					*res,
-					std::type_identity<output_value_update_traits>{}
-				};
 			}
 		}
 
 		void handle_begin_of_object(value_visitation_context)
 		{
-			if(m_contexts.top().output_value)
-			{ auto _ = m_contexts.top().output_value.update_with(typename GenericValueOut::object{}); }
-
-			m_contexts.push(
-				context{
-					.parent_node = m_contexts.top().output_value,
-					.output_value = {}
-				}
+			auto const old_out = m_contexts.top().output_value;
+			assert(old_out);
+			if(m_value_after_key != nullptr)
+			{
+				auto const val_ptr = m_value_after_key;
+				m_value_after_key = nullptr;
+				*val_ptr = GenericValueOut{typename GenericValueOut::object{}};
+				m_contexts.push(
+					context{
+						.parent_node = old_out,
+						.output_value = value_updater{
+							*val_ptr,
+							std::type_identity<output_value_update_traits>{}
+						}
+					}
+				);
+			}
+			else
+			{
+				printf("--- Adding object to array\n");
+				auto const ret = old_out.update_with(typename GenericValueOut::object{});
+				m_contexts.push(
+					context{
+						.parent_node = old_out,
+						.output_value = value_updater{
+							*ret,
+							std::type_identity<output_object_update_traits>{}
+						}
+					}
+				);
+			}
+#if 0
+			printf(
+				"after push begin of object %zu (parent = %s, current = %s)\n",
+				std::size(m_contexts),
+				old_out.origin(),
+				m_contexts.top().output_value.origin()
 			);
+			fflush(stdout);
+#endif
 		}
 
 		void handle_end_of_object(value_visitation_context)
 		{
+#if 0
+			printf(
+				"before pop end of object %zu (parent = %s, current = %s)\n",
+				std::size(m_contexts),
+				m_contexts.top().parent_node.origin(),
+				m_contexts.top().output_value.origin()
+			);
+			fflush(stdout);
+#endif
 			m_contexts.pop();
 		}
 
@@ -678,10 +773,63 @@ namespace jopp2
 #endif
 		}
 
-		void handle_begin_of_array(std::type_identity<src_object> /*unused*/, value_visitation_context)
+		void handle_begin_of_array(std::type_identity<src_value> /*unused*/, value_visitation_context)
 		{
 			auto const old_out = m_contexts.top().output_value;
-			auto ret = old_out.update_with(sequence_container_out<object_out>{});
+			using output_array = sequence_container_out<GenericValueOut>;
+			assert(old_out);
+			if(m_value_after_key != nullptr)
+			{
+				puts("--- Creating heterogenous array");
+				auto const val_ptr = m_value_after_key;
+				m_value_after_key = nullptr;
+				*val_ptr = GenericValueOut{output_array{}};
+				m_contexts.push(
+					context{
+						.parent_node = old_out,
+						.output_value = value_updater{
+							*val_ptr->template get_if<output_array>(),
+							std::type_identity<output_array_update_traits<output_array>>{}
+						}
+					}
+				);
+			}
+			else
+			{
+				// TODO
+				assert(false);
+
+#if 0
+				auto const ret = old_out.update_with(sequence_container_out<GenericValueOut>{});
+				m_contexts.push(
+					context{
+						.parent_node = old_out,
+						.output_value = value_updater{
+							*ret,
+							std::type_identity<output_value_update_traits>{}
+						}
+					}
+				);
+#endif
+			}
+		}
+
+		void handle_end_of_array(std::type_identity<src_value> /*unused*/, value_visitation_context)
+		{
+			m_contexts.pop();
+		}
+
+		void handle_begin_of_array(std::type_identity<src_object> /*unused*/, value_visitation_context)
+		{
+			printf("--- begin of array (parent %s)\n", m_contexts.top().parent_node.origin());
+			fflush(stdout);
+			auto const old_out = m_contexts.top().output_value;
+			assert(old_out);
+			if(!old_out)
+			{ return; }
+			printf("--- begin of array inside %s\n", old_out.origin());
+			fflush(stdout);
+			auto const ret = old_out.update_with(sequence_container_out<object_out>{});
 			m_contexts.push(
 				context{
 					.parent_node = old_out,
@@ -694,7 +842,9 @@ namespace jopp2
 		}
 
 		void handle_end_of_array(std::type_identity<src_object> /*unused*/, value_visitation_context)
-		{ m_contexts.pop(); }
+		{
+			m_contexts.pop();
+		}
 
 		template<class T>
 		void handle_end_of_array(std::type_identity<T> /*unused*/, value_visitation_context)
@@ -712,6 +862,7 @@ namespace jopp2
 
 	private:
 		std::stack<context> m_contexts;
+		GenericValueOut* m_value_after_key{nullptr};
 	};
 
 	template<class SrcValueTemplateParamPack, class GenericValueOut>

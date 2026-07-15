@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <tuple>
 #include <cstdio>
+#include <source_location>
 
 namespace jopp2
 {
@@ -72,10 +73,11 @@ namespace jopp2
 	{
 	public:
 		constexpr updater() = default;
-		template<class Sink, update_traits<UpdateResultType, Sink, Types...> UpdateTraits>
-		constexpr explicit updater(Sink& target, std::type_identity<UpdateTraits>):
+		template<class Sink, class UpdateTraits>
+		constexpr explicit updater(Sink& target, std::type_identity<UpdateTraits>, char const* origin = std::source_location::current().function_name()):
 				m_handle{&target},
-				m_vtable{&s_vtable<Sink, UpdateTraits>}
+				m_vtable{&s_vtable<Sink, UpdateTraits>},
+				m_origin{origin}
 		{}
 
 		template<class SourceValue>
@@ -103,6 +105,9 @@ namespace jopp2
 		THISCALL constexpr operator bool() const
 		{ return m_handle != nullptr; }
 
+		THISCALL char const* origin() const
+		{ return m_origin; }
+
 	private:
 		template<class T>
 		using update_callback_t = UpdateResultType<T> (*)(void*, update_param_t<T>) THISCALL;
@@ -111,6 +116,7 @@ namespace jopp2
 
 		void* m_handle{nullptr};
 		vtable const* m_vtable{nullptr};
+		char const* m_origin{nullptr};
 
 		template<class Sink, class UpdateTraits>
 		static constexpr vtable s_vtable{
