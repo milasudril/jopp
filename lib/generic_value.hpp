@@ -752,26 +752,42 @@ namespace jopp2
 		}
 
 		template<class T>
-		void handle_begin_of_array(std::type_identity<T> /*unused*/, value_visitation_context)
+		void handle_begin_of_array(std::type_identity<src_object> /*unused*/, value_visitation_context)
 		{
-			printf("%s\n", typeid(T).name());
-#if 0
-			m_contexts.top().output_value.update_with();
-			if(m_contexts.top().output_value != nullptr)
-			{
-				*m_contexts.top().output_value = GenericValueOut{
-					typename GenericValueOut::generic_sequence_container{}
-				};
-			}
-
-			m_contexts.push(
-				context{
-					.parent_node = m_contexts.top().output_value,
-					.output_value = nullptr
-				}
-			);
-#endif
 		}
+
+		template<class T>
+		void handle_begin_of_array(std::type_identity<T> /*unused*/,value_visitation_context)
+		{
+			auto const old_out = m_contexts.top().output_value;
+			using output_array = sequence_container_out<T>;
+			if(m_value_after_key != nullptr)
+			{
+				// TODO
+				assert(false);
+			}
+			else
+			{
+				printf("--- Adding object to array\n");
+				auto const ret = old_out.update_with(output_array{});
+				m_contexts.push(
+					context{
+						.parent_node = old_out,
+						.output_value = value_updater{
+							*ret,
+							std::type_identity<output_array_update_traits<output_array>>{}
+						}
+					}
+				);
+			}
+		}
+
+		template<class T>
+		void handle_end_of_array(std::type_identity<T> /*unused*/, value_visitation_context)
+		{
+			m_contexts.pop();
+		}
+
 
 		void handle_begin_of_array(std::type_identity<src_value> /*unused*/, value_visitation_context)
 		{
@@ -844,14 +860,6 @@ namespace jopp2
 		void handle_end_of_array(std::type_identity<src_object> /*unused*/, value_visitation_context)
 		{
 			m_contexts.pop();
-		}
-
-		template<class T>
-		void handle_end_of_array(std::type_identity<T> /*unused*/, value_visitation_context)
-		{
-#if 0
-			m_contexts.pop();
-#endif
 		}
 
 		struct context
