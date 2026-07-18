@@ -71,9 +71,7 @@ namespace
 			}
 
 			for(size_t k = 0; k != indentation; ++k)
-			{
-				fputs("    ", stdout);
-			}
+			{ output.get() +="    "; }
 		}
 
 		static constexpr auto internal_to_string = jopp2::overload{
@@ -96,9 +94,17 @@ namespace
 		{
 			do_indent();
 			if(index + 1== parent_container_size) [[unlikely]]
-			{ std::print("({} of {}) {}\n", index + 1, parent_container_size, internal_to_string(item));}
+			{
+				output.get() += std::format(
+					"({} of {}) {}\n", index + 1, parent_container_size, internal_to_string(item)
+				);
+			}
 			else
-			{ std::print("({} of {}) {},\n", index + 1, parent_container_size, internal_to_string(item));}
+			{
+				output.get() += std::format(
+					"({} of {}) {},\n", index + 1, parent_container_size, internal_to_string(item)
+				);
+			}
 		}
 
 		template<class T>
@@ -114,50 +120,82 @@ namespace
 		void handle_leaf_value(std::string const& str, jopp2::value_visitation_context context)
 		{
 			do_indent();
-			if(!context.is_last_node())
-			{ printf("(%zu of %zu) str(%s),\n", context.node_index + 1, context.parent_container_size, str.c_str()); }
+			auto const index = context.node_index ;
+			auto const parent_container_size = context.parent_container_size;
+			if(index + 1 == parent_container_size) [[unlikely]]
+			{
+				output.get() += std::format("({} of {}) str({})\n", index + 1, parent_container_size, str);
+			}
 			else
-			{ printf("(%zu of %zu) str(%s)\n", context.node_index + 1, context.parent_container_size, str.c_str()); }
+			{
+				output.get() += std::format("({} of {}) str({}),\n", index + 1, parent_container_size, str);
+			}
 		}
 
 		void handle_leaf_value(double value, jopp2::value_visitation_context context)
 		{
 			do_indent();
-			if(!context.is_last_node())
-			{ puts(std::format("({} of {}) fd{},", context.node_index + 1, context.parent_container_size, value).c_str()); }
+			auto const index = context.node_index ;
+			auto const parent_container_size = context.parent_container_size;
+			if(index + 1 == parent_container_size) [[unlikely]]
+			{
+				output.get() += std::format( "({} of {}) sd{}\n", index + 1, parent_container_size, value);
+			}
 			else
-			{ puts(std::format("({} of {}) fd{}", context.node_index + 1, context.parent_container_size, value).c_str()); }
+			{
+				output.get() += std::format( "({} of {}) sd{},\n", index + 1, parent_container_size, value);
+			}
 		}
 
 		void handle_leaf_value(std::monostate /*unused*/, jopp2::value_visitation_context context)
 		{
 			do_indent();
-			if(!context.is_last_node())
-			{ printf("(%zu of %zu) null,\n", context.node_index + 1, context.parent_container_size); }
+			auto const index = context.node_index ;
+			auto const parent_container_size = context.parent_container_size;
+			if(index + 1 == parent_container_size) [[unlikely]]
+			{
+				output.get() += std::format("({} of {}) null\n", index + 1, parent_container_size);
+			}
 			else
-			{ printf("(%zu of %zu) null\n", context.node_index + 1, context.parent_container_size); }
+			{
+				output.get() += std::format("({} of {}) null,\n", index + 1, parent_container_size);
+			}
 		}
 
 		void handle_leaf_value(bool_wrapper value, jopp2::value_visitation_context context)
 		{
 			do_indent();
-			if(!context.is_last_node())
-			{ printf("(%zu of %zu) %s,\n", context.node_index + 1, context.parent_container_size, value == bool_wrapper::enabled? "true": "false"); }
+			auto const index = context.node_index ;
+			auto const parent_container_size = context.parent_container_size;
+			if(index + 1 == parent_container_size) [[unlikely]]
+			{
+				output.get() += std::format(
+					"({} of {}) {}\n", index + 1, parent_container_size, internal_to_string(value)
+				);
+			}
 			else
-			{ printf("(%zu of %zu) %s\n", context.node_index + 1, context.parent_container_size, value == bool_wrapper::enabled? "true": "false"); }
+			{
+				output.get() += std::format(
+					"({} of {}) {},\n", index + 1, parent_container_size, internal_to_string(value)
+				);
+			}
 		}
 
 		void handle_property_name(std::string const& name, jopp2::value_visitation_context /*unused*/)
 		{
 			do_indent();
-			printf("%s: ", name.c_str());
+			output.get() += std::format("{}: ", name);
 			skip_indent = true;
 		}
 
 		void handle_begin_of_object(jopp2::value_visitation_context context)
 		{
 			do_indent();
-			printf("(%zu of %zu) {\n", context.node_index + 1, context.parent_container_size);
+			output.get() += std::format(
+				"({} of {}) {{\n",
+				context.node_index + 1,
+				context.parent_container_size
+			);
 			++indentation;
 		}
 
@@ -166,9 +204,9 @@ namespace
 			--indentation;
 			do_indent();
 			if(!context.is_last_node())
-			{ puts("},"); }
+			{ output.get() += "},\n"; }
 			else
-			{ puts("}"); }
+			{ output.get() += "}\n"; }
 		}
 
 		template<class T>
@@ -176,7 +214,12 @@ namespace
 		{
 			assert(context.node_index < context.parent_container_size);
 			do_indent();
-			printf("(%zu of %zu) %s[\n", context.node_index + 1, context.parent_container_size, map_type_name<T>::name);
+			output.get() += std::format(
+				"({} of {}) {}[\n",
+				context.node_index + 1,
+				context.parent_container_size,
+				map_type_name<T>::name
+			);
 			++indentation;
 		}
 
@@ -186,11 +229,12 @@ namespace
 			--indentation;
 			do_indent();
 			if(!context.is_last_node())
-			{ puts("],"); }
+			{ output.get() += "],\n"; }
 			else
-			{ puts("]"); }
+			{ output.get() += "]\n"; }
 		}
 
+		std::reference_wrapper<std::string> output;
 		size_t indentation = 0;
 		bool skip_indent = false;
 	};
@@ -582,5 +626,126 @@ TESTCASE(jopp2_generic_value_visit_nodes)
 	using json_value_sorted = jopp2::generic_value<std::flat_map, std::vector, json_value_traits>;
 
 	auto result = clone<json_value_sorted>(value);
-	visit_nodes(result, test_node_visitor{});
+	std::string output;
+	visit_nodes(result, test_node_visitor{output});
+	static constexpr auto expected_output = R"((1 of 1) {
+    array_of_arrays_of_bools: (1 of 15) [
+        (1 of 2) bool[
+            (1 of 2) true,
+            (2 of 2) false
+        ],
+        (2 of 2) bool[
+            (1 of 3) false,
+            (2 of 3) true,
+            (3 of 3) true
+        ]
+    ],
+    array_of_arrays_of_nulls: (2 of 15) [
+        (1 of 2) null[
+            (1 of 2) null,
+            (2 of 2) null
+        ],
+        (2 of 2) null[
+            (1 of 1) null
+        ]
+    ],
+    array_of_arrays_of_numbers: (3 of 15) [
+        (1 of 2) fd[
+            (1 of 3) 1,
+            (2 of 3) 2,
+            (3 of 3) 3
+        ],
+        (2 of 2) fd[
+            (1 of 2) 4.5,
+            (2 of 2) 5.5
+        ]
+    ],
+    array_of_arrays_of_objects: (4 of 15) [
+        (1 of 2) obj[
+            (1 of 2) {
+                id: (1 of 2) sd1,
+                status: (2 of 2) str(active)
+            },
+            (2 of 2) {
+                id: (1 of 2) sd2,
+                status: (2 of 2) str(pending)
+            }
+        ],
+        (2 of 2) obj[
+            (1 of 1) {
+                id: (1 of 2) sd3,
+                status: (2 of 2) str(completed)
+            }
+        ]
+    ],
+    array_of_arrays_of_strings: (5 of 15) [
+        (1 of 2) str[
+            (1 of 2) apple,
+            (2 of 2) banana
+        ],
+        (2 of 2) str[
+            (1 of 2) cherry,
+            (2 of 2) date
+        ]
+    ],
+    array_of_bools: (6 of 15) bool[
+        (1 of 3) true,
+        (2 of 3) false,
+        (3 of 3) true
+    ],
+    array_of_heterogenous_arrays: (7 of 15) [
+        (1 of 2) [
+            (1 of 4) sd1,
+            (2 of 4) str(two),
+            (3 of 4) true,
+            (4 of 4) null
+        ],
+        (2 of 2) [
+            (1 of 3) false,
+            (2 of 3) sd3.14,
+            (3 of 3) {
+                key: (1 of 1) str(value)
+            }
+        ]
+    ],
+    array_of_nulls: (8 of 15) null[
+        (1 of 3) null,
+        (2 of 3) null,
+        (3 of 3) null
+    ],
+    array_of_objects: (9 of 15) obj[
+        (1 of 2) {
+            item: (1 of 2) str(A),
+            value: (2 of 2) sd100
+        },
+        (2 of 2) {
+            item: (1 of 2) str(B),
+            value: (2 of 2) sd200
+        }
+    ],
+    array_of_strings: (10 of 15) str[
+        (1 of 3) test 1,
+        (2 of 3) test 2,
+        (3 of 3) test 3
+    ],
+    bool: (11 of 15) true,
+    heterogenous_arrays: (12 of 15) [
+        (1 of 5) str(text),
+        (2 of 5) sd123,
+        (3 of 5) false,
+        (4 of 5) null,
+        (5 of 5) {
+            nested: (1 of 1) str(object)
+        }
+    ],
+    number: (13 of 15) sd42,
+    object: (14 of 15) {
+        is_dummy: (1 of 2) true,
+        sample_key: (2 of 2) str(sample_value)
+    },
+    string_value: (15 of 15) str(lorem ipsum)
+}
+)";
+
+	EXPECT_EQ(output, expected_output);
 }
