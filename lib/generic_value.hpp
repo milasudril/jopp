@@ -715,41 +715,6 @@ namespace jopp2
 		void handle_end_of_object(value_visitation_context)
 		{ m_contexts.pop(); }
 
-		template<class T>
-		void handle_begin_of_array(std::type_identity<T> /*unused*/,value_visitation_context)
-		{
-			auto const old_out = m_contexts.top().output_value;
-			using output_array = sequence_container_out<T>;
-			if(m_value_after_key != nullptr)
-			{
-				auto const val_ptr = m_value_after_key;
-				m_value_after_key = nullptr;
-				*val_ptr = GenericValueOut{output_array{}};
-				m_contexts.push(
-					context{
-						.parent_node = old_out,
-						.output_value = value_updater{
-							*val_ptr->template get_if<output_array>(),
-							std::type_identity<output_array_update_traits<output_array>>{}
-						}
-					}
-				);
-			}
-			else
-			{
-				auto const ret = old_out.update_with(output_array{});
-				m_contexts.push(
-					context{
-						.parent_node = old_out,
-						.output_value = value_updater{
-							*ret,
-							std::type_identity<output_array_update_traits<output_array>>{}
-						}
-					}
-				);
-			}
-		}
-
 		void handle_begin_of_array(std::type_identity<src_value> /*unused*/, value_visitation_context)
 		{
 			auto const old_out = m_contexts.top().output_value;
