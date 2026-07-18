@@ -8,6 +8,7 @@
 
 #include <stdexcept>
 #include <stack>
+#include <algorithm>
 
 namespace jopp2
 {
@@ -438,20 +439,7 @@ namespace jopp2
 							);
 						}
 						else
-						{
-							state.visitor.handle_begin_of_array(std::type_identity<value_type>{}, context);
-							for(auto&& [index, item]: std::ranges::enumerate_view{*seq})
-							{
-								state.visitor.handle_leaf_value(
-									item,
-									value_visitation_context{
-										.node_index = static_cast<size_t>(index),
-										.parent_container_size = container_size
-									}
-								);
-							}
-							state.visitor.handle_end_of_array(std::type_identity<value_type>{}, context);
-						}
+						{ state.visitor.handle_leaf_value_array(*seq, context); }
 					},
 					[](
 						std::pair<key_type const*, std::remove_reference_t<value_type>*> kv_ptr,
@@ -834,6 +822,38 @@ namespace jopp2
 		template<class T>
 		void handle_end_of_array(std::type_identity<T> /*unused*/, value_visitation_context)
 		{ m_contexts.pop(); }
+
+		template<class T>
+		void handle_leaf_value_array(T const& src, value_visitation_context)
+		{
+			using src_type = std::remove_cvref_t<T>;
+			using src_value_type = typename src_type::value_type;
+			using output_array = sequence_container_out<src_value_type>;
+			output_array* out_ptr{nullptr};
+			if(m_value_after_key != nullptr)
+			{
+				auto const val_ptr = m_value_after_key;
+				m_value_after_key = nullptr;
+				*val_ptr = GenericValueOut{output_array{}};
+				out_ptr = val_ptr->template get_if<output_array>();
+			}
+			else
+			{
+				auto const old_out = m_contexts.top().output_value;
+				out_ptr = old_out.update_with(output_array{});
+			}
+			assert(out_ptr != nullptr);
+			if constexpr(pass_by_value_v<src_value_type> && std::is_default_constructible_v<src_value_type>)
+			{
+				out_ptr->resize(std::size(src));
+				std::copy(std::begin(src), std::end(src), std::begin(*out_ptr));
+			}
+			else
+			{
+				out_ptr->reserve(std::size(src));
+				std::copy(std::begin(src), std::end(src), std::back_inserter(*out_ptr));
+			}
+		}
 
 		struct context
 		{

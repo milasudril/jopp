@@ -5,6 +5,7 @@
 #include <flat_map>
 #include <testfwk/testfwk.hpp>
 #include <format>
+#include <print>
 
 namespace
 {
@@ -73,6 +74,41 @@ namespace
 			{
 				fputs("    ", stdout);
 			}
+		}
+
+		static constexpr auto internal_to_string = jopp2::overload{
+			[](std::monostate) {
+				return "null";
+			},
+			[](bool_wrapper value) {
+				return value == bool_wrapper::enabled? "true" : "false";
+			},
+			[](std::string const& str) {
+				return str;
+			},
+			[](double x) {
+				return std::format("{}", x);
+			}
+		};
+
+		template<class T>
+		void print_without_tag(T const& item, size_t index, size_t parent_container_size)
+		{
+			do_indent();
+			if(index + 1== parent_container_size) [[unlikely]]
+			{ std::print("({} of {}) {}\n", index + 1, parent_container_size, internal_to_string(item));}
+			else
+			{ std::print("({} of {}) {},\n", index + 1, parent_container_size, internal_to_string(item));}
+		}
+
+		template<class T>
+		void handle_leaf_value_array(std::vector<T> const& src, jopp2::value_visitation_context context)
+		{
+			handle_begin_of_array(std::type_identity<T>{}, context);
+			auto const size = std::size(src);
+			for(auto&& [index, item]: std::ranges::enumerate_view{src})
+			{ print_without_tag(item, static_cast<size_t>(index), size); }
+			handle_end_of_array(std::type_identity<T>{}, context);
 		}
 
 		void handle_leaf_value(std::string const& str, jopp2::value_visitation_context context)
