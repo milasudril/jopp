@@ -28,7 +28,7 @@ namespace
 	struct json_value_traits
 	{
 		using key_type = std::string;
-		using leaf_value_type = jopp2::template_param_pack<double, std::string, bool_wrapper, std::nullptr_t>;
+		using leaf_value_type = jopp2::template_param_pack<std::monostate, bool_wrapper, double, std::string>;
 	};
 
 	struct test_node_visitor
@@ -65,7 +65,7 @@ namespace
 			{ puts(std::format("({} of {}) {}", context.node_index + 1, context.parent_container_size, value).c_str()); }
 		}
 
-		void handle_leaf_value(std::nullptr_t, jopp2::value_visitation_context context)
+		void handle_leaf_value(std::monostate, jopp2::value_visitation_context context)
 		{
 			do_indent();
 			if(!context.is_last_node())
@@ -83,10 +83,10 @@ namespace
 			{ printf("(%zu of %zu) %s\n", context.node_index + 1, context.parent_container_size, value == bool_wrapper::enabled? "true": "false"); }
 		}
 
-		void handle_property_name(std::string const& name, jopp2::value_visitation_context context)
+		void handle_property_name(std::string const& name, jopp2::value_visitation_context)
 		{
 			do_indent();
-			printf("%s (%zu of %zu): ", name.c_str(), context.node_index + 1, context.parent_container_size);
+			printf("%s: ", name.c_str());
 			skip_indent = true;
 		}
 
@@ -323,66 +323,6 @@ TESTCASE(jopp2_generic_value_try_store_at_end_of_typed_container)
 
 TESTCASE(jopp2_generic_value_visit_nodes)
 {
-/* Test data
-{
-  "heterogeneous_array": [
-    "string_element",
-    42,
-    { "key": "value" },
-    [1, 2, 3],
-    true,
-    null
-  ],
-  "array_of_numbers": [
-    1,
-    2.5,
-    -3,
-    0,
-    1000
-  ],
-  "array_of_strings": [
-    "apple",
-    "banana",
-    "cherry",
-    "date"
-  ],
-  "array_of_nulls": [
-    null,
-    null,
-    null
-  ],
-  "array_of_booleans": [
-    true,
-    false,
-    true,
-    true
-  ],
-  "array_of_arrays": [
-    [1, 2],
-    ["a", "b"],
-    [true, false]
-  ],
-  "array_of_objects": [
-    {
-      "id": 1,
-      "name": "Alice"
-    },
-    {
-      "id": 2,
-      "name": "Bob"
-    }
-  ],
-  "object_value": {
-    "nested_key_1": "nested_value",
-    "nested_key_2": 123
-  },
-  "string_value": "Hello, world!",
-  "number_value": 3.14159,
-  "null_value": null,
-  "boolean_value": true
-}
-*/
-
 	using json_value = jopp2::generic_value<std::unordered_map, std::vector, json_value_traits>;
 
 	static_assert(json_value::is_leaf_value<double>);
@@ -390,115 +330,193 @@ TESTCASE(jopp2_generic_value_visit_nodes)
 
 	json_value value{json_value::object{}};
 	{
-		auto const res = value.store_value_as(std::vector<json_value>{}, "heterogeneous_array");
-		res.second.emplace_back("string_element");
-		res.second.emplace_back(json_value{42.0});
-		{
-			res.second.emplace_back(json_value::object{});
-			res.second.back().store_value_as(std::string{"value"}, "key");
-		}
+		auto const res = value.store_value_as(std::vector<json_value>{}, "array_of_arrays_of_bools");
+		res.second.emplace_back(
+			json_value{std::vector{bool_wrapper::enabled, bool_wrapper::disabled}}
+		);
 
-		{
-			res.second.emplace_back(std::vector<json_value>{});
-			res.second.back().try_store_at_end(1.0);
-			res.second.back().try_store_at_end(2.0);
-			res.second.back().try_store_at_end(3.0);
-		}
-
-		res.second.emplace_back(bool_wrapper::enabled);
-		res.second.emplace_back(nullptr);
+		res.second.emplace_back(
+			std::vector<bool_wrapper>{
+				bool_wrapper::disabled,
+				bool_wrapper::enabled,
+				bool_wrapper::enabled
+			}
+		);
 	}
 
 	{
-		auto const res = value.store_value_as(std::vector<double>{}, "array_of_numbers");
-		res.second.emplace_back(1.0);
-		res.second.emplace_back(2.5);
-		res.second.emplace_back(-3.0);
-		res.second.emplace_back(0.0);
-		res.second.emplace_back(1000.0);
+		auto const res = value.store_value_as(std::vector<json_value>{}, "array_of_arrays_of_nulls");
+		res.second.emplace_back(
+			json_value{std::vector{std::monostate{}, std::monostate{}}}
+		);
+
+		res.second.emplace_back(
+			json_value{std::vector{std::monostate{}}}
+		);
 	}
 
 	{
-		auto const res = value.store_value_as(std::vector<std::string>{}, "array_of_strings");
-		res.second.emplace_back("apple");
-		res.second.emplace_back("banana");
-		res.second.emplace_back("cherry");
-		res.second.emplace_back("date");
+		auto const res = value.store_value_as(std::vector<json_value>{}, "array_of_arrays_of_numbers");
+		res.second.emplace_back(
+			json_value{std::vector{1.0, 2.0, 3.0}}
+		);
+
+		res.second.emplace_back(
+			json_value{std::vector{4.5, 5.5}}
+		);
 	}
 
 	{
-		auto const res = value.store_value_as(std::vector<std::nullptr_t>{}, "array_of_nulls");
-		res.second.emplace_back(nullptr);
-		res.second.emplace_back(nullptr);
-		res.second.emplace_back(nullptr);
-		res.second.emplace_back(nullptr);
-	}
+		auto const res = value.store_value_as(
+			std::vector<json_value>{}, "array_of_arrays_of_objects"
+		);
 
-	{
-		auto const res = value.store_value_as(std::vector<bool_wrapper>{}, "array_of_booleans");
-		res.second.emplace_back(bool_wrapper::enabled);
-		res.second.emplace_back(bool_wrapper::disabled);
-		res.second.emplace_back(bool_wrapper::enabled);
-		res.second.emplace_back(bool_wrapper::enabled);
-	}
-
-	{
-		auto const res = value.store_value_as(std::vector<json_value>{}, "array_of_arrays");
 		{
-			res.second.emplace_back(std::vector<json_value>{});
-			auto& inner = res.second.back();
-			inner.try_store_at_end(1.0);
-			inner.try_store_at_end(2.0);
+			std::vector<json_value::object> to_append;
+
+			{
+				json_value::object obj;
+				obj.emplace("id", json_value{1.0});
+				obj.emplace("status", "active");
+				to_append.emplace_back(std::move(obj));
+			}
+
+			{
+				json_value::object obj;
+				obj.emplace("id", json_value{2.0});
+				obj.emplace("status", "pending");
+				to_append.emplace_back(std::move(obj));
+			}
+
+			res.second.emplace_back(std::move(to_append));
 		}
 
 		{
-			res.second.emplace_back(std::vector<json_value>{});
-			auto& inner = res.second.back();
-			inner.try_store_at_end(std::string{"a"});
-			inner.try_store_at_end(std::string{"b"});
+			std::vector<json_value::object> to_append;
+
+			{
+				json_value::object obj;
+				obj.emplace("id", json_value{3.0});
+				obj.emplace("status", "completed");
+				to_append.emplace_back(std::move(obj));
+			}
+
+			res.second.emplace_back(std::move(to_append));
+		}
+	}
+
+	{
+		auto const res = value.store_value_as(std::vector<json_value>{}, "array_of_arrays_of_strings");
+		res.second.emplace_back(
+			json_value{std::vector<std::string>{"apple", "banana"}}
+		);
+
+		res.second.emplace_back(
+			json_value{std::vector<std::string>{"cherry" ,"date"}}
+		);
+	}
+
+	value.store_value_as(
+		std::vector{
+			bool_wrapper::enabled,
+			bool_wrapper::disabled,
+			bool_wrapper::enabled
+		},
+		"array_of_bools"
+	);
+
+	{
+		auto const res = value.store_value_as(
+			std::vector<json_value>{}, "array_of_heterogenous_arrays"
+		);
+		{
+			std::vector<json_value> to_append;
+			to_append.emplace_back(1.0);
+			to_append.emplace_back("two");
+			to_append.emplace_back(bool_wrapper::enabled);
+			to_append.emplace_back(json_value{});
+			res.second.emplace_back(std::move(to_append));
 		}
 
 		{
-			res.second.emplace_back(std::vector<json_value>{});
-			auto& inner = res.second.back();
-			inner.try_store_at_end(bool_wrapper::enabled);
-			inner.try_store_at_end(bool_wrapper::disabled);
+			std::vector<json_value> to_append;
+			to_append.emplace_back(bool_wrapper::disabled);
+			to_append.emplace_back(3.14);
+			{
+				json_value::object obj;
+				obj.emplace("key", "value");
+				to_append.emplace_back(std::move(obj));
+			}
+
+			res.second.emplace_back(std::move(to_append));
 		}
 	}
+
+	value.store_value_as(
+		std::vector{
+			std::monostate{},
+			std::monostate{},
+			std::monostate{}
+		},
+		"array_of_nulls"
+	);
 
 	{
 		auto const res = value.store_value_as(std::vector<json_value::object>{}, "array_of_objects");
 		{
-			res.second.emplace_back(json_value::object{});
-			auto& inner = res.second.back();
-			inner.emplace("id", 1.0);
-			inner.emplace("name", "Alice");
+			json_value::object to_append;
+			to_append.emplace("item", "A");
+			to_append.emplace("value", 100.0);
+			res.second.emplace_back(std::move(to_append));
 		}
 
 		{
-			res.second.emplace_back(json_value::object{});
-			auto& inner = res.second.back();
-			inner.emplace("id", 2.0);
-			inner.emplace("name", "Bob");
+			json_value::object to_append;
+			to_append.emplace("item", "B");
+			to_append.emplace("value", 200.0);
+			res.second.emplace_back(std::move(to_append));
 		}
 	}
 
 	{
-		auto const res = value.store_value_as(json_value::object{}, "object_value");
-		res.second.emplace("nested_key_1", "nested_value");
-		res.second.emplace("nested_key_2", 123.0);
+		value.store_value_as(
+			std::vector<std::string>{
+				"test 1",
+				"test 2",
+				"test 3"
+			},
+			"array_of_strings"
+		);
 	}
 
-	value.store_value_as(std::string{"Hello, world!"}, "string_value");
-	value.store_value_as(3.14159, "number_value");
-	value.store_value_as(nullptr, "null_value");
-	value.store_value_as(bool_wrapper::enabled, "boolean_value");
+	value.store_value_as(bool_wrapper::enabled, "bool");
+
+	{
+		auto const res = value.store_value_as(std::vector<json_value>{}, "heterogenous_arrays");
+		res.second.emplace_back("text");
+		res.second.emplace_back(123.0);
+		res.second.emplace_back(bool_wrapper::disabled);
+		res.second.emplace_back(std::monostate{});
+
+		{
+			json_value::object to_append;
+			to_append.emplace("nested", "object");
+			res.second.emplace_back(std::move(to_append));
+		}
+	}
+
+	value.store_value_as(42.0, "number");
+
+	{
+		auto const res = value.store_value_as(json_value::object{}, "object");
+		res.second.emplace("sample_key", "sample_value");
+		res.second.emplace("is_dummy", bool_wrapper::enabled);
+	}
+
+	value.store_value_as(std::string{"lorem ipsum"}, "string_value");
 
 	using json_value_sorted = jopp2::generic_value<std::flat_map, std::vector, json_value_traits>;
 
 	auto result = clone<json_value_sorted>(value);
 	visit_nodes(result, test_node_visitor{});
-
-//	value.visit_nodes(test_node_visitor{});
-//	std::as_const(value).visit_nodes(test_node_visitor{});
 }

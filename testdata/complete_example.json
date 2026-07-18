@@ -24,18 +24,18 @@
     ["apple", "banana"],
     ["cherry", "date"]
   ],
+  "array_of_bools": [true, false, true],
   "array_of_heterogeous_arrays": [
     [1, "two", true, null],
     [false, 3.14, { "key": "value" }]
   ],
-  "array_of_bools": [true, false, true],
   "array_of_nulls": [null, null, null],
   "array_of_numbers": [10, 20, 30.5],
   "array_of_objects": [
     { "item": "A", "value": 100 },
     { "item": "B", "value": 200 }
   ],
-  "array_of_strings": ["test1", "test2", "test3"],
+  "array_of_strings": ["test 1", "test 2", "test 3"],
   "bool": true,
   "heterogenous_array": ["text", 123, false, null, { "nested": "object" }],
   "number": 42.0,

@@ -796,21 +796,16 @@ namespace jopp2
 			}
 			else
 			{
-				// TODO
-				assert(false);
-
-#if 0
-				auto const ret = old_out.update_with(sequence_container_out<GenericValueOut>{});
+				auto const ret = old_out.update_with(output_array{});
 				m_contexts.push(
 					context{
 						.parent_node = old_out,
 						.output_value = value_updater{
 							*ret,
-							std::type_identity<output_value_update_traits>{}
+							std::type_identity<output_array_update_traits<output_array>>{}
 						}
 					}
 				);
-#endif
 			}
 		}
 
@@ -841,21 +836,16 @@ namespace jopp2
 			}
 			else
 			{
-				// TODO
-				assert(false);
-
-#if 0
-				auto const ret = old_out.update_with(sequence_container_out<GenericValueOut>{});
+				auto const ret = old_out.update_with(output_array{});
 				m_contexts.push(
 					context{
 						.parent_node = old_out,
 						.output_value = value_updater{
 							*ret,
-							std::type_identity<output_value_update_traits>{}
+							std::type_identity<output_array_update_traits<output_array>>{}
 						}
 					}
 				);
-#endif
 			}
 		}
 
