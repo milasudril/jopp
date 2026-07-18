@@ -61,12 +61,31 @@ namespace jopp2
 	template<template<class> class UpdateResultType, class Sink, class T>
 	using update_func_t = UpdateResultType<T> (*)(Sink&, update_param_t<T>) UPDATE_CALLBACK;
 
-	template<class UpdateTraits, template<class> class UpdateResultType, class Sink, class... Types>
-	concept update_traits = (requires(update_func_t<UpdateResultType, Sink, Types>& cb)
+	template<class UpdateTraits, template<class> class R, class Sink, class... Types>
+	struct has_applicable_update
 	{
-		{ cb = &UpdateTraits::update };
-	}
-	&& ...);
+		using result = void;
+	};
+
+	template<class UpdateTraits, template<class> class R, class Sink, class T, class... Types>
+	struct has_applicable_update<UpdateTraits, R, Sink, T, Types...>
+	{
+		static constexpr auto current_value = requires(update_func_t<R, Sink, T>& cb) {
+			{ cb = &UpdateTraits::update };
+		};
+
+		using result = std::conditional_t<
+			current_value,
+			typename has_applicable_update<UpdateTraits, R, Sink, Types...>::result,
+			T
+		>;
+	};
+
+	template<class T>
+	concept concept_satisfied_for_type = std::is_same_v<T, void>;
+
+	template<class UpdateTraits, template<class> class UpdateResultType, class Sink, class... Types>
+	concept update_traits = concept_satisfied_for_type<typename has_applicable_update<UpdateTraits, UpdateResultType, Sink, Types...>::result>;
 
 	template<template<class> class UpdateResultType, class... Types>
 	class updater
