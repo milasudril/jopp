@@ -73,7 +73,7 @@ namespace jopp2
 	{
 	public:
 		constexpr updater() = default;
-		template<class Sink, class UpdateTraits>
+		template<class Sink, update_traits<UpdateResultType, Sink, Types...> UpdateTraits>
 		constexpr explicit updater(Sink& target, std::type_identity<UpdateTraits>, char const* origin = std::source_location::current().function_name()):
 				m_handle{&target},
 				m_vtable{&s_vtable<Sink, UpdateTraits>},
