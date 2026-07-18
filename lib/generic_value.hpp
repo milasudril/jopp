@@ -153,11 +153,7 @@ namespace jopp2
 
 			auto i = self.template get_if<object>();
 			if(i == nullptr)
-			{
-				puts("========== Not object ==============");
-				fflush(stdout);
-				return ret_type{};
-			}
+			{ return ret_type{}; }
 
 			auto const insert_result = i->emplace(std::forward<KeyLike>(key), std::forward<T>(value));
 			if(!insert_result.second)
@@ -167,11 +163,6 @@ namespace jopp2
 			{ return ret_type{&insert_result.first->first, &insert_result.first->second}; }
 			else
 			{
-				if(insert_result.first->second.template get_if<T>() == nullptr)
-				{
-					puts("================ Unexpected return type");
-					fflush(stdout);
-				}
 				return ret_type{&insert_result.first->first, insert_result.first->second.template get_if<T>()};
 			}
 		}
@@ -508,10 +499,11 @@ namespace jopp2
 	template<class Lhs, class Rhs>
 	struct clone_visitor_object_update_traits_impl
 	{
-		THISCALL static Rhs* update(Lhs&, update_param_t<Rhs>)
+		[[noreturn]] THISCALL static Rhs* update(Lhs&, update_param_t<Rhs>)
 		{
-			printf("Unexpected object update %s %s\n", typeid(Lhs).name(), typeid(Rhs).name());
-			return nullptr;
+			fprintf(stderr, "jopp: Internal error: Cannot assign a value to an object\n");
+			fflush(stderr);
+			abort();
 		}
 	};
 
@@ -533,7 +525,12 @@ namespace jopp2
 				{ return &out.back(); }
 			}
 			else
-			{ return nullptr; }
+			{
+				fprintf(stderr, "jopp: Internal error: Type mismatch at array emplace_back\n");
+				fflush(stderr);
+				abort();
+				return nullptr;
+			}
 		}
 	};
 
@@ -588,10 +585,11 @@ namespace jopp2
 		{
 			using clone_visitor_array_update_traits_impl<OutputArray, SrcValueTypes>::update...;
 
-			THISCALL static auto update(OutputArray&, update_param_t<kv_item> item)
+			[[noreturn]] THISCALL static GenericValueOut* update(OutputArray&, update_param_t<kv_item> item)
 			{
-				printf("--- Unexpected prop name %s\n", item.first.c_str());
-				return static_cast<GenericValueOut*>(nullptr);
+				fprintf(stderr, "jopp: Internal error: Unexpected prop name %s\n", item.first.c_str());
+				fflush(stderr);
+				abort();
 			}
 		};
 
@@ -681,11 +679,9 @@ namespace jopp2
 		template<class T>
 		void handle_property_name(T&& prop_name, value_visitation_context)
 		{
-			assert(!m_contexts.empty());
 			auto& old_out = m_contexts.top().output_value;
 			if(old_out)
 			{
-				printf("Got key: %s\n", prop_name.c_str());
 				m_value_after_key = old_out.update_with(
 					std::pair{
 						std::forward<T>(prop_name),
@@ -698,7 +694,6 @@ namespace jopp2
 		void handle_begin_of_object(value_visitation_context)
 		{
 			auto const old_out = m_contexts.top().output_value;
-			assert(old_out);
 			if(m_value_after_key != nullptr)
 			{
 				auto const val_ptr = m_value_after_key;
@@ -767,18 +762,10 @@ namespace jopp2
 			}
 		}
 
-		template<class T>
-		void handle_end_of_array(std::type_identity<T> /*unused*/, value_visitation_context)
-		{
-			m_contexts.pop();
-		}
-
-
 		void handle_begin_of_array(std::type_identity<src_value> /*unused*/, value_visitation_context)
 		{
 			auto const old_out = m_contexts.top().output_value;
 			using output_array = sequence_container_out<GenericValueOut>;
-			assert(old_out);
 			if(m_value_after_key != nullptr)
 			{
 				auto const val_ptr = m_value_after_key;
@@ -807,11 +794,6 @@ namespace jopp2
 					}
 				);
 			}
-		}
-
-		void handle_end_of_array(std::type_identity<src_value> /*unused*/, value_visitation_context)
-		{
-			m_contexts.pop();
 		}
 
 		void handle_begin_of_array(std::type_identity<src_object> /*unused*/, value_visitation_context)
@@ -849,10 +831,9 @@ namespace jopp2
 			}
 		}
 
-		void handle_end_of_array(std::type_identity<src_object> /*unused*/, value_visitation_context)
-		{
-			m_contexts.pop();
-		}
+		template<class T>
+		void handle_end_of_array(std::type_identity<T> /*unused*/, value_visitation_context)
+		{ m_contexts.pop(); }
 
 		struct context
 		{
