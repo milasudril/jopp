@@ -30,7 +30,7 @@ namespace
 
 	struct test_updater_traits
 	{
-		THISCALL static auto update(
+		UPDATE_CALLBACK static auto update(
 			std::variant<std::string, int, long_array>& sink,
 			jopp2::update_param_t<int> value
 		)
@@ -39,7 +39,7 @@ namespace
 			return std::get_if<int>(&sink);
 		}
 
-		THISCALL static auto update(
+		UPDATE_CALLBACK static auto update(
 			std::variant<std::string, int, long_array>& sink,
 			jopp2::update_param_t<std::string> value
 		)
@@ -48,7 +48,7 @@ namespace
 			return std::get_if<std::string>(&sink);
 		}
 
-		THISCALL static auto update(
+		UPDATE_CALLBACK static auto update(
 			std::variant<std::string, int, long_array>& sink,
 			jopp2::update_param_t<long_array> value
 		)

@@ -93,7 +93,7 @@ namespace
 			{ puts(std::format("({} of {}) fd{}", context.node_index + 1, context.parent_container_size, value).c_str()); }
 		}
 
-		void handle_leaf_value(std::monostate, jopp2::value_visitation_context context)
+		void handle_leaf_value(std::monostate /*unused*/, jopp2::value_visitation_context context)
 		{
 			do_indent();
 			if(!context.is_last_node())
@@ -111,7 +111,7 @@ namespace
 			{ printf("(%zu of %zu) %s\n", context.node_index + 1, context.parent_container_size, value == bool_wrapper::enabled? "true": "false"); }
 		}
 
-		void handle_property_name(std::string const& name, jopp2::value_visitation_context)
+		void handle_property_name(std::string const& name, jopp2::value_visitation_context /*unused*/)
 		{
 			do_indent();
 			printf("%s: ", name.c_str());

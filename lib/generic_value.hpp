@@ -488,7 +488,7 @@ namespace jopp2
 	template<class Lhs, class Rhs>
 	struct clone_visitor_value_update_traits_impl
 	{
-		THISCALL static Rhs* update(Lhs& lhs, update_param_t<Rhs> rhs)
+		UPDATE_CALLBACK static Rhs* update(Lhs& lhs, update_param_t<Rhs> rhs)
 		{
 			static_assert(std::is_constructible_v<Lhs, Rhs>);
 			lhs = Lhs{maybe_move(rhs)};
@@ -499,7 +499,7 @@ namespace jopp2
 	template<class Lhs, class Rhs>
 	struct clone_visitor_object_update_traits_impl
 	{
-		[[noreturn]] THISCALL static Rhs* update(Lhs&, update_param_t<Rhs>)
+		[[noreturn]] UPDATE_CALLBACK static Rhs* update(Lhs&, update_param_t<Rhs>)
 		{
 			fprintf(stderr, "jopp: Internal error: Cannot assign a value to an object\n");
 			fflush(stderr);
@@ -510,7 +510,7 @@ namespace jopp2
 	template<class OutputArray, class TypeToStore>
 	struct clone_visitor_array_update_traits_impl
 	{
-		THISCALL static TypeToStore* update(OutputArray& out, update_param_t<TypeToStore> val)
+		UPDATE_CALLBACK static TypeToStore* update(OutputArray& out, update_param_t<TypeToStore> val)
 		{
 			using output_value_type = typename OutputArray::value_type;
 			if constexpr(
@@ -557,7 +557,7 @@ namespace jopp2
 		{
 			using clone_visitor_value_update_traits_impl<GenericValueOut, SrcValueTypes>::update...;
 
-			THISCALL static auto update(GenericValueOut& lhs, update_param_t<kv_item> item)
+			UPDATE_CALLBACK static auto update(GenericValueOut& lhs, update_param_t<kv_item> item)
 			{
 				// TODO: Add try_store_key_value to generic_value
 				auto retval = lhs.try_store_value_as(std::move(item.second), std::move(item.first)).second;
@@ -572,7 +572,7 @@ namespace jopp2
 		{
 			using clone_visitor_object_update_traits_impl<object_out, SrcValueTypes>::update...;
 
-			THISCALL static auto update(object_out& lhs, update_param_t<kv_item> item)
+			UPDATE_CALLBACK static auto update(object_out& lhs, update_param_t<kv_item> item)
 			{
 				auto const result = lhs.insert(maybe_move(item));
 				return &result.first->second;
@@ -585,7 +585,7 @@ namespace jopp2
 		{
 			using clone_visitor_array_update_traits_impl<OutputArray, SrcValueTypes>::update...;
 
-			[[noreturn]] THISCALL static GenericValueOut* update(OutputArray&, update_param_t<kv_item> item)
+			[[noreturn]] UPDATE_CALLBACK static GenericValueOut* update(OutputArray&, update_param_t<kv_item> item)
 			{
 				fprintf(stderr, "jopp: Internal error: Unexpected prop name %s\n", item.first.c_str());
 				fflush(stderr);
