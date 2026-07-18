@@ -31,6 +31,34 @@ namespace
 		using leaf_value_type = jopp2::template_param_pack<std::monostate, bool_wrapper, double, std::string>;
 	};
 
+	template<class T>
+	struct map_type_name
+	{};
+
+	template<>
+	struct map_type_name<jopp2::src_object>
+	{ static constexpr const char* name = "obj"; };
+
+	template<>
+	struct map_type_name<jopp2::src_value>
+	{ static constexpr const char* name = ""; };
+
+	template<>
+	struct map_type_name<std::string>
+	{ static constexpr const char* name = "str"; };
+
+	template<>
+	struct map_type_name<double>
+	{ static constexpr const char* name = "fd"; };
+
+	template<>
+	struct map_type_name<bool_wrapper>
+	{ static constexpr const char* name = "bool"; };
+
+	template<>
+	struct map_type_name<std::monostate>
+	{ static constexpr const char* name = "null"; };
+
 	struct test_node_visitor
 	{
 		void do_indent()
@@ -51,18 +79,18 @@ namespace
 		{
 			do_indent();
 			if(!context.is_last_node())
-			{ printf("(%zu of %zu) %s,\n", context.node_index + 1, context.parent_container_size, str.c_str()); }
+			{ printf("(%zu of %zu) str(%s),\n", context.node_index + 1, context.parent_container_size, str.c_str()); }
 			else
-			{ printf("(%zu of %zu) %s\n", context.node_index + 1, context.parent_container_size, str.c_str()); }
+			{ printf("(%zu of %zu) str(%s)\n", context.node_index + 1, context.parent_container_size, str.c_str()); }
 		}
 
 		void handle_leaf_value(double value, jopp2::value_visitation_context context)
 		{
 			do_indent();
 			if(!context.is_last_node())
-			{ puts(std::format("({} of {}) {},", context.node_index + 1, context.parent_container_size, value).c_str()); }
+			{ puts(std::format("({} of {}) fd{},", context.node_index + 1, context.parent_container_size, value).c_str()); }
 			else
-			{ puts(std::format("({} of {}) {}", context.node_index + 1, context.parent_container_size, value).c_str()); }
+			{ puts(std::format("({} of {}) fd{}", context.node_index + 1, context.parent_container_size, value).c_str()); }
 		}
 
 		void handle_leaf_value(std::monostate, jopp2::value_visitation_context context)
@@ -112,7 +140,7 @@ namespace
 		{
 			assert(context.node_index < context.parent_container_size);
 			do_indent();
-			printf("(%zu of %zu) [\n", context.node_index + 1, context.parent_container_size);
+			printf("(%zu of %zu) %s[\n", context.node_index + 1, context.parent_container_size, map_type_name<T>::name);
 			++indentation;
 		}
 
