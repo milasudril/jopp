@@ -32,7 +32,7 @@ namespace jopp2
 		#define UPDATE_CALLBACK [[gnu::fastcall]]
 	#else
 		/**
-		 * \brief Controls which calling convention is used for entries in the updater vtable
+		 * \brief Controls which calling convention is used for entries in the value_storage vtable
 		 */
 		#define UPDATE_CALLBACK
 	#endif
@@ -121,12 +121,12 @@ namespace jopp2
 	concept update_traits = concept_satisfied_for_type<typename has_applicable_update<UpdateTraits, UpdateResultType, Sink, Types...>::result>;
 
 	template<template<class> class UpdateResultType, class... Types>
-	class updater
+	class value_storage
 	{
 	public:
-		constexpr updater() = default;
+		constexpr value_storage() = default;
 		template<class Sink, update_traits<UpdateResultType, Sink, Types...> UpdateTraits>
-		constexpr explicit updater(Sink& target, std::type_identity<UpdateTraits>):
+		constexpr explicit value_storage(Sink& target, std::type_identity<UpdateTraits>):
 				m_handle{&target},
 				m_vtable{&s_vtable<Sink, UpdateTraits>}
 		{}

@@ -644,10 +644,10 @@ namespace jopp2
 		using update_result_t = typename clone_visitor_update_result<T>::type;
 
 		template<class ... Args>
-		using updater_with_result = updater<update_result_t, Args...>;
+		using value_storage_with_result = value_storage<update_result_t, Args...>;
 
-		using value_updater = map_template_param_pack_to_type_t<
-			updater_with_result,
+		using value_value_storage = map_template_param_pack_to_type_t<
+			value_storage_with_result,
 			complete_pack_with_kv_item
 		>;
 
@@ -656,7 +656,7 @@ namespace jopp2
 			m_contexts.push(
 				context{
 					.parent_node = {},
-					.output_value = value_updater{
+					.output_value = value_value_storage{
 						output_value,
 						std::type_identity<output_value_update_traits>{}
 					}
@@ -706,7 +706,7 @@ namespace jopp2
 				m_contexts.push(
 					context{
 						.parent_node = old_out,
-						.output_value = value_updater{
+						.output_value = value_value_storage{
 							*val_ptr,
 							std::type_identity<output_value_update_traits>{}
 						}
@@ -719,7 +719,7 @@ namespace jopp2
 				m_contexts.push(
 					context{
 						.parent_node = old_out,
-						.output_value = value_updater{
+						.output_value = value_value_storage{
 							*ret,
 							std::type_identity<output_object_update_traits>{}
 						}
@@ -743,7 +743,7 @@ namespace jopp2
 				m_contexts.push(
 					context{
 						.parent_node = old_out,
-						.output_value = value_updater{
+						.output_value = value_value_storage{
 							*val_ptr->template get_if<output_array>(),
 							std::type_identity<output_array_update_traits<output_array>>{}
 						}
@@ -756,7 +756,7 @@ namespace jopp2
 				m_contexts.push(
 					context{
 						.parent_node = old_out,
-						.output_value = value_updater{
+						.output_value = value_value_storage{
 							*ret,
 							std::type_identity<output_array_update_traits<output_array>>{}
 						}
@@ -778,7 +778,7 @@ namespace jopp2
 				m_contexts.push(
 					context{
 						.parent_node = old_out,
-						.output_value = value_updater{
+						.output_value = value_value_storage{
 							*val_ptr->template get_if<output_array>(),
 							std::type_identity<output_array_update_traits<output_array>>{}
 						}
@@ -791,7 +791,7 @@ namespace jopp2
 				m_contexts.push(
 					context{
 						.parent_node = old_out,
-						.output_value = value_updater{
+						.output_value = value_value_storage{
 							*ret,
 							std::type_identity<output_array_update_traits<output_array>>{}
 						}
@@ -838,8 +838,8 @@ namespace jopp2
 
 		struct context
 		{
-			value_updater parent_node;
-			value_updater output_value;
+			value_value_storage parent_node;
+			value_value_storage output_value;
 		};
 
 	private:
