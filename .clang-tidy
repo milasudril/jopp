@@ -1,4 +1,4 @@
-Checks:          'bugprone-*,concurrency-*,cppcoreguidelines-*,performance-*,readability-*,clang-diagnostic-*,clang-analyzer-*,-cppcoreguidelines-pro-type-vararg,-cppcoreguidelines-avoid-non-const-global-variables,-readability-identifier-length,-cppcoreguidelines-avoid-magic-numbers,-readability-function-cognitive-complexity,-cppcoreguidelines-pro-bounds-constant-array-index,-readability-magic-numbers,-readability-qualified-auto,-cppcoreguidelines-pro-bounds-pointer-arithmetic'
+Checks:          'bugprone-*,concurrency-*,cppcoreguidelines-*,performance-*,readability-*,clang-diagnostic-*,clang-analyzer-*,-cppcoreguidelines-pro-type-vararg,-cppcoreguidelines-avoid-non-const-global-variables,-readability-identifier-length,-cppcoreguidelines-avoid-magic-numbers,-cppcoreguidelines-pro-bounds-constant-array-index,-readability-magic-numbers,-readability-qualified-auto,-cppcoreguidelines-pro-bounds-pointer-arithmetic'
 WarningsAsErrors: '*'
 HeaderFileExtensions:
   - ''
@@ -28,4 +28,5 @@ CheckOptions:
   llvm-else-after-return.WarnOnUnfixable: 'false'
   llvm-qualified-auto.AddConstToQualified: 'false'
   bugprone-exception-escape.CheckMain: 'false'
+  readability-function-cognitive-complexity.IgnoreMacros: 'true'
 SystemHeaders:   false
