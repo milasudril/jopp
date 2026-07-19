@@ -5,8 +5,8 @@
 #include "./utils.hpp"
 #include "./template_param_pack.hpp"
 #include "./value_storage.hpp"
+#include "./exception.hpp"
 
-#include <stdexcept>
 #include <stack>
 #include <algorithm>
 
@@ -116,7 +116,7 @@ namespace jopp2
 		{
 			auto retval = self.template get_if<T>();
 			if(retval == nullptr)
-			{ throw std::runtime_error{"Item has an unexpected type"}; }
+			{ throw exception{"Item has an unexpected type"}; }
 			return std::forward_like<Self>(*retval);
 		}
 
@@ -143,7 +143,7 @@ namespace jopp2
 		{
 			auto retval = self.template get_if_by_name<T>(std::forward<KeyLike>(key));
 			if(retval == nullptr)
-			{ throw std::runtime_error{"Item has an unexpected type or does not exist"}; }
+			{ throw exception{"Item has an unexpected type or does not exist"}; }
 			return std::forward_like<Self>(*retval);
 		}
 
@@ -191,7 +191,7 @@ namespace jopp2
 			auto res = self.try_store_value_as(std::forward<T>(value), std::forward<KeyLike>(key));
 			if(res.first == nullptr)
 			{
-				throw std::runtime_error{
+				throw exception{
 					"This generic value is not an object, or the property has already been set"
 				};
 			}

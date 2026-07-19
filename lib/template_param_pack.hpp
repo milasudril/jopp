@@ -1,6 +1,8 @@
 #ifndef JOPP2_TEMPLATE_PARAM_PACK_HPP
 #define JOPP2_TEMPLATE_PARAM_PACK_HPP
 
+#include "./exception.hpp"
+
 #include <type_traits>
 #include <cstddef>
 #include <utility>
@@ -53,7 +55,7 @@ namespace jopp2
 		else
 		{
 			if constexpr(sizeof...(Types) == 0)
-			{ throw "Type not found"; }
+			{ throw exception{"Type not found"}; }
 			else
 			{ return get_index_of_type_impl<Current + 1, Which, Types...>(); }
 		}

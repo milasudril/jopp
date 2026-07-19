@@ -13,11 +13,11 @@ namespace jopp2
 	{
 	public:
 		template< class... Args >
-		explicit exception(std::format_string<Args...> fmt, Args&&... args ):
+		constexpr explicit exception(std::format_string<Args...> fmt, Args&&... args ):
 			m_message{std::format(fmt, std::forward<Args>(args)...)}
 		{}
 
-		char const* what() const noexcept override
+		constexpr char const* what() const noexcept override
 		{ return m_message.c_str(); }
 
 	private:
