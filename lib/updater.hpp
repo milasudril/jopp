@@ -120,17 +120,34 @@ namespace jopp2
 	template<class UpdateTraits, template<class> class UpdateResultType, class Sink, class... Types>
 	concept update_traits = concept_satisfied_for_type<typename has_applicable_update<UpdateTraits, UpdateResultType, Sink, Types...>::result>;
 
+	/**
+	 * \brief A type erased wrapper around an entity that can store a value
+	 *
+	 * \tparam UpdateResultType \see update_func_t
+	 * \tparam Types the types that the wrapped value_storage should accept
+	 */
 	template<template<class> class UpdateResultType, class... Types>
 	class value_storage
 	{
 	public:
 		constexpr value_storage() = default;
+
+		/**
+		 * \brief Initializes the value_storage with target. UpdateTraits must provide
+		 *        overloads of the static function update for each type, that accepts a
+		 *        as Sink reference, and the specific type. The function should return
+		 *        the type wrapped in UpdateResultType, which typically results in a
+		 *        pointer or a reference.
+		 */
 		template<class Sink, update_traits<UpdateResultType, Sink, Types...> UpdateTraits>
 		constexpr explicit value_storage(Sink& target, std::type_identity<UpdateTraits>):
 				m_handle{&target},
 				m_vtable{&s_vtable<Sink, UpdateTraits>}
 		{}
 
+		/**
+		 * \brief Updates the value_storage with value
+		 */
 		template<class SourceValue>
 		requires(
 			!std::is_lvalue_reference_v<SourceValue> ||
