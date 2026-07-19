@@ -1,0 +1,38 @@
+{
+	"maikeconfig":
+	{
+		"source_file_info_loaders":
+		{
+			"app":
+			{
+				"compiler":
+				{
+					"config":
+					{
+						"cflags":[]
+					}
+				}
+			},
+			"cxx":
+			{
+				"compiler":
+				{
+					"config":
+					{
+						"actions": ["sanitize"]
+					}
+				}
+			},
+			"cxx_test":
+			{
+				"compiler":
+				{
+					"config":
+					{
+						"actions": ["sanitize"]
+					}
+				}
+			}
+		}
+	}
+}
