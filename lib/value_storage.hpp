@@ -1,5 +1,5 @@
-#ifndef JOPP_UPDATER_HPP
-#define JOPP_UPDATER_HPP
+#ifndef JOPP_VALUE_STORAGE_HPP
+#define JOPP_VALUE_STORAGE_HPP
 
 #include <type_traits>
 #include <cstddef>
