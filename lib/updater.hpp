@@ -9,6 +9,9 @@
 
 namespace jopp2
 {
+	/**
+	 * \brief Type trait to determine whether or not T should be passed by value
+	 */
 	template <class T>
 	struct pass_by_value
 	{
@@ -28,12 +31,21 @@ namespace jopp2
 	#ifdef __i386__
 		#define UPDATE_CALLBACK [[gnu::fastcall]]
 	#else
+		/**
+		 * \brief Controls which calling convention is used for entries in the updater vtable
+		 */
 		#define UPDATE_CALLBACK
 	#endif
 
+	/**
+	 * \brief \see pass_by_value
+	 */
 	template<class T>
 	inline constexpr auto pass_by_value_v = pass_by_value<T>::value;
 
+	/**
+	 * \brief Type to be used for the source value in update callbacks
+	 */
 	template <class T>
 	using update_param_t = std::conditional_t<
 		pass_by_value_v<T>,
@@ -41,8 +53,11 @@ namespace jopp2
 		std::conditional_t<std::is_trivially_copyable_v<T>, T const&, T&&>
 	>;
 
+	/**
+	 * \brief Helper function for forwarding src
+	 */
 	template<class T>
-	inline constexpr decltype(auto) maybe_move(T&& src)
+	[[gnu::always_inline]] inline constexpr decltype(auto) maybe_move(T&& src)
 	{
 		if constexpr(std::is_reference_v<T>)
 		{
@@ -55,16 +70,28 @@ namespace jopp2
 		{ return src; }
 	}
 
-	template <class T>
-	using query_param_t = std::conditional_t<pass_by_value_v<T>, T, T const&>;
-
+	/**
+	 * \brief Type alias for update callbacks
+	 * \tparam UpdateResultType A template that wraps the type the callback receives
+	 * \tparam Sink The type of the object that should receive the new value
+	 * \tparam T The type of the source value
+	 */
 	template<template<class> class UpdateResultType, class Sink, class T>
 	using update_func_t = UpdateResultType<T> (*)(Sink&, update_param_t<T>) UPDATE_CALLBACK;
 
+	/**
+	 * \brief Type that indicates that a suitable overload for update was found
+	 */
+	struct update_func_found{};
+
+	/**
+	 * \brief Checks whether or not UpdateTraits has a member called update which matches update_func_t
+	 * \returns The type that failed the check, or update_func_found a suitable overload was found.
+	 */
 	template<class UpdateTraits, template<class> class R, class Sink, class... Types>
 	struct has_applicable_update
 	{
-		using result = void;
+		using result = update_func_found;
 	};
 
 	template<class UpdateTraits, template<class> class R, class Sink, class T, class... Types>
@@ -81,9 +108,15 @@ namespace jopp2
 		>;
 	};
 
+	/**
+	 * \brief Concept for used to reject types that are different from update_func_found
+	 */
 	template<class T>
-	concept concept_satisfied_for_type = std::is_same_v<T, void>;
+	concept concept_satisfied_for_type = std::is_same_v<T, update_func_found>;
 
+	/**
+	 * \brief Concept used to check that UpdateTraits satisfies all requirements
+	 */
 	template<class UpdateTraits, template<class> class UpdateResultType, class Sink, class... Types>
 	concept update_traits = concept_satisfied_for_type<typename has_applicable_update<UpdateTraits, UpdateResultType, Sink, Types...>::result>;
 
@@ -93,10 +126,9 @@ namespace jopp2
 	public:
 		constexpr updater() = default;
 		template<class Sink, update_traits<UpdateResultType, Sink, Types...> UpdateTraits>
-		constexpr explicit updater(Sink& target, std::type_identity<UpdateTraits>, char const* origin = std::source_location::current().function_name()):
+		constexpr explicit updater(Sink& target, std::type_identity<UpdateTraits>):
 				m_handle{&target},
-				m_vtable{&s_vtable<Sink, UpdateTraits>},
-				m_origin{origin}
+				m_vtable{&s_vtable<Sink, UpdateTraits>}
 		{}
 
 		template<class SourceValue>
@@ -104,7 +136,7 @@ namespace jopp2
 			!std::is_lvalue_reference_v<SourceValue> ||
 			pass_by_value_v<std::remove_cvref_t<SourceValue>>
 		)
-		[[nodiscard]] constexpr auto update_with(SourceValue&& value) const
+		[[gnu::always_inline]] [[nodiscard]] constexpr auto update_with(SourceValue&& value) const
 		{
 			using raw_type = std::remove_cvref_t<SourceValue>;
 			return std::get<update_callback_t<raw_type>>(*m_vtable)(m_handle, std::forward<SourceValue>(value));
@@ -112,7 +144,7 @@ namespace jopp2
 
 		template<class SourceValue>
 		requires(!pass_by_value_v<std::remove_cvref_t<SourceValue>>)
-		[[nodiscard]] constexpr auto update_with(SourceValue const& value) const
+		[[gnu::always_inline]] [[nodiscard]] constexpr auto update_with(SourceValue const& value) const
 		{
 			using raw_type = std::remove_cvref_t<SourceValue>;
 			if constexpr(std::is_trivially_copyable_v<std::remove_cvref_t<SourceValue>>)
@@ -121,11 +153,8 @@ namespace jopp2
 			{ return std::get<update_callback_t<raw_type>>(*m_vtable)(m_handle, raw_type{value}); }
 		}
 
-		constexpr operator bool() const
+		[[gnu::always_inline]] constexpr operator bool() const
 		{ return m_handle != nullptr; }
-
-		char const* origin() const
-		{ return m_origin; }
 
 	private:
 		template<class T>
@@ -135,7 +164,6 @@ namespace jopp2
 
 		void* m_handle{nullptr};
 		vtable const* m_vtable{nullptr};
-		char const* m_origin{nullptr};
 
 		template<class Sink, class UpdateTraits>
 		static constexpr vtable s_vtable{
