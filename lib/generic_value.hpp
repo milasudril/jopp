@@ -168,6 +168,23 @@ namespace jopp2
 			}
 		}
 
+		template<class Self, class Item>
+		requires(std::is_same_v<std::remove_cvref_t<Item>, map_value_type>)
+		auto try_store_key_value(this Self& self, Item&& item)
+		{
+			using ret_type = std::pair<key_type const*, generic_value*>;
+
+			auto i = self.template get_if<object>();
+			if(i == nullptr)
+			{ return ret_type{}; }
+
+			auto const insert_result = i->insert(std::forward<Item>(item));
+			if(!insert_result.second)
+			{ return ret_type{}; }
+
+			return ret_type{&insert_result.first->first, &insert_result.first->second};
+		}
+
 		template<class Self, class T, class KeyLike>
 		auto store_value_as(this Self& self, T&& value, KeyLike&& key)
 		{
@@ -547,8 +564,7 @@ namespace jopp2
 
 			UPDATE_CALLBACK static auto update(GenericValueOut& lhs, update_param_t<kv_item> item)
 			{
-				// TODO: Add try_store_key_value to generic_value
-				auto retval = lhs.try_store_value_as(std::move(item.second), std::move(item.first)).second;
+				auto retval = lhs.try_store_key_value(maybe_move(item)).second;
 				assert(retval != nullptr);
 				return retval;
 			}
