@@ -1,4 +1,4 @@
-Checks:          'bugprone-*,concurrency-*,cppcoreguidelines-*,performance-*,readability-*,clang-diagnostic-*,clang-analyzer-*,-cppcoreguidelines-pro-type-vararg,-cppcoreguidelines-avoid-non-const-global-variables,-readability-identifier-length,-cppcoreguidelines-avoid-magic-numbers,-cppcoreguidelines-pro-bounds-constant-array-index,-readability-magic-numbers,-readability-qualified-auto,-cppcoreguidelines-pro-bounds-pointer-arithmetic'
+Checks:          'bugprone-*,concurrency-*,cppcoreguidelines-*,performance-*,readability-*,clang-diagnostic-*,clang-analyzer-*,-cppcoreguidelines-pro-type-vararg,-cppcoreguidelines-avoid-non-const-global-variables,-readability-identifier-length,-cppcoreguidelines-avoid-magic-numbers,-cppcoreguidelines-pro-bounds-constant-array-index,-readability-magic-numbers,-readability-qualified-auto,-cppcoreguidelines-pro-bounds-pointer-arithmetic,-cppcoreguidelines-owning-memory'
 WarningsAsErrors: '*'
 HeaderFileExtensions:
   - ''

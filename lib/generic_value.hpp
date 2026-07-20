@@ -505,11 +505,7 @@ namespace jopp2
 	struct clone_visitor_object_update_traits_impl
 	{
 		[[noreturn]] UPDATE_CALLBACK static Rhs* update(Lhs&, update_param_t<Rhs>)
-		{
-			fprintf(stderr, "jopp: Internal error: Cannot assign a value to an object\n");
-			fflush(stderr);
-			abort();
-		}
+		{ raise_internal_error("Cannot assign a value to an object"); }
 	};
 
 	template<class OutputArray, class TypeToStore>
@@ -530,12 +526,7 @@ namespace jopp2
 				{ return &out.back(); }
 			}
 			else
-			{
-				fprintf(stderr, "jopp: Internal error: Type mismatch at array emplace_back\n");
-				fflush(stderr);
-				abort();
-				return nullptr;
-			}
+			{ raise_internal_error("Type mismatch at array emplace_back"); }
 		}
 	};
 
@@ -590,11 +581,7 @@ namespace jopp2
 			using clone_visitor_array_update_traits_impl<OutputArray, SrcValueTypes>::update...;
 
 			[[noreturn]] UPDATE_CALLBACK static GenericValueOut* update(OutputArray&, update_param_t<kv_item> item)
-			{
-				fprintf(stderr, "jopp: Internal error: Unexpected prop name %s\n", item.first.c_str());
-				fflush(stderr);
-				abort();
-			}
+			{ raise_internal_error("Unexpected prop name {}", std::tuple{item.first}); }
 		};
 
 		template<class T>
