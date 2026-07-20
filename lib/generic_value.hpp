@@ -581,7 +581,7 @@ namespace jopp2
 			using clone_visitor_array_update_traits_impl<OutputArray, SrcValueTypes>::update...;
 
 			[[noreturn]] UPDATE_CALLBACK static GenericValueOut* update(OutputArray&, update_param_t<kv_item> item)
-			{ raise_internal_error("Unexpected prop name {}", std::tuple{item.first}); }
+			{ raise_internal_error("Unexpected prop name {}", make_fmt_args(maybe_move(item.first))); }
 		};
 
 		template<class T>

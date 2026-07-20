@@ -26,6 +26,9 @@ namespace jopp2
 		std::string m_message;
 	};
 
+	/**
+	 * \brief Function called when an unrecoverable error is detected within jopp
+	 */
 	template<class... Args>
 	[[noreturn]] [[gnu::cold]] void raise_internal_error(
 		std::format_string<std::remove_cvref_t<Args> const&...> fmt,
@@ -33,9 +36,6 @@ namespace jopp2
 		std::source_location loc = std::source_location::current()
 	)
 	{
-		static_assert(std::is_trivially_copyable_v<std::format_string<std::remove_cvref_t<Args> const&...>>);
-		static_assert(sizeof(std::format_string<std::remove_cvref_t<Args> const&...>) == 2*sizeof(void*));
-
 		auto msg = std::apply(
 			[fmt](std::remove_cvref_t<Args> const&... args) {
 					return std::format(fmt, args...);
@@ -53,6 +53,13 @@ namespace jopp2
 		fflush(stderr);
 		abort();
 	}
+
+	/**
+	 * \brief Helper function to pack args into a tuple so they can be passed to raise_internal_error
+	 */
+	template<class... Args>
+	inline constexpr std::tuple<Args...> make_fmt_args(Args&&... args)
+	{ return std::tuple<Args&&...>(std::forward<Args>(args)...); }
 }
 
 #endif

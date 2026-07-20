@@ -55,7 +55,7 @@ TESTCASE(jopp2_raise_internal_error)
 	{
 		dup2(errpipe[1], STDERR_FILENO);
 		close(errpipe[0]);
-		jopp2::raise_internal_error("Something went wrong {} {}", std::tuple{1, "Foobar"});
+		jopp2::raise_internal_error("Something went wrong {} {}", jopp2::make_fmt_args(1, "Foobar"));
 		_exit(-1);
 	}
 	else
