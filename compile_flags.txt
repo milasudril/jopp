@@ -1,5 +1,5 @@
 -I.
 -iquote.
--std=c++20
+-std=c++23
 -mavx2
 -Wno-invalid-constexpr
