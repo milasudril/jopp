@@ -265,6 +265,58 @@ namespace jopp2
 	template<class ValueType>
 	struct end_of_array{};
 
+	constexpr auto visit_object = []<class ObjPtr, class VisitationState, class ValueVistationContext>(
+		ObjPtr obj,
+		VisitationState& state,
+		ValueVistationContext context
+	) static {
+		using node = decltype(state.nodes_to_visit)::value_type;
+		using object = decltype(*obj);
+		state.nodes_to_visit.push(
+			node{
+				.value = end_of_object{},
+				.context = context
+			}
+		);
+		auto const container_size = std::size(*obj);
+		if constexpr(std::ranges::bidirectional_range<object>)
+		{
+			for(auto&& [index, item]: std::ranges::reverse_view{std::ranges::enumerate_view{*obj}})
+			{
+				state.nodes_to_visit.push(
+					node{
+						.value = std::pair{&item.first, &item.second.get_value()},
+						.context = ValueVistationContext{
+							.node_index = static_cast<size_t>(index),
+							.parent_container_size = container_size
+						}
+					}
+				);
+			}
+		}
+		else
+		{
+			for(auto&& [index, item]: std::ranges::enumerate_view{*obj})
+			{
+				state.nodes_to_visit.push(
+					node{
+						.value = std::pair{&item.first, &item.second.get_value()},
+						.context = ValueVistationContext{
+							.node_index = container_size - static_cast<size_t>(index) - 1,
+							.parent_container_size = container_size
+						}
+					}
+				);
+			}
+		}
+		state.nodes_to_visit.push(
+			node{
+				.value = begin_of_object{},
+				.context = context
+			}
+		);
+	};
+
 	template<class GenericValue, class Visitor>
 	void visit_nodes(GenericValue&& root, Visitor&& visitor)
 	{
@@ -332,66 +384,10 @@ namespace jopp2
 			auto current_node = current_state.nodes_to_visit.top();
 			current_state.nodes_to_visit.pop();
 
-			using obj_ptr = std::conditional_t<
-				std::is_const_v<std::remove_reference_t<value_type>>,
-				object const*,
-				object*
-			>;
-
-			static constexpr auto handle_object = [](
-				obj_ptr obj,
-				visitation_state& state,
-				value_visitation_context context
-			) static {
-				state.nodes_to_visit.push(
-					node{
-						.value = end_of_object{},
-						.context = context
-					}
-				);
-				auto const container_size = std::size(*obj);
-				if constexpr(std::ranges::bidirectional_range<object>)
-				{
-					for(auto&& [index, item]: std::ranges::reverse_view{std::ranges::enumerate_view{*obj}})
-					{
-						state.nodes_to_visit.push(
-							node{
-								.value = std::pair{&item.first, &item.second.get_value()},
-								.context = value_visitation_context{
-									.node_index = static_cast<size_t>(index),
-									.parent_container_size = container_size
-								}
-							}
-						);
-					}
-				}
-				else
-				{
-					for(auto&& [index, item]: std::ranges::enumerate_view{*obj})
-					{
-						state.nodes_to_visit.push(
-							node{
-								.value = std::pair{&item.first, &item.second.get_value()},
-								.context = value_visitation_context{
-									.node_index = container_size - static_cast<size_t>(index) - 1,
-									.parent_container_size = container_size
-								}
-							}
-						);
-					}
-				}
-				state.nodes_to_visit.push(
-					node{
-						.value = begin_of_object{},
-						.context = context
-					}
-				);
-			};
-
 			visit_with_args(
 				current_node.value,
 				overload{
-					handle_object,
+					visit_object,
 					[]<class LeafValue> requires(generic_value::template is_leaf_value<LeafValue>)
 					(LeafValue* value, visitation_state& state, value_visitation_context context){
 						state.visitor.handle_leaf_value(*value, context);
@@ -440,7 +436,7 @@ namespace jopp2
 							);
 							for(auto&& [index, item]: std::ranges::reverse_view{std::ranges::enumerate_view{*seq}})
 							{
-								handle_object(
+								visit_object(
 									&item, state,
 									value_visitation_context{
 										.node_index = static_cast<size_t>(index),
