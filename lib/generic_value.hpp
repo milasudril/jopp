@@ -7,6 +7,7 @@
 #include "./value_storage.hpp"
 #include "./exception.hpp"
 
+#include <ranges>
 #include <stack>
 #include <algorithm>
 
@@ -265,13 +266,21 @@ namespace jopp2
 	template<class ValueType>
 	struct end_of_array{};
 
+	template<class SrcRange>
+	decltype(auto) make_range_to_push(SrcRange&& range)
+	{
+		if constexpr(std::ranges::bidirectional_range<SrcRange>)
+		{ return std::ranges::reverse_view{std::forward<SrcRange>(range)};}
+		else
+		{ return std::forward<SrcRange>(range); }
+	}
+
 	constexpr auto visit_object = []<class ObjPtr, class VisitationState, class ValueVistationContext>(
 		ObjPtr obj,
 		VisitationState& state,
 		ValueVistationContext context
 	) static {
 		using node = decltype(state.nodes_to_visit)::value_type;
-		using object = decltype(*obj);
 		state.nodes_to_visit.push(
 			node{
 				.value = end_of_object{},
@@ -279,36 +288,19 @@ namespace jopp2
 			}
 		);
 		auto const container_size = std::size(*obj);
-		if constexpr(std::ranges::bidirectional_range<object>)
+		for(auto&& [index, item]: make_range_to_push(std::ranges::enumerate_view{*obj}))
 		{
-			for(auto&& [index, item]: std::ranges::reverse_view{std::ranges::enumerate_view{*obj}})
-			{
-				state.nodes_to_visit.push(
-					node{
-						.value = std::pair{&item.first, &item.second.get_value()},
-						.context = ValueVistationContext{
-							.node_index = static_cast<size_t>(index),
-							.parent_container_size = container_size
-						}
+			state.nodes_to_visit.push(
+				node{
+					.value = std::pair{&item.first, &item.second.get_value()},
+					.context = ValueVistationContext{
+						.node_index = static_cast<size_t>(index),
+						.parent_container_size = container_size
 					}
-				);
-			}
+				}
+			);
 		}
-		else
-		{
-			for(auto&& [index, item]: std::ranges::enumerate_view{*obj})
-			{
-				state.nodes_to_visit.push(
-					node{
-						.value = std::pair{&item.first, &item.second.get_value()},
-						.context = ValueVistationContext{
-							.node_index = container_size - static_cast<size_t>(index) - 1,
-							.parent_container_size = container_size
-						}
-					}
-				);
-			}
-		}
+
 		state.nodes_to_visit.push(
 			node{
 				.value = begin_of_object{},
