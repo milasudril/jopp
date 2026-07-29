@@ -89,6 +89,7 @@ namespace jopp2
 		using generic_sequence_container = SequenceContainerType<generic_value>;
 
 		generic_value() = default;
+		~generic_value() = default;
 
 		generic_value(generic_value const&) = delete;
 		generic_value& operator=(generic_value const&) = delete;
@@ -404,8 +405,8 @@ namespace jopp2
 									node{
 										.value = make_node_value(item.get_value()),
 										.context = value_visitation_context{
-											.node_index = static_cast<size_t>(index),
-											.parent_container_size = container_size,
+											.node_index =static_cast<size_t>(index),
+											.parent_container_size = container_size
 										}
 									}
 								);
@@ -492,7 +493,7 @@ namespace jopp2
 	template<class Lhs, class Rhs>
 	struct clone_visitor_object_update_traits_impl
 	{
-		[[noreturn]] UPDATE_CALLBACK static Rhs* update(Lhs&, update_param_t<Rhs>)
+		[[noreturn]] UPDATE_CALLBACK static Rhs* update(Lhs& /*unused*/, update_param_t<Rhs> /*unused*/)
 		{ raise_internal_error("Cannot assign a value to an object"); }
 	};
 
@@ -568,7 +569,7 @@ namespace jopp2
 		{
 			using clone_visitor_array_update_traits_impl<OutputArray, SrcValueTypes>::update...;
 
-			[[noreturn]] UPDATE_CALLBACK static GenericValueOut* update(OutputArray&, update_param_t<kv_item> item)
+			[[noreturn]] UPDATE_CALLBACK static GenericValueOut* update(OutputArray& /*unused*/, update_param_t<kv_item> item)
 			{ raise_internal_error("Unexpected prop name {}", make_fmt_args(maybe_move(item.first))); }
 		};
 
@@ -640,7 +641,7 @@ namespace jopp2
 		}
 
 		template<class T>
-		void handle_leaf_value(T&& value, value_visitation_context)
+		void handle_leaf_value(T&& value, value_visitation_context /*unused*/)
 		{
 			if(m_value_after_key != nullptr)
 			{
@@ -656,7 +657,7 @@ namespace jopp2
 		}
 
 		template<class T>
-		void handle_property_name(T&& prop_name, value_visitation_context)
+		void handle_property_name(T&& prop_name, value_visitation_context /*unused*/)
 		{
 			auto& old_out = m_contexts.top().output_value;
 			if(old_out)
@@ -670,7 +671,7 @@ namespace jopp2
 			}
 		}
 
-		void handle_begin_of_object(value_visitation_context)
+		void handle_begin_of_object(value_visitation_context /*unused*/)
 		{
 			auto const old_out = m_contexts.top().output_value;
 			if(m_value_after_key != nullptr)
@@ -703,10 +704,10 @@ namespace jopp2
 			}
 		}
 
-		void handle_end_of_object(value_visitation_context)
+		void handle_end_of_object(value_visitation_context /*unused*/)
 		{ m_contexts.pop(); }
 
-		void handle_begin_of_array(std::type_identity<src_value> /*unused*/, value_visitation_context)
+		void handle_begin_of_array(std::type_identity<src_value> /*unused*/, value_visitation_context /*unused*/)
 		{
 			auto const old_out = m_contexts.top().output_value;
 			using output_array = sequence_container_out<GenericValueOut>;
@@ -740,7 +741,7 @@ namespace jopp2
 			}
 		}
 
-		void handle_begin_of_array(std::type_identity<src_object> /*unused*/, value_visitation_context)
+		void handle_begin_of_array(std::type_identity<src_object> /*unused*/, value_visitation_context /*unused*/)
 		{
 			auto const old_out = m_contexts.top().output_value;
 			using output_array = sequence_container_out<typename GenericValueOut::object>;
@@ -776,11 +777,11 @@ namespace jopp2
 		}
 
 		template<class T>
-		void handle_end_of_array(std::type_identity<T> /*unused*/, value_visitation_context)
+		void handle_end_of_array(std::type_identity<T> /*unused*/, value_visitation_context /*unused*/)
 		{ m_contexts.pop(); }
 
 		template<class T>
-		void handle_leaf_value_array(T const& src, value_visitation_context)
+		void handle_leaf_value_array(T const& src, value_visitation_context /*unused*/)
 		{
 			using src_type = std::remove_cvref_t<T>;
 			using src_value_type = typename src_type::value_type;
