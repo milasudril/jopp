@@ -10,6 +10,7 @@
 #include <ranges>
 #include <stack>
 #include <algorithm>
+#include <type_traits>
 
 namespace jopp2
 {
@@ -276,47 +277,19 @@ namespace jopp2
 		{ return std::forward<SrcRange>(range); }
 	}
 
-	constexpr auto visit_object = []<class ObjPtr, class VisitationState, class ValueVistationContext>(
-		ObjPtr obj,
-		VisitationState& state,
-		ValueVistationContext context
-	) static {
-		using node = decltype(state.nodes_to_visit)::value_type;
-		state.nodes_to_visit.push(
-			node{
-				.value = end_of_object{},
-				.context = context
-			}
-		);
-		auto const container_size = std::size(*obj);
-		for(auto&& [index, item]: make_range_to_push(std::ranges::enumerate_view{*obj}))
-		{
-			state.nodes_to_visit.push(
-				node{
-					.value = std::pair{&item.first, &item.second.get_value()},
-					.context = ValueVistationContext{
-						.node_index = static_cast<size_t>(index),
-						.parent_container_size = container_size
-					}
-				}
-			);
-		}
-
-		state.nodes_to_visit.push(
-			node{
-				.value = begin_of_object{},
-				.context = context
-			}
-		);
-	};
-
 	template<class GenericValue, class Visitor>
-	void visit_nodes(GenericValue&& root, Visitor&& visitor)
+	class node_visitor
 	{
+	public:
 		using generic_value = std::remove_cvref_t<GenericValue>;
 		using value_type = typename generic_value::value_type;
 		using key_type = typename generic_value::key_type;
 		using object = typename generic_value::object;
+		using objptr =  std::conditional_t<
+			std::is_const_v<std::remove_reference_t<GenericValue>>,
+			object const*,
+			object*
+		>;
 
 		using node_value = concatenate_variants_t<
 			wrap_variant_element_t<
@@ -338,145 +311,184 @@ namespace jopp2
 			>
 		>;
 
-
 		struct node
 		{
 			node_value value;
 			value_visitation_context context;
 		};
 
-		struct visitation_state
+		template<class VisitorType>
+		explicit node_visitor(GenericValue& root, VisitorType&& visitor):
+			m_visitor{std::forward<VisitorType>(visitor)}
 		{
-			Visitor visitor;
-			std::stack<node> nodes_to_visit;
-		};
+			m_nodes_to_visit.push(
+				node{
+					.value = make_node_value(root.get_value()),
+					.context = value_visitation_context{
+						.node_index = 0,
+						.parent_container_size = 1
+					}
+				}
+			);
+		}
 
-		visitation_state current_state{
-			.visitor = std::forward<Visitor>(visitor),
-			.nodes_to_visit = {}
-		};
-		static constexpr auto make_node_value = [](value_type& item) static {
+		static auto make_node_value(value_type& item)
+		{
 			return std::visit(
 				[](auto& item){return node_value{&item};},
 				item
 			);
 		};
 
-		current_state.nodes_to_visit.push(
-			node{
-				.value = make_node_value(root.get_value()),
-				.context = value_visitation_context{
-					.node_index = 0,
-					.parent_container_size = 1
-				}
-			}
-		);
-
-		while(!current_state.nodes_to_visit.empty())
+		void visit_nodes()
 		{
-			auto current_node = current_state.nodes_to_visit.top();
-			current_state.nodes_to_visit.pop();
+			while(!m_nodes_to_visit.empty())
+			{
+				auto current_node = m_nodes_to_visit.top();
+				m_nodes_to_visit.pop();
+				visit_with_args(current_node.value, *this, current_node.context);
+			}
+		}
 
-			visit_with_args(
-				current_node.value,
-				overload{
-					visit_object,
-					[]<class LeafValue> requires(generic_value::template is_leaf_value<LeafValue>)
-					(LeafValue* value, visitation_state& state, value_visitation_context context){
-						state.visitor.handle_leaf_value(*value, context);
-					},
-					[]<class Seq>
-					requires sequence_container<std::remove_cvref_t<Seq>>
-					(Seq* seq, visitation_state& state, value_visitation_context context) {
-						using seq_type = std::remove_cvref_t<Seq>;
-						auto const container_size = std::size(*seq);
-						using value_type = typename seq_type::value_type;
-						if constexpr(std::is_same_v<value_type, generic_value>)
-						{
-							state.nodes_to_visit.push(
-								node{
-									.value = end_of_array<src_value>{},
-									.context = context
-								}
-							);
-							for(auto&& [index, item]: std::ranges::reverse_view{std::ranges::enumerate_view{*seq}})
-							{
-								state.nodes_to_visit.push(
-									node{
-										.value = make_node_value(item.get_value()),
-										.context = value_visitation_context{
-											.node_index =static_cast<size_t>(index),
-											.parent_container_size = container_size
-										}
-									}
-								);
-							}
-							state.nodes_to_visit.push(
-								node{
-									.value = begin_of_array<src_value>{},
-									.context = context
-								}
-							);
-						}
-						else
-						if constexpr(std::is_same_v<value_type, object>)
-						{
-							state.nodes_to_visit.push(
-								node{
-									.value = end_of_array<src_object>{},
-									.context = context
-								}
-							);
-							for(auto&& [index, item]: std::ranges::reverse_view{std::ranges::enumerate_view{*seq}})
-							{
-								visit_object(
-									&item, state,
-									value_visitation_context{
-										.node_index = static_cast<size_t>(index),
-										.parent_container_size = container_size
-									}
-								);
-							}
-							state.nodes_to_visit.push(
-								node{
-									.value = begin_of_array<src_object>{},
-									.context = context
-								}
-							);
-						}
-						else
-						{ state.visitor.handle_leaf_value_array(*seq, context); }
-					},
-					[](
-						std::pair<key_type const*, std::remove_reference_t<value_type>*> kv_ptr,
-						visitation_state& state,
-						value_visitation_context context
-					) {
-						state.visitor.handle_property_name(*kv_ptr.first, context);
-						state.nodes_to_visit.push(
-							node{
-								.value = make_node_value(*kv_ptr.second),
-								.context = context
-							}
-						);
-					},
-					[](begin_of_object, visitation_state& state, value_visitation_context context) {
-						state.visitor.handle_begin_of_object(context);
-					},
-					[](end_of_object, visitation_state& state, value_visitation_context context) {
-						state.visitor.handle_end_of_object(context);
-					},
-					[]<class T>(begin_of_array<T>, visitation_state& state, value_visitation_context context) {
-						state.visitor.handle_begin_of_array(std::type_identity<T>{}, context);
-					},
-					[]<class T>(end_of_array<T>, visitation_state& state, value_visitation_context context) {
-						state.visitor.handle_end_of_array(std::type_identity<T>{}, context);
-					}
-				},
-				current_state,
-				current_node.context
+		template<class LeafValue>
+		requires(generic_value::template is_leaf_value<LeafValue>)
+		void operator()(LeafValue* value, value_visitation_context context)
+		{ m_visitor.handle_leaf_value(*value, context); }
+
+		void operator()(
+			std::pair<key_type const*, std::remove_reference_t<value_type>*> kv_ptr,
+			value_visitation_context context
+		)
+		{
+			m_visitor.handle_property_name(*kv_ptr.first, context);
+			m_nodes_to_visit.push(
+				node{
+					.value = make_node_value(*kv_ptr.second),
+					.context = context
+				}
 			);
 		}
+
+		void operator()(objptr obj, value_visitation_context context)
+		{
+			m_nodes_to_visit.push(
+				node{
+					.value = end_of_object{},
+					.context = context
+				}
+			);
+			auto const container_size = std::size(*obj);
+			for(auto&& [index, item]: make_range_to_push(std::ranges::enumerate_view{*obj}))
+			{
+				m_nodes_to_visit.push(
+					node{
+						.value = std::pair{&item.first, &item.second.get_value()},
+						.context = value_visitation_context{
+							.node_index = static_cast<size_t>(index),
+							.parent_container_size = container_size
+						}
+					}
+				);
+			}
+
+			m_nodes_to_visit.push(
+				node{
+					.value = begin_of_object{},
+					.context = context
+				}
+			);
+		}
+
+		template<class Seq>
+		requires sequence_container<std::remove_cvref_t<Seq>>
+		void operator()(Seq* seq, value_visitation_context context)
+		{
+			using seq_type = std::remove_cvref_t<Seq>;
+			auto const container_size = std::size(*seq);
+			using value_type = typename seq_type::value_type;
+			if constexpr(std::is_same_v<value_type, generic_value>)
+			{
+				m_nodes_to_visit.push(
+					node{
+						.value = end_of_array<src_value>{},
+						.context = context
+					}
+				);
+				for(auto&& [index, item]: std::ranges::reverse_view{std::ranges::enumerate_view{*seq}})
+				{
+					m_nodes_to_visit.push(
+						node{
+							.value = make_node_value(item.get_value()),
+							.context = value_visitation_context{
+								.node_index =static_cast<size_t>(index),
+								.parent_container_size = container_size
+							}
+						}
+					);
+				}
+				m_nodes_to_visit.push(
+					node{
+						.value = begin_of_array<src_value>{},
+						.context = context
+					}
+				);
+			}
+			else
+			if constexpr(std::is_same_v<value_type, object>)
+			{
+				m_nodes_to_visit.push(
+					node{
+						.value = end_of_array<src_object>{},
+						.context = context
+					}
+				);
+				for(auto&& [index, item]: std::ranges::reverse_view{std::ranges::enumerate_view{*seq}})
+				{
+					operator()(
+						&item,
+						value_visitation_context{
+							.node_index = static_cast<size_t>(index),
+							.parent_container_size = container_size
+						}
+					);
+				}
+				m_nodes_to_visit.push(
+					node{
+						.value = begin_of_array<src_object>{},
+						.context = context
+					}
+				);
+			}
+			else
+			{ m_visitor.handle_leaf_value_array(*seq, context); }
+		}
+
+		void operator()(begin_of_object /*unused*/, value_visitation_context context)
+		{ m_visitor.handle_begin_of_object(context); }
+
+		void operator()(end_of_object /*unused*/, value_visitation_context context)
+		{ m_visitor.handle_end_of_object(context); }
+
+		template<class T>
+		void operator()(begin_of_array<T> /*unused*/, value_visitation_context context)
+		{ m_visitor.handle_begin_of_array(std::type_identity<T>{}, context); }
+
+		template<class T>
+		void operator()(end_of_array<T> /*unused*/, value_visitation_context context)
+		{ m_visitor.handle_end_of_array(std::type_identity<T>{}, context); }
+
+	private:
+		Visitor m_visitor;
+		std::stack<node> m_nodes_to_visit;
+	};
+
+	template<class GenericValue, class VisitorType>
+	explicit node_visitor(GenericValue&, VisitorType&&)->node_visitor<GenericValue, VisitorType>;
+
+	template<class GenericValue, class Visitor>
+	void visit_nodes(GenericValue&& root, Visitor&& visitor)
+	{
+		node_visitor{root, std::forward<Visitor>(visitor)}.visit_nodes();
 	}
 
 	template<class Lhs, class Rhs>
