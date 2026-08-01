@@ -1,7 +1,9 @@
 //@	{"target":{"name": "generic_value.test"}}
 
 #include "./generic_value.hpp"
+#include "testfwk/death_test.hpp"
 
+#include <csignal>
 #include <flat_map>
 #include <testfwk/testfwk.hpp>
 #include <format>
@@ -258,15 +260,50 @@ TESTCASE(jopp2_explain_lookup_error_code)
 		"Value is not an object"
 	);
 
+	TestFwk::expect_death(
+		[](){
+			// NOLINTNEXTLINE
+			explain(static_cast<jopp2::lookup_error_code>(234));
+		},
+		"jopp internal error: lib/./generic_value.hpp:57: Invalid lookup error code\n",
+		SIGABRT
+	);
+}
+
+TESTCASE(jopp2_lookup_result_from_error_code)
+{
+	jopp2::lookup_result<int> foo{jopp2::lookup_error_code::key_not_found};
+	EXPECT_EQ(foo.error_code(), jopp2::lookup_error_code::key_not_found);
+	TestFwk::expect_death([foo](){*foo = 123;},"" , SIGSEGV);
+	try
 	{
-		TestFwk::expect_death(
-			[](){
-				explain(static_cast<jopp2::lookup_error_code>(234));
-			},
-			"jopp internal error: lib/./generic_value.hpp:57: Invalid lookup error code\n",
-			SIGABRT
+		foo.value("Foobar");
+		EXPECT_EQ(false, true);
+	}
+	catch(std::exception const& err)
+	{
+		EXPECT_EQ(
+			err.what(),
+			std::string_view{"Could not get `Foobar` from the current value: Key not found"}
 		);
 	}
+}
+
+TESTCASE(jopp2_lookup_result_from_pointer)
+{
+	std::pair res_value{235, 35};
+	jopp2::lookup_result result{&res_value};
+	EXPECT_EQ(*result, res_value);
+	EXPECT_EQ(result->first, 235);
+	EXPECT_EQ(result->second, 35);
+	EXPECT_EQ(result.value("Foobar"), res_value);
+	TestFwk::expect_death(
+		[result](){
+			auto const _ = result.error_code();
+		},
+		"jopp internal error: lib/./generic_value.hpp:93: Error code not set in a non-error condition\n",
+		SIGABRT
+	);
 }
 
 TESTCASE(jopp2_generic_value_static_properties)
@@ -350,6 +387,7 @@ TESTCASE(jopp2_generic_value_get_wrong_type)
 	try
 	{
 		auto const _ = val.get<std::string>();
+		EXPECT_EQ(true, false);
 	}
 	catch(jopp2::exception const& e)
 	{
@@ -365,10 +403,87 @@ TESTCASE(jopp2_generic_value_get_by_name_not_an_object)
 	{
 		auto const stored_val_ptr = val.get_if_by_name<double>("Foobar");
 		EXPECT_EQ(stored_val_ptr, nullptr);
+		EXPECT_EQ(stored_val_ptr.error_code(), jopp2::lookup_error_code::value_not_an_object);
+	}
+
+	try
+	{
+		auto const _ = val.get_by_name<double>("Foobar");
+		EXPECT_EQ(true, false);
+	}
+	catch(jopp2::exception const& e)
+	{
+		EXPECT_EQ(
+			e.what(),
+			std::string_view{"Could not get `Foobar` from the current value: Value is not an object"}
+		);
 	}
 }
 
+TESTCASE(jopp2_generic_value_get_by_name_key_not_found)
+{
+	using json_value = jopp2::generic_value<std::unordered_map, std::vector, json_value_traits>;
+	json_value val{json_value::object{}};
 
+	{
+		auto const stored_val_ptr = val.get_if_by_name<double>("Foobar");
+		EXPECT_EQ(stored_val_ptr, nullptr);
+		EXPECT_EQ(stored_val_ptr.error_code(), jopp2::lookup_error_code::key_not_found);
+	}
+
+	try
+	{
+		auto const _ = val.get_by_name<double>("Foobar");
+		EXPECT_EQ(true, false);
+	}
+	catch(jopp2::exception const& e)
+	{
+		EXPECT_EQ(
+			e.what(),
+			std::string_view{"Could not get `Foobar` from the current value: Key not found"}
+		);
+	}
+}
+
+TESTCASE(jopp2_generic_value_get_by_name_wrong_type)
+{
+	using json_value = jopp2::generic_value<std::unordered_map, std::vector, json_value_traits>;
+	json_value val{json_value::object{}};
+	val.store_value_as(std::string{"This is a string"}, "Foobar");
+
+	{
+		auto const stored_val_ptr = val.get_if_by_name<double>("Foobar");
+		EXPECT_EQ(stored_val_ptr, nullptr);
+		EXPECT_EQ(stored_val_ptr.error_code(), jopp2::lookup_error_code::unexpected_type);
+	}
+
+	try
+	{
+		auto const _ = val.get_by_name<double>("Foobar");
+		EXPECT_EQ(true, false);
+	}
+	catch(jopp2::exception const& e)
+	{
+		EXPECT_EQ(
+			e.what(),
+			std::string_view{"Could not get `Foobar` from the current value: Item exists but has a different type"}
+		);
+	}
+}
+
+TESTCASE(jopp2_generic_value_get_by_name_succesful)
+{
+	using json_value = jopp2::generic_value<std::unordered_map, std::vector, json_value_traits>;
+	json_value val{json_value::object{}};
+	val.store_value_as(12.5, "Foobar");
+
+	{
+		auto const stored_val_ptr = val.get_if_by_name<double>("Foobar");
+		EXPECT_EQ(*stored_val_ptr, 12.5);
+	}
+
+	EXPECT_EQ(val.get_by_name<double>("Foobar"), 12.5);
+}
 
 #if TODO
 TESTCASE(jopp2_generic_value_set_field_and_get_value)

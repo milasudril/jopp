@@ -82,17 +82,15 @@ namespace jopp2
 		{
 			if(m_value == nullptr)
 			{
-				throw exception{
-					"Could not get `{}` from the current value: {}",
-					key, explain(m_err_code)
-				};
+				throw exception{"Could not get `{}` from the current value: {}", key, explain(m_err_code) };
 			}
 			return *m_value;
 		}
 
 		constexpr auto error_code() const
 		{
-			raise_internal_error("Error code not set in a non-error condition");
+			if(m_value != nullptr)
+			{ raise_internal_error("Error code not set in a non-error condition"); }
 			return m_err_code;
 		}
 
@@ -208,12 +206,7 @@ namespace jopp2
 
 		template<class T, class Self, class KeyLike>
 		auto&& get_by_name(this Self&& self, KeyLike const& key)
-		{
-			auto retval = self.template get_if_by_name<T>(key);
-			if(retval == nullptr)
-			{ throw exception{"Item has an unexpected type or does not exist"}; }
-			return std::forward_like<Self>(*retval);
-		}
+		{ return std::forward_like<Self>(self.template get_if_by_name<T>(key).value(key)); }
 
 		template<class Value>
 		struct insert_result
