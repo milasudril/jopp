@@ -208,7 +208,7 @@ namespace jopp2
 		{
 			auto res = self.try_store_value_as(std::forward<T>(value), std::forward<KeyLike>(key));
 			if(res.key == nullptr)
-			{ throw exception{"Failed to insert `{}` into a non-object", key}; }
+			{ throw exception{"Failed to insert `{}` into a non-object", std::forward<KeyLike>(key)}; }
 
 			if(!res.was_inserted)
 			{ throw exception{"`{}` has already been set", *res.key}; }
@@ -267,6 +267,15 @@ namespace jopp2
 				},
 				std::forward<T>(value)
 			);
+		}
+
+		template<class Self, class T>
+		std::remove_cvref_t<T>& store_at_end(this Self& self, T&& value)
+		{
+			auto ret = self.try_store_at_end(std::forward<T>(value));
+			if(ret != nullptr)
+			{ throw exception{"Cannot append `{}` to a non-array", std::forward<T>(value)}; }
+			return *ret;
 		}
 
 	private:
