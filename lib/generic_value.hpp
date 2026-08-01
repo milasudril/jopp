@@ -128,13 +128,13 @@ namespace jopp2
 			std::is_const_v<std::remove_reference_t<Self>>,
 			std::remove_cvref_t<T> const*,
 			std::remove_cvref_t<T>*
-		> get_if_by_name(this Self&& self, KeyLike&& key)
+		> get_if_by_name(this Self&& self, KeyLike const& key)
 		{
 			auto item = self.template get_if<object>();
 			if(item == nullptr)
 			{ return nullptr; }
 
-			auto const i = item->find(std::forward<KeyLike>(key));
+			auto const i = item->find(key);
 			if(i == std::end(*item))
 			{ return nullptr; }
 
@@ -142,9 +142,9 @@ namespace jopp2
 		}
 
 		template<class T, class Self, class KeyLike>
-		auto&& get_by_name(this Self&& self, KeyLike&& key)
+		auto&& get_by_name(this Self&& self, KeyLike const& key)
 		{
-			auto retval = self.template get_if_by_name<T>(std::forward<KeyLike>(key));
+			auto retval = self.template get_if_by_name<T>(key);
 			if(retval == nullptr)
 			{ throw exception{"Item has an unexpected type or does not exist"}; }
 			return std::forward_like<Self>(*retval);
