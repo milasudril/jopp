@@ -208,11 +208,11 @@ namespace jopp2
 		{
 			auto res = self.try_store_value_as(std::forward<T>(value), std::forward<KeyLike>(key));
 			if(res.key == nullptr)
-			{
-				throw exception{
-					"This generic value is not an object, or the property has already been set"
-				};
-			}
+			{ throw exception{"Failed to insert `{}` into a non-object", key}; }
+
+			if(!res.was_inserted)
+			{ throw exception{"`{}` has already been set", *res.key}; }
+
 			return std::pair<key_type const&, std::remove_cvref_t<T>&>{*res.key, *res.value};
 		}
 
