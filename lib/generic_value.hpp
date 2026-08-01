@@ -153,9 +153,20 @@ namespace jopp2
 		template<class Value>
 		struct insert_result
 		{
-			key_type const* key;
-			Value* value;
+			key_type const* key = nullptr;
+			Value* value = nullptr;
+			bool was_inserted = false;
 		};
+
+		template<class TargetType, class SrcType>
+		requires(std::is_same_v<std::remove_cvref_t<SrcType>, generic_value>)
+		static auto get_value_pointer(SrcType* ptr)
+		{
+			if constexpr(std::is_same_v<std::remove_cvref_t<TargetType>, generic_value>)
+			{ return ptr; }
+			else
+			{ return ptr->template get_if<TargetType>(); }
+		}
 
 		template<class Self, class T, class KeyLike>
 		auto try_store_value_as(this Self& self, T&& value, KeyLike&& key)
@@ -167,15 +178,11 @@ namespace jopp2
 			{ return ret_type{}; }
 
 			auto const insert_result = i->emplace(std::forward<KeyLike>(key), std::forward<T>(value));
-			if(!insert_result.second)
-			{ return ret_type{}; }
-
-			if constexpr(std::is_same_v<std::remove_cvref_t<T>, generic_value>)
-			{ return ret_type{&insert_result.first->first, &insert_result.first->second}; }
-			else
-			{
-				return ret_type{&insert_result.first->first, insert_result.first->second.template get_if<T>()};
-			}
+			return ret_type{
+				.key = &insert_result.first->first,
+				.value = get_value_pointer<std::remove_cvref_t<T>>(&insert_result.first->second),
+				.was_inserted=insert_result.second
+			};
 		}
 
 		template<class Self, class Item>
@@ -189,10 +196,11 @@ namespace jopp2
 			{ return ret_type{}; }
 
 			auto const insert_result = i->insert(std::forward<Item>(item));
-			if(!insert_result.second)
-			{ return ret_type{}; }
-
-			return ret_type{&insert_result.first->first, &insert_result.first->second};
+			return ret_type{
+				.key = &insert_result.first->first,
+				.value = &insert_result.first->second,
+				.was_inserted=insert_result.second
+			};
 		}
 
 		template<class Self, class T, class KeyLike>

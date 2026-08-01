@@ -349,7 +349,8 @@ TESTCASE(jopp2_generic_value_store_value_as)
 		43,
 		"The answer to the question of life the universe and everything"
 	);
-	EXPECT_EQ(result_2.key, nullptr);
+	EXPECT_EQ(*result_2.key, "The answer to the question of life the universe and everything");
+	EXPECT_EQ(result_2.was_inserted, false);
 
 	foo = type_with_pack{};
 	auto const result_3 = foo.try_store_value_as(
