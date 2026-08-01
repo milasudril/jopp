@@ -54,6 +54,7 @@ namespace jopp2
 			case unexpected_type:
 				return "Item exists but has a different type";
 		}
+		raise_internal_error("Invalid lookup error code");
 	}
 
 	template<class RetType>

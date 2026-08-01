@@ -37,6 +37,7 @@
                             "-Wconversion",
                             "-Wsign-conversion",
                             "-Wno-maybe-uninitialized",
+                            "-Wswitch-enum",
                             "-Wno-error=maybe-uninitialized"
                         ],
                         "iquote": [
@@ -64,7 +65,8 @@
                             "-Wconversion",
                             "-Wsign-conversion",
                             "-Wno-maybe-uninitialized",
-                            "-Wno-error=maybe-uninitialized"
+                            "-Wno-error=maybe-uninitialized",
+                            "-Wswitch-enum"
                         ],
                         "iquote": [
                           "."

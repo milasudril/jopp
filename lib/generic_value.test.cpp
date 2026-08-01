@@ -6,6 +6,7 @@
 #include <testfwk/testfwk.hpp>
 #include <format>
 #include <print>
+#include <unistd.h>
 
 namespace
 {
@@ -238,6 +239,34 @@ namespace
 		size_t indentation = 0;
 		bool skip_indent = false;
 	};
+}
+
+TESTCASE(jopp2_explain_lookup_error_code)
+{
+	EXPECT_EQ(
+		explain(jopp2::lookup_error_code::unexpected_type),
+		"Item exists but has a different type"
+	);
+
+	EXPECT_EQ(
+		explain(jopp2::lookup_error_code::key_not_found),
+		"Key not found"
+	);
+
+	EXPECT_EQ(
+		explain(jopp2::lookup_error_code::value_not_an_object),
+		"Value is not an object"
+	);
+
+	{
+		TestFwk::expect_death(
+			[](){
+				explain(static_cast<jopp2::lookup_error_code>(234));
+			},
+			"jopp internal error: lib/./generic_value.hpp:57: Invalid lookup error code\n",
+			SIGABRT
+		);
+	}
 }
 
 TESTCASE(jopp2_generic_value_static_properties)
