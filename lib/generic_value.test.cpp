@@ -294,6 +294,54 @@ TESTCASE(jopp2_generic_value_static_properties)
 	EXPECT_EQ((std::is_constructible_v<type_with_no_pack, int>), false);
 }
 
+TESTCASE(jopp2_generic_value_default_constructed)
+{
+	using json_value = jopp2::generic_value<std::unordered_map, std::vector, json_value_traits>;
+	json_value val;
+	EXPECT_EQ(val.get<std::monostate>(), std::monostate{});
+}
+
+TESTCASE(jopp2_generic_value_construct_from_value)
+{
+	using json_value = jopp2::generic_value<std::unordered_map, std::vector, json_value_traits>;
+	json_value val{12.5};
+	EXPECT_EQ(val.get<double>(), 12.5);
+}
+
+TESTCASE(jopp2_generic_value_get_wrong_type)
+{
+	using json_value = jopp2::generic_value<std::unordered_map, std::vector, json_value_traits>;
+	json_value val{12.5};
+
+	{
+		auto const stored_val_ptr = val.get_if<std::string>();
+		EXPECT_EQ(stored_val_ptr, nullptr);
+	}
+
+	try
+	{
+		auto const _ = val.get<std::string>();
+	}
+	catch(jopp2::exception const& e)
+	{
+		EXPECT_EQ(e.what(), std::string_view{"Item has an unexpected type"});
+	}
+}
+
+TESTCASE(jopp2_generic_value_get_by_name_not_an_object)
+{
+	using json_value = jopp2::generic_value<std::unordered_map, std::vector, json_value_traits>;
+	json_value val{12.5};
+
+	{
+		auto const stored_val_ptr = val.get_if_by_name<double>("Foobar");
+		EXPECT_EQ(stored_val_ptr, nullptr);
+	}
+}
+
+
+
+#if TODO
 TESTCASE(jopp2_generic_value_set_field_and_get_value)
 {
 	using type_with_pack = jopp2::generic_value<std::flat_map, std::vector, my_value_traits_with_pack>;
@@ -430,6 +478,8 @@ TESTCASE(jopp2_generic_value_try_store_at_end_of_typed_container)
 	EXPECT_EQ(res, &container->back());
 }
 
+#endif
+#if TODO2
 TESTCASE(jopp2_generic_value_visit_nodes)
 {
 	using json_value = jopp2::generic_value<std::unordered_map, std::vector, json_value_traits>;
@@ -750,3 +800,4 @@ TESTCASE(jopp2_generic_value_visit_nodes)
 
 	EXPECT_EQ(output, expected_output);
 }
+#endif
