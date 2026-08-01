@@ -324,7 +324,7 @@ TESTCASE(jopp2_generic_value_get_wrong_type)
 	}
 	catch(jopp2::exception const& e)
 	{
-		EXPECT_EQ(e.what(), std::string_view{"Item has an unexpected type"});
+		EXPECT_EQ(e.what(), std::string_view{"Current value has an unexpected type"});
 	}
 }
 

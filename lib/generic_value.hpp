@@ -40,6 +40,66 @@ namespace jopp2
 
 	struct src_value{};
 
+	enum class lookup_error_code{value_not_an_object, key_not_found, unexpected_type};
+
+	constexpr std::string_view explain(lookup_error_code ec)
+	{
+		switch(ec)
+		{
+			using enum lookup_error_code;
+			case value_not_an_object:
+				return "Value is not an object";
+			case key_not_found:
+				return "Key not found";
+			case unexpected_type:
+				return "Item exists but has a different type";
+		}
+	}
+
+	template<class RetType>
+	class lookup_result
+	{
+	public:
+		constexpr explicit lookup_result(lookup_error_code err_code):
+			m_value{nullptr},
+			m_err_code{err_code}
+		{}
+
+		constexpr explicit lookup_result(RetType* value):
+			m_value{value},
+			m_err_code{}
+		{}
+
+		constexpr operator RetType*() const
+		{ return m_value;}
+
+		constexpr RetType* operator->() const
+		{ return m_value; }
+
+		template<class KeyLike>
+		constexpr RetType& value(KeyLike const& key) const
+		{
+			if(m_value == nullptr)
+			{
+				throw exception{
+					"Could not get `{}` from the current value: {}",
+					key, explain(m_err_code)
+				};
+			}
+			return *m_value;
+		}
+
+		constexpr auto error_code() const
+		{
+			raise_internal_error("Error code not set in a non-error condition");
+			return m_err_code;
+		}
+
+	private:
+		RetType* m_value{};
+		lookup_error_code m_err_code;
+	};
+
 	template<
 		template<class KeyType, class MappedType, class...> class AssociativeContainerType,
 		template<class ValueType, class...> class SequenceContainerType,
@@ -119,26 +179,30 @@ namespace jopp2
 		{
 			auto retval = self.template get_if<T>();
 			if(retval == nullptr)
-			{ throw exception{"Item has an unexpected type"}; }
+			{ throw exception{"Current value has an unexpected type"}; }
 			return std::forward_like<Self>(*retval);
 		}
-
 		template<class T, class Self, class KeyLike>
-		std::conditional_t<
-			std::is_const_v<std::remove_reference_t<Self>>,
-			std::remove_cvref_t<T> const*,
-			std::remove_cvref_t<T>*
-		> get_if_by_name(this Self&& self, KeyLike const& key)
+		auto get_if_by_name(this Self&& self, KeyLike const& key)
 		{
+			using ret_type = std::conditional_t<
+				std::is_const_v<std::remove_reference_t<Self>>,
+				lookup_result<std::remove_cvref_t<T> const>,
+				lookup_result<std::remove_cvref_t<T>>
+			>;
 			auto item = self.template get_if<object>();
 			if(item == nullptr)
-			{ return nullptr; }
+			{ return ret_type{lookup_error_code::value_not_an_object}; }
 
 			auto const i = item->find(key);
 			if(i == std::end(*item))
-			{ return nullptr; }
+			{ return ret_type{lookup_error_code::key_not_found}; }
 
-			return i->second.template get_if<T>();
+			auto const val_ptr = i->second.template get_if<T>();
+			if(val_ptr == nullptr)
+			{ return ret_type{lookup_error_code::unexpected_type}; }
+
+			return ret_type{val_ptr};
 		}
 
 		template<class T, class Self, class KeyLike>
