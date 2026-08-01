@@ -150,10 +150,17 @@ namespace jopp2
 			return std::forward_like<Self>(*retval);
 		}
 
+		template<class Value>
+		struct insert_result
+		{
+			key_type const* key;
+			Value* value;
+		};
+
 		template<class Self, class T, class KeyLike>
 		auto try_store_value_as(this Self& self, T&& value, KeyLike&& key)
 		{
-			using ret_type = std::pair<key_type const*, std::remove_cvref_t<T>*>;
+			using ret_type = insert_result<std::remove_cvref_t<T>>;
 
 			auto i = self.template get_if<object>();
 			if(i == nullptr)
@@ -175,7 +182,7 @@ namespace jopp2
 		requires(std::is_same_v<std::remove_cvref_t<Item>, map_value_type>)
 		auto try_store_key_value(this Self& self, Item&& item)
 		{
-			using ret_type = std::pair<key_type const*, generic_value*>;
+			using ret_type = insert_result<generic_value>;
 
 			auto i = self.template get_if<object>();
 			if(i == nullptr)
@@ -192,13 +199,13 @@ namespace jopp2
 		auto store_value_as(this Self& self, T&& value, KeyLike&& key)
 		{
 			auto res = self.try_store_value_as(std::forward<T>(value), std::forward<KeyLike>(key));
-			if(res.first == nullptr)
+			if(res.key == nullptr)
 			{
 				throw exception{
 					"This generic value is not an object, or the property has already been set"
 				};
 			}
-			return std::pair<key_type const&, std::remove_cvref_t<T>&>{*res.first, *res.second};
+			return std::pair<key_type const&, std::remove_cvref_t<T>&>{*res.key, *res.value};
 		}
 
 		template<class Self, class T>
@@ -574,7 +581,7 @@ namespace jopp2
 
 			UPDATE_CALLBACK static auto update(GenericValueOut& lhs, update_param_t<kv_item> item)
 			{
-				auto retval = lhs.try_store_key_value(maybe_move(item)).second;
+				auto retval = lhs.try_store_key_value(maybe_move(item)).value;
 				assert(retval != nullptr);
 				return retval;
 			}
