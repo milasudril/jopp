@@ -400,67 +400,85 @@ namespace jopp2
 		}
 
 		template<class Seq>
-		requires sequence_container<std::remove_cvref_t<Seq>>
+		requires(
+			sequence_container<std::remove_cvref_t<Seq>> &&
+			generic_value::template is_leaf_value <std::ranges::range_value_t<std::remove_cvref_t<Seq>>>
+		)
 		void operator()(Seq* seq, value_visitation_context context)
 		{
-			using seq_type = std::remove_cvref_t<Seq>;
+			m_visitor.handle_leaf_value_array(*seq, context);
+		}
+
+		template<class Seq>
+		requires(
+			sequence_container<std::remove_cvref_t<Seq>> &&
+			std::is_same_v<std::ranges::range_value_t<std::remove_cvref_t<Seq>>, generic_value>
+		)
+		void operator()(Seq* seq, value_visitation_context context)
+    {
 			auto const container_size = std::size(*seq);
-			using value_type = typename seq_type::value_type;
-			if constexpr(std::is_same_v<value_type, generic_value>)
+
+			m_nodes_to_visit.push(
+					node{
+							.value = end_of_array<src_value>{},
+							.context = context
+					}
+			);
+
+			for (auto&& [index, item] : std::ranges::reverse_view{std::ranges::enumerate_view{*seq}})
 			{
 				m_nodes_to_visit.push(
 					node{
-						.value = end_of_array<src_value>{},
-						.context = context
-					}
-				);
-				for(auto&& [index, item]: std::ranges::reverse_view{std::ranges::enumerate_view{*seq}})
-				{
-					m_nodes_to_visit.push(
-						node{
-							.value = make_node_value(item.get_value()),
-							.context = value_visitation_context{
-								.node_index =static_cast<size_t>(index),
-								.parent_container_size = container_size
-							}
-						}
-					);
-				}
-				m_nodes_to_visit.push(
-					node{
-						.value = begin_of_array<src_value>{},
-						.context = context
-					}
-				);
-			}
-			else
-			if constexpr(std::is_same_v<value_type, object>)
-			{
-				m_nodes_to_visit.push(
-					node{
-						.value = end_of_array<src_object>{},
-						.context = context
-					}
-				);
-				for(auto&& [index, item]: std::ranges::reverse_view{std::ranges::enumerate_view{*seq}})
-				{
-					operator()(
-						&item,
-						value_visitation_context{
+						.value = make_node_value(item.get_value()),
+						.context = value_visitation_context{
 							.node_index = static_cast<size_t>(index),
 							.parent_container_size = container_size
 						}
-					);
-				}
-				m_nodes_to_visit.push(
-					node{
-						.value = begin_of_array<src_object>{},
-						.context = context
 					}
 				);
 			}
-			else
-			{ m_visitor.handle_leaf_value_array(*seq, context); }
+
+			m_nodes_to_visit.push(
+				node{
+					.value = begin_of_array<src_value>{},
+					.context = context
+				}
+			);
+    }
+
+		template<class Seq>
+		requires(
+			sequence_container<std::remove_cvref_t<Seq>> &&
+			std::is_same_v<std::ranges::range_value_t<std::remove_cvref_t<Seq>>, object>
+		)
+		void operator()(Seq* seq, value_visitation_context context)
+		{
+			auto const container_size = std::size(*seq);
+
+			m_nodes_to_visit.push(
+				node{
+						.value = end_of_array<src_object>{},
+						.context = context
+				}
+			);
+
+			for (auto&& [index, item] : std::ranges::reverse_view{std::ranges::enumerate_view{*seq}})
+			{
+				operator()(
+					&item,
+					value_visitation_context{
+							.node_index = static_cast<size_t>(index),
+							.parent_container_size = container_size
+					}
+				);
+			}
+
+			m_nodes_to_visit.push(
+				node{
+					.value = begin_of_array<src_object>{},
+					.context = context
+				}
+			);
 		}
 
 		void operator()(begin_of_object /*unused*/, value_visitation_context context)
