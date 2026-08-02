@@ -68,6 +68,20 @@ namespace jopp2
 	inline size_t consteval get_index_of_type()
 	{ return get_index_of_type_impl<0, Which, Head, Types...>(); }
 
+	template<class Which, class ... Types>
+	struct index_of_type
+	{};
+
+	template<class Which, class ... Types>
+	struct index_of_type<Which, template_param_pack<Types...>>
+	{
+		static constexpr auto value = get_index_of_type<Which, Types...>();
+	};
+
+	template<class Which, class ... Types>
+	inline constexpr auto index_of_type_v = index_of_type<Which, Types...>::value;
+
+
 
 	template<template<class...> class, class ... Types>
 	struct map_template_param_pack_to_type

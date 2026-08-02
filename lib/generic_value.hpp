@@ -301,7 +301,7 @@ namespace jopp2
 						seq.emplace_back(std::forward<T>(value));
 						return &seq.back();
 					},
-					[&self]<sequence_container Seq>(Seq& seq, T&& value)  -> std::remove_cvref_t<T>* {
+					[&self]<sequence_container Seq>(Seq& seq, T&& value) -> std::remove_cvref_t<T>* {
 						if(seq.empty())
 						{
 							SequenceContainerType<std::remove_cvref_t<T>> new_container{};
@@ -311,7 +311,7 @@ namespace jopp2
 							return ret;
 						}
 
-						if constexpr(std::is_same_v<typename Seq::value_type, generic_value>)
+						if constexpr(std::is_same_v<typename std::remove_cvref_t<Seq>::value_type, generic_value>)
 						{
 							seq.emplace_back(std::forward<T>(value));
 							return seq.back().template get_if<T>();
@@ -319,7 +319,6 @@ namespace jopp2
 						else
 						{
 							SequenceContainerType<generic_value> new_container;
-
 							if constexpr(
 								requires{{new_container.reserve(size_t{})};} &&
 								requires{{std::size(seq)};}
@@ -331,9 +330,12 @@ namespace jopp2
 
 							new_container.emplace_back(std::forward<T>(value));
 
-							auto ret = new_container.back().template get_if<T>();
+							auto& ret_ref = new_container.back();
 							self.m_value = std::move(new_container);
-							return ret;
+							if constexpr(std::is_same_v<std::remove_cvref_t<T>, generic_value>)
+							{ return &ret_ref; }
+							else
+							{ return ret_ref.template get_if<T>(); }
 						}
 					},
 					[](auto const&...)  -> std::remove_cvref_t<T>* {

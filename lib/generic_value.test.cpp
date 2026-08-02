@@ -2,13 +2,13 @@
 
 #include "./generic_value.hpp"
 #include "testfwk/death_test.hpp"
+#include "testfwk/validation.hpp"
 
-#include <csignal>
+#include <vector>
 #include <flat_map>
 #include <testfwk/testfwk.hpp>
 #include <format>
 #include <print>
-#include <unistd.h>
 
 namespace
 {
@@ -623,145 +623,108 @@ TESTCASE(jopp2_generic_value_store_key_value_value_is_an_object)
 	}
 }
 
-#if TODO
-TESTCASE(jopp2_generic_value_set_field_and_get_value)
-{
-	using type_with_pack = jopp2::generic_value<std::flat_map, std::vector, my_value_traits_with_pack>;
-	type_with_pack foo{type_with_pack::object{}};
-
-	{
-		auto& obj = foo.get<type_with_pack::object&>();
-		obj.insert(std::pair{"the_key", 2345});
-		for(size_t k = 0; k != 2; ++k)
-		{
-			auto item = std::as_const(foo).get_by_name<int const&>("the_key");
-			EXPECT_EQ(item, 2345);
-			item = 1;
-			EXPECT_EQ(item, 1);
-		}
-	}
-
-	{
-		auto& obj = foo.get<type_with_pack::object&>();
-		obj.insert(std::pair{"other_key", 0});
-		for(size_t k = 0; k != 2; ++k)
-		{
-			auto item = foo.get_by_name<int>("other_key");
-			EXPECT_EQ(item, 0);
-			item = 1;
-			EXPECT_EQ(item, 1);
-		}
-	}
-
-	{
-		auto& obj = foo.get<type_with_pack::object&>();
-		obj.insert(std::pair{"third_key", 0});
-		for(int k = 0; k != 2; ++k)
-		{
-			auto& item = foo.get_by_name<int&>("third_key");
-			EXPECT_EQ(item, k);
-			++item;
-			EXPECT_EQ(item, k + 1);
-		}
-	}
-}
-
-TESTCASE(jopp2_generic_value_store_value_as)
-{
-	using type_with_pack = jopp2::generic_value<std::flat_map, std::vector, my_value_traits_with_pack>;
-	type_with_pack foo{type_with_pack::object{}};
-
-	auto const result_1 = foo.store_value_as(42, "The answer to the question of life the universe and everything");
-	EXPECT_EQ(result_1.first, "The answer to the question of life the universe and everything");
-	EXPECT_EQ(result_1.second, 42);
-
-	auto const result_2 = foo.try_store_value_as(
-		43,
-		"The answer to the question of life the universe and everything"
-	);
-	EXPECT_EQ(*result_2.key, "The answer to the question of life the universe and everything");
-	EXPECT_EQ(result_2.was_inserted, false);
-
-	foo = type_with_pack{};
-	auto const result_3 = foo.try_store_value_as(
-		42,
-		"The answer to the question of life the universe and everything"
-	);
-	EXPECT_EQ(result_3.key, nullptr);
-}
-
 TESTCASE(jopp2_generic_value_try_store_at_end_not_a_sequence)
 {
-	using type_with_pack = jopp2::generic_value<std::flat_map, std::vector, my_value_traits_with_pack>;
-	type_with_pack foo{};
-	auto const res = foo.try_store_at_end(134);
+	using json_value = jopp2::generic_value<std::unordered_map, std::vector, json_value_traits>;
+	json_value val{json_value::object{}};
+	auto const res = val.try_store_at_end(134.0);
 	EXPECT_EQ(res, nullptr);
 }
 
-TESTCASE(jopp2_generic_value_try_store_at_value_is_a_string)
+TESTCASE(jopp2_generic_value_try_store_at_end_value_is_a_string)
 {
-	using type_with_pack = jopp2::generic_value<std::flat_map, std::vector, my_value_traits_with_pack>;
-	type_with_pack foo{std::string{"Hej"}};
-	auto const res = foo.try_store_at_end('a');
+	using json_value = jopp2::generic_value<std::unordered_map, std::vector, json_value_traits>;
+	json_value val{std::string{"Hej hopp"}};
+	auto const res = val.try_store_at_end(134.0);
 	EXPECT_EQ(res, nullptr);
 }
 
-TESTCASE(jopp2_generic_value_try_store_at_end_sequence_empty_wrong_type)
+TESTCASE(jopp2_generic_value_try_store_at_end_typed_container_with_matching_type)
 {
-	using type_with_pack = jopp2::generic_value<std::flat_map, std::vector, my_value_traits_with_pack>;
-	type_with_pack foo{std::vector<int>{}};
-	auto const res = foo.try_store_at_end(std::string{"foobar"});
-	REQUIRE_NE(res, nullptr);
-	EXPECT_EQ(*res, "foobar");
-	auto container = foo.get_if<std::vector<std::string>>();
-	REQUIRE_NE(container, nullptr);
-	EXPECT_EQ(res, &container->back());
+	using json_value = jopp2::generic_value<std::unordered_map, std::vector, json_value_traits>;
+	{
+		json_value val{std::vector{1.0, 2.0, 3.0}};
+		auto const res = val.try_store_at_end(5.0);
+		EXPECT_EQ(*res, 5.0);
+		EXPECT_EQ(std::size(val.get<std::vector<double>>()), 4);
+		EXPECT_EQ(val.get<std::vector<double>>().back(), 5.0);
+	}
+
+	{
+		std::vector<json_value> vals{};
+		vals.emplace_back(2.0);
+		vals.emplace_back("Foobar");
+
+		json_value val{std::move(vals)};
+		auto const res = val.try_store_at_end(json_value{"Kaka"});
+		EXPECT_EQ(res->get<std::string>(), "Kaka");
+		EXPECT_EQ(std::size(val.get<std::vector<json_value>>()), 3);
+		EXPECT_EQ(val.get<std::vector<json_value>>().back().get<std::string>(), "Kaka");
+	}
 }
 
-TESTCASE(jopp2_generic_value_try_store_at_end_nonempty_generic_sequence)
+TESTCASE(jopp2_generic_value_try_store_at_end_leaf_value_in_empty_generic_container)
 {
-	using type_with_pack = jopp2::generic_value<std::flat_map, std::vector, my_value_traits_with_pack>;
-	std::vector<type_with_pack> initial_value{};
-	initial_value.emplace_back("foobar");
-	initial_value.emplace_back(123);
-	type_with_pack foo{std::move(initial_value)};
-
-	auto const res = foo.try_store_at_end(2.5);
-	REQUIRE_NE(res, nullptr);
-	EXPECT_EQ(*res, 2.5);
-	auto container = foo.get_if<std::vector<type_with_pack>>();
-	REQUIRE_NE(container, nullptr);
-	auto const stored_value_ptr = container->back().get_if<double>();
-	EXPECT_EQ(res, stored_value_ptr);
+	using json_value = jopp2::generic_value<std::unordered_map, std::vector, json_value_traits>;
+	json_value val{std::vector<json_value>{}};
+	auto const res = val.try_store_at_end(5.0);
+	EXPECT_EQ(*res, 5.0);
+	EXPECT_EQ(std::size(val.get<std::vector<double>>()), 1);
+	EXPECT_EQ(val.get<std::vector<double>>().back(), 5.0);
 }
 
-TESTCASE(jopp2_generic_value_try_store_at_end_different_type_from_typed_sequence)
+TESTCASE(jopp2_generic_value_try_store_at_end_generic_value_in_empty_leaf_container)
 {
-	using type_with_pack = jopp2::generic_value<std::flat_map, std::vector, my_value_traits_with_pack>;
-	type_with_pack foo{std::vector{1,2,3,4}};
-	auto const res = foo.try_store_at_end(std::string{"Foobar"});
-	REQUIRE_NE(res, nullptr);
-	EXPECT_EQ(*res, "Foobar");
-	auto container = foo.get_if<std::vector<type_with_pack>>();
-	REQUIRE_NE(container, nullptr);
-	auto const stored_value_ptr = container->back().get_if<std::string>();
-	EXPECT_EQ(res, stored_value_ptr);
+	using json_value = jopp2::generic_value<std::unordered_map, std::vector, json_value_traits>;
+	json_value val{std::vector<double>{}};
+	auto const res = val.try_store_at_end(json_value{"Foo"});
+	EXPECT_EQ(res->get<std::string>(), "Foo");
+	EXPECT_EQ(std::size(val.get<std::vector<json_value>>()), 1);
+	EXPECT_EQ(val.get<std::vector<json_value>>().back().get<std::string>(), "Foo");
 }
 
-TESTCASE(jopp2_generic_value_try_store_at_end_of_typed_container)
+TESTCASE(jopp2_generic_value_try_store_at_end_leaf_value_in_non_empty_generic_container)
 {
-	using type_with_pack = jopp2::generic_value<std::flat_map, std::vector, my_value_traits_with_pack>;
-	type_with_pack foo{std::vector{1,2,3,4}};
-	auto const res = foo.try_store_at_end(5);
-	REQUIRE_NE(res, nullptr);
-	EXPECT_EQ(*res, 5);
-	auto container = foo.get_if<std::vector<int>>();
-	REQUIRE_NE(container, nullptr);
-	EXPECT_EQ(res, &container->back());
+	using json_value = jopp2::generic_value<std::unordered_map, std::vector, json_value_traits>;
+	json_value val{std::vector<json_value>{}};
+	{
+		auto const res = val.try_store_at_end(json_value{"Foo"});
+		EXPECT_EQ(res->get<std::string>(), "Foo");
+		EXPECT_EQ(std::size(val.get<std::vector<json_value>>()), 1);
+		EXPECT_EQ(val.get<std::vector<json_value>>().back().get<std::string>(), "Foo");
+	}
+
+	{
+		auto const res = val.try_store_at_end(2.0);
+		EXPECT_EQ(*res, 2.0);
+		EXPECT_EQ(std::size(val.get<std::vector<json_value>>()), 2);
+		EXPECT_EQ(val.get<std::vector<json_value>>().back().get<double>(), 2.0);
+	}
 }
 
-#endif
-#if TODO2
+TESTCASE(jopp2_generic_value_try_store_at_end_leaf_value_in_non_empty_container_of_different_type)
+{
+	using json_value = jopp2::generic_value<std::unordered_map, std::vector, json_value_traits>;
+	json_value val{std::vector{1.0, 2.0, 4.0}};
+	auto const res = val.try_store_at_end(std::string{"This is a string"});
+	EXPECT_EQ(*res, "This is a string");
+	EXPECT_EQ((val.get<std::vector<json_value>>().end() -2)->get<double>(), 4.0);
+	EXPECT_EQ(val.get<std::vector<json_value>>().back().get<std::string>(), "This is a string");
+	EXPECT_EQ(std::size(val.get<std::vector<json_value>>()), 4);
+}
+
+TESTCASE(jopp2_generic_value_try_store_at_end_generic_value_in_non_empty_container_of_different_type)
+{
+	using json_value = jopp2::generic_value<std::unordered_map, std::vector, json_value_traits>;
+	json_value val{std::vector{1.0, 2.0, 4.0}};
+	auto const res = val.try_store_at_end(json_value{std::string{"This is a string"}});
+	EXPECT_EQ(res->get<std::string>(), "This is a string");
+	EXPECT_EQ((val.get<std::vector<json_value>>().end() -2)->get<double>(), 4.0);
+	EXPECT_EQ(val.get<std::vector<json_value>>().back().get<std::string>(), "This is a string");
+	EXPECT_EQ(std::size(val.get<std::vector<json_value>>()), 4);
+}
+
+#if TODO
 TESTCASE(jopp2_generic_value_visit_nodes)
 {
 	using json_value = jopp2::generic_value<std::unordered_map, std::vector, json_value_traits>;
