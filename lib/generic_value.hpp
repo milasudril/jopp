@@ -243,6 +243,19 @@ namespace jopp2
 			};
 		}
 
+		template<class Self, class T, class KeyLike>
+		auto store_value_as(this Self& self, T&& value, KeyLike&& key)
+		{
+			auto res = self.try_store_value_as(std::forward<T>(value), std::forward<KeyLike>(key));
+			if(res.key == nullptr)
+			{ throw exception{"Failed to insert `{}` into a non-object", std::forward<KeyLike>(key)}; }
+
+			if(!res.was_inserted)
+			{ throw exception{"`{}` has already been set", *res.key}; }
+
+			return std::pair<key_type const&, std::remove_cvref_t<T>&>{*res.key, *res.value};
+		}
+
 		template<class Self, class Item>
 		requires(std::is_same_v<std::remove_cvref_t<Item>, map_value_type>)
 		auto try_store_key_value(this Self& self, Item&& item)
@@ -261,17 +274,21 @@ namespace jopp2
 			};
 		}
 
-		template<class Self, class T, class KeyLike>
-		auto store_value_as(this Self& self, T&& value, KeyLike&& key)
+		template<class Self, class Item>
+		requires(std::is_same_v<std::remove_cvref_t<Item>, map_value_type>)
+		auto store_key_value(this Self& self, Item&& item)
 		{
-			auto res = self.try_store_value_as(std::forward<T>(value), std::forward<KeyLike>(key));
+			auto const res = self.try_store_key_value(std::forward<Item>(item));
 			if(res.key == nullptr)
-			{ throw exception{"Failed to insert `{}` into a non-object", std::forward<KeyLike>(key)}; }
+			{ throw exception{"Failed to insert `{}` into a non-object", item.first}; }
 
 			if(!res.was_inserted)
 			{ throw exception{"`{}` has already been set", *res.key}; }
 
-			return std::pair<key_type const&, std::remove_cvref_t<T>&>{*res.key, *res.value};
+			return std::pair<key_type const&, generic_value&>{
+				*res.key,
+				*res.value
+			};
 		}
 
 		template<class Self, class T>

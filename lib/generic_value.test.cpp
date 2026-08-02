@@ -485,6 +485,144 @@ TESTCASE(jopp2_generic_value_get_by_name_succesful)
 	EXPECT_EQ(val.get_by_name<double>("Foobar"), 12.5);
 }
 
+TESTCASE(jopp2_generic_value_try_store_value_as_value_is_not_an_object)
+{
+	using json_value = jopp2::generic_value<std::unordered_map, std::vector, json_value_traits>;
+	json_value val{};
+	auto const res = val.try_store_value_as(12.5, "Foobar");
+	EXPECT_EQ(res.value, nullptr);
+	EXPECT_EQ(res.key, nullptr);
+	EXPECT_EQ(res.was_inserted, false);
+}
+
+TESTCASE(jopp2_generic_value_try_store_value_value_is_an_object)
+{
+	using json_value = jopp2::generic_value<std::unordered_map, std::vector, json_value_traits>;
+	json_value val{json_value::object{}};
+
+	{
+		auto const res = val.try_store_value_as(12.5, "Foobar");
+		EXPECT_EQ(*res.value, 12.5);
+		EXPECT_EQ(*res.key, "Foobar");
+		EXPECT_EQ(res.was_inserted, true);
+	}
+
+	{
+		auto const res = val.try_store_value_as(25.0, "Foobar");
+		EXPECT_EQ(*res.value, 12.5);
+		EXPECT_EQ(*res.key, "Foobar");
+		EXPECT_EQ(res.was_inserted, false);
+	}
+}
+
+TESTCASE(jopp2_generic_value_store_value_as_value_is_not_an_object)
+{
+	using json_value = jopp2::generic_value<std::unordered_map, std::vector, json_value_traits>;
+	json_value val{};
+	try
+	{
+		auto const _ = val.store_value_as(12.5, std::string{"This is a longer key"});
+		EXPECT_EQ(false, true);
+	}
+	catch(std::exception const& err)
+	{
+		EXPECT_EQ(err.what(), std::string_view{"Failed to insert `This is a longer key` into a non-object"});
+	}
+}
+
+TESTCASE(jopp2_generic_value_store_value_as_value_is_an_object)
+{
+	using json_value = jopp2::generic_value<std::unordered_map, std::vector, json_value_traits>;
+	json_value val{json_value::object{}};
+	{
+		auto const res = val.store_value_as(12.5, std::string{"This is a longer key"});
+		EXPECT_EQ(res.first, "This is a longer key");
+		EXPECT_EQ(res.second, 12.5);
+	}
+
+	try
+	{
+		auto const _ = val.store_value_as(50.0, std::string{"This is a longer key"});
+		EXPECT_EQ(false, true);
+	}
+	catch(std::exception const& err)
+	{
+		EXPECT_EQ(err.what(), std::string_view{"`This is a longer key` has already been set"});
+	}
+}
+
+TESTCASE(jopp2_generic_value_try_store_key_value_value_is_not_an_object)
+{
+	using json_value = jopp2::generic_value<std::unordered_map, std::vector, json_value_traits>;
+	json_value val{};
+	auto const res = val.try_store_key_value(json_value::map_value_type{"Foobar", 12.5});
+	EXPECT_EQ(res.was_inserted, false);
+	EXPECT_EQ(res.key, nullptr);
+	EXPECT_EQ(res.value, nullptr);
+}
+
+TESTCASE(jopp2_generic_value_try_store_key_value_value_is_an_object)
+{
+	using json_value = jopp2::generic_value<std::unordered_map, std::vector, json_value_traits>;
+	json_value val{json_value::object{}};
+	{
+		auto const res = val.try_store_key_value(json_value::map_value_type{"Foobar", 12.5});
+		EXPECT_EQ(res.value->get<double>(), 12.5);
+		EXPECT_EQ(*res.key, "Foobar");
+		EXPECT_EQ(res.was_inserted, true);
+	}
+
+	{
+		auto const res = val.try_store_key_value(json_value::map_value_type{"Foobar", 25.0});
+		EXPECT_EQ(res.value->get<double>(), 12.5);
+		EXPECT_EQ(*res.key, "Foobar");
+		EXPECT_EQ(res.was_inserted, false);
+	}
+}
+
+TESTCASE(jopp2_generic_value_store_key_value_value_is_not_an_object)
+{
+	using json_value = jopp2::generic_value<std::unordered_map, std::vector, json_value_traits>;
+	json_value val{};
+	try
+	{
+		auto const _ = val.store_key_value(json_value::map_value_type{"This is a longer key", 12.5});
+		EXPECT_EQ(false, true);
+	}
+	catch(std::exception const& err)
+	{
+		EXPECT_EQ(
+			err.what(),
+			std::string_view{"Failed to insert `This is a longer key` into a non-object"}
+		);
+	}
+}
+
+TESTCASE(jopp2_generic_value_store_key_value_value_is_an_object)
+{
+	using json_value = jopp2::generic_value<std::unordered_map, std::vector, json_value_traits>;
+	json_value val{json_value::object{}};
+
+	{
+		auto const res = val.store_key_value(json_value::map_value_type{"This is a longer key", 12.5});
+		EXPECT_EQ(res.first, "This is a longer key");
+		EXPECT_EQ(res.second.get<double>(), 12.5);
+	}
+
+	try
+	{
+		auto const _ = val.store_key_value(json_value::map_value_type{"This is a longer key", 50.0});
+		EXPECT_EQ(false, true);
+	}
+	catch(std::exception const& err)
+	{
+		EXPECT_EQ(
+			err.what(),
+			std::string_view{"`This is a longer key` has already been set"}
+		);
+	}
+}
+
 #if TODO
 TESTCASE(jopp2_generic_value_set_field_and_get_value)
 {
