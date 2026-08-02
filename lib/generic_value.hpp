@@ -332,10 +332,7 @@ namespace jopp2
 
 							auto& ret_ref = new_container.back();
 							self.m_value = std::move(new_container);
-							if constexpr(std::is_same_v<std::remove_cvref_t<T>, generic_value>)
-							{ return &ret_ref; }
-							else
-							{ return ret_ref.template get_if<T>(); }
+							return get_value_pointer<T>(&ret_ref);
 						}
 					},
 					[](auto const&...)  -> std::remove_cvref_t<T>* {
