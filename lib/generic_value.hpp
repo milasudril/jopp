@@ -347,7 +347,7 @@ namespace jopp2
 		std::remove_cvref_t<T>& store_at_end(this Self& self, T&& value)
 		{
 			auto ret = self.try_store_at_end(std::forward<T>(value));
-			if(ret != nullptr)
+			if(ret == nullptr)
 			{ throw exception{"Cannot append `{}` to a non-array", std::forward<T>(value)}; }
 			return *ret;
 		}

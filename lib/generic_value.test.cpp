@@ -724,7 +724,29 @@ TESTCASE(jopp2_generic_value_try_store_at_end_generic_value_in_non_empty_contain
 	EXPECT_EQ(std::size(val.get<std::vector<json_value>>()), 4);
 }
 
-#if TODO
+TESTCASE(jopp2_generic_value_store_at_end_value_is_not_a_sequence)
+{
+	using json_value = jopp2::generic_value<std::unordered_map, std::vector, json_value_traits>;
+	json_value val{std::string{"foo"}};
+	try
+	{
+		auto const& _ = val.store_at_end(std::string{"bar"});
+		EXPECT_EQ(false, true);
+	}
+	catch(std::exception const& err)
+	{
+		EXPECT_EQ(err.what(), std::string_view{"Cannot append `bar` to a non-array"});
+	}
+}
+
+TESTCASE(jopp2_generic_value_store_at_end_value_is_a_sequence)
+{
+	using json_value = jopp2::generic_value<std::unordered_map, std::vector, json_value_traits>;
+	json_value val{std::vector<std::string>{"foo"}};
+	auto const& res = val.store_at_end(std::string{"bar"});
+	EXPECT_EQ(res, "bar");
+}
+
 TESTCASE(jopp2_generic_value_visit_nodes)
 {
 	using json_value = jopp2::generic_value<std::unordered_map, std::vector, json_value_traits>;
@@ -1045,4 +1067,3 @@ TESTCASE(jopp2_generic_value_visit_nodes)
 
 	EXPECT_EQ(output, expected_output);
 }
-#endif
