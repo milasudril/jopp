@@ -11,6 +11,7 @@
 #include <stack>
 #include <algorithm>
 #include <type_traits>
+#include <functional>
 
 namespace jopp2
 {
@@ -181,6 +182,7 @@ namespace jopp2
 			{ throw exception{"Current value has an unexpected type"}; }
 			return std::forward_like<Self>(*retval);
 		}
+
 		template<class T, class Self, class KeyLike>
 		auto get_if_by_name(this Self&& self, KeyLike const& key)
 		{
@@ -218,7 +220,7 @@ namespace jopp2
 
 		template<class TargetType, class SrcType>
 		requires(std::is_same_v<std::remove_cvref_t<SrcType>, generic_value>)
-		static auto get_value_pointer(SrcType* ptr)
+		[[gnu::always_inline]] static auto get_value_pointer(SrcType* ptr)
 		{
 			if constexpr(std::is_same_v<std::remove_cvref_t<TargetType>, generic_value>)
 			{ return ptr; }
@@ -375,6 +377,8 @@ namespace jopp2
 		{ return std::forward<SrcRange>(range); }
 	}
 
+	enum class visitor_status{suspend, keep_going};
+
 	template<class GenericValue, class Visitor>
 	class node_visitor
 	{
@@ -430,7 +434,7 @@ namespace jopp2
 			);
 		}
 
-		static auto make_node_value(value_type& item)
+		[[gnu::always_inline]] static auto make_node_value(value_type& item)
 		{
 			return std::visit(
 				[](auto& item){return node_value{&item};},
@@ -438,14 +442,46 @@ namespace jopp2
 			);
 		};
 
-		void visit_nodes()
+		template< class F, class... Args >
+		[[gnu::always_inline]] static auto dispatch_task(F&& f, Args&&... args)
 		{
+			if constexpr(Visitor::is_suspendable)
+			{ return std::invoke(std::forward<F>(f), std::forward<Args>(args)...); }
+			else
+			{
+				std::invoke(std::forward<F>(f), std::forward<Args>(args)...);
+				return visitor_status::keep_going;
+			}
+		}
+
+		auto visit_nodes()
+		{
+			if constexpr(Visitor::is_suspendable)
+			{
+				auto const result = m_visitor.flush_leaf_values();
+				if(result == visitor_status::suspend)
+				{ return result; }
+			}
+
 			while(!m_nodes_to_visit.empty())
 			{
 				auto current_node = m_nodes_to_visit.top();
 				m_nodes_to_visit.pop();
-				visit_with_args(current_node.value, *this, current_node.context);
+				if(
+					dispatch_task(
+						[]<class... Args>(Args&&... args){
+							return visit_with_args(std::forward<Args>(args)...);
+						},
+						current_node.value,
+						*this,
+						current_node.context
+					) ==
+					visitor_status::suspend
+				)
+				{ return visitor_status::suspend; }
 			}
+
+			return visitor_status::keep_going;
 		}
 
 		template<class LeafValue>
@@ -661,6 +697,8 @@ namespace jopp2
 	class clone_visitor
 	{
 	public:
+		static constexpr bool is_suspendable = false;
+
 		using kv_item = std::pair<typename GenericValueOut::key_type, GenericValueOut>;
 		using object_out = typename GenericValueOut::object;
 

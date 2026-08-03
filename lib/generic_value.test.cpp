@@ -65,6 +65,8 @@ namespace
 
 	struct test_node_visitor
 	{
+		static constexpr bool is_suspendable = false;
+
 		void do_indent()
 		{
 			if(skip_indent)
@@ -265,7 +267,7 @@ TESTCASE(jopp2_explain_lookup_error_code)
 			// NOLINTNEXTLINE
 			explain(static_cast<jopp2::lookup_error_code>(234));
 		},
-		"jopp internal error: lib/./generic_value.hpp:57: Invalid lookup error code\n",
+		"jopp internal error: lib/./generic_value.hpp:58: Invalid lookup error code\n",
 		SIGABRT
 	);
 }
@@ -299,9 +301,9 @@ TESTCASE(jopp2_lookup_result_from_pointer)
 	EXPECT_EQ(result.value("Foobar"), res_value);
 	TestFwk::expect_death(
 		[result](){
-			auto const _ = result.error_code();
+			std::ignore = result.error_code();
 		},
-		"jopp internal error: lib/./generic_value.hpp:93: Error code not set in a non-error condition\n",
+		"jopp internal error: lib/./generic_value.hpp:94: Error code not set in a non-error condition\n",
 		SIGABRT
 	);
 }
@@ -386,7 +388,7 @@ TESTCASE(jopp2_generic_value_get_wrong_type)
 
 	try
 	{
-		auto const _ = val.get<std::string>();
+		std::ignore = val.get<std::string>();
 		EXPECT_EQ(true, false);
 	}
 	catch(jopp2::exception const& e)
@@ -408,7 +410,7 @@ TESTCASE(jopp2_generic_value_get_by_name_not_an_object)
 
 	try
 	{
-		auto const _ = val.get_by_name<double>("Foobar");
+		std::ignore = val.get_by_name<double>("Foobar");
 		EXPECT_EQ(true, false);
 	}
 	catch(jopp2::exception const& e)
@@ -433,7 +435,7 @@ TESTCASE(jopp2_generic_value_get_by_name_key_not_found)
 
 	try
 	{
-		auto const _ = val.get_by_name<double>("Foobar");
+		std::ignore = val.get_by_name<double>("Foobar");
 		EXPECT_EQ(true, false);
 	}
 	catch(jopp2::exception const& e)
@@ -459,7 +461,7 @@ TESTCASE(jopp2_generic_value_get_by_name_wrong_type)
 
 	try
 	{
-		auto const _ = val.get_by_name<double>("Foobar");
+		std::ignore = val.get_by_name<double>("Foobar");
 		EXPECT_EQ(true, false);
 	}
 	catch(jopp2::exception const& e)
@@ -521,7 +523,7 @@ TESTCASE(jopp2_generic_value_store_value_as_value_is_not_an_object)
 	json_value val{};
 	try
 	{
-		auto const _ = val.store_value_as(12.5, std::string{"This is a longer key"});
+		std::ignore = val.store_value_as(12.5, std::string{"This is a longer key"});
 		EXPECT_EQ(false, true);
 	}
 	catch(std::exception const& err)
@@ -542,7 +544,7 @@ TESTCASE(jopp2_generic_value_store_value_as_value_is_an_object)
 
 	try
 	{
-		auto const _ = val.store_value_as(50.0, std::string{"This is a longer key"});
+		std::ignore = val.store_value_as(50.0, std::string{"This is a longer key"});
 		EXPECT_EQ(false, true);
 	}
 	catch(std::exception const& err)
@@ -586,7 +588,7 @@ TESTCASE(jopp2_generic_value_store_key_value_value_is_not_an_object)
 	json_value val{};
 	try
 	{
-		auto const _ = val.store_key_value(json_value::map_value_type{"This is a longer key", 12.5});
+		std::ignore = val.store_key_value(json_value::map_value_type{"This is a longer key", 12.5});
 		EXPECT_EQ(false, true);
 	}
 	catch(std::exception const& err)
@@ -611,7 +613,7 @@ TESTCASE(jopp2_generic_value_store_key_value_value_is_an_object)
 
 	try
 	{
-		auto const _ = val.store_key_value(json_value::map_value_type{"This is a longer key", 50.0});
+		std::ignore = val.store_key_value(json_value::map_value_type{"This is a longer key", 50.0});
 		EXPECT_EQ(false, true);
 	}
 	catch(std::exception const& err)
