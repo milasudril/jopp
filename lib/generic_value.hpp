@@ -441,7 +441,7 @@ namespace jopp2
 			);
 		};
 
-		auto visit_nodes()
+		[[nodiscard]] auto visit_nodes()
 		{
 			if constexpr(Visitor::is_suspendable)
 			{
