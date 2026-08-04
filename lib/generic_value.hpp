@@ -445,7 +445,7 @@ namespace jopp2
 		{
 			if constexpr(Visitor::is_suspendable)
 			{
-				auto const result = m_visitor.flush_leaf_values();
+				auto const result = m_visitor.flush();
 				if(result == visitor_status::suspend)
 				{ return result; }
 			}
