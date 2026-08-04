@@ -11,7 +11,6 @@
 #include <stack>
 #include <algorithm>
 #include <type_traits>
-#include <functional>
 
 namespace jopp2
 {
@@ -442,18 +441,6 @@ namespace jopp2
 			);
 		};
 
-		template< class F, class... Args >
-		[[gnu::always_inline]] static auto dispatch_task(F&& f, Args&&... args)
-		{
-			if constexpr(Visitor::is_suspendable)
-			{ return std::invoke(std::forward<F>(f), std::forward<Args>(args)...); }
-			else
-			{
-				std::invoke(std::forward<F>(f), std::forward<Args>(args)...);
-				return visitor_status::keep_going;
-			}
-		}
-
 		auto visit_nodes()
 		{
 			if constexpr(Visitor::is_suspendable)
@@ -467,43 +454,39 @@ namespace jopp2
 			{
 				auto current_node = m_nodes_to_visit.top();
 				m_nodes_to_visit.pop();
-				if(
-					dispatch_task(
-						[]<class... Args>(Args&&... args){
-							return visit_with_args(std::forward<Args>(args)...);
-						},
-						current_node.value,
-						*this,
-						current_node.context
-					) ==
-					visitor_status::suspend
-				)
-				{ return visitor_status::suspend; }
+				if constexpr(Visitor::is_suspendable)
+				{
+					if(visit_with_args(current_node.value, *this, current_node.context) == visitor_status::suspend)
+					{ return visitor_status::suspend; }
+				}
+				else
+				{ visit_with_args(current_node.value, *this, current_node.context); }
 			}
 
-			return visitor_status::keep_going;
+			if constexpr(Visitor::is_suspendable)
+			{ return visitor_status::keep_going; }
 		}
 
 		template<class LeafValue>
 		requires(generic_value::template is_leaf_value<LeafValue>)
-		void operator()(LeafValue* value, value_visitation_context context)
-		{ m_visitor.handle_leaf_value(*value, context); }
+		auto operator()(LeafValue* value, value_visitation_context context)
+		{ return m_visitor.handle_leaf_value(*value, context); }
 
-		void operator()(
+		auto operator()(
 			std::pair<key_type const*, std::remove_reference_t<value_type>*> kv_ptr,
 			value_visitation_context context
 		)
 		{
-			m_visitor.handle_property_name(*kv_ptr.first, context);
 			m_nodes_to_visit.push(
 				node{
 					.value = make_node_value(*kv_ptr.second),
 					.context = context
 				}
 			);
+			return m_visitor.handle_property_name(*kv_ptr.first, context);
 		}
 
-		void operator()(objptr obj, value_visitation_context context)
+		auto operator()(objptr obj, value_visitation_context context)
 		{
 			m_nodes_to_visit.push(
 				node{
@@ -531,6 +514,9 @@ namespace jopp2
 					.context = context
 				}
 			);
+
+			if constexpr(Visitor::is_suspendable)
+			{ return visitor_status::keep_going; }
 		}
 
 		template<class Seq>
@@ -538,17 +524,15 @@ namespace jopp2
 			sequence_container<std::remove_cvref_t<Seq>> &&
 			generic_value::template is_leaf_value <std::ranges::range_value_t<std::remove_cvref_t<Seq>>>
 		)
-		void operator()(Seq* seq, value_visitation_context context)
-		{
-			m_visitor.handle_leaf_value_array(*seq, context);
-		}
+		auto operator()(Seq* seq, value_visitation_context context)
+		{ return m_visitor.handle_leaf_value_array(*seq, context); }
 
 		template<class Seq>
 		requires(
 			sequence_container<std::remove_cvref_t<Seq>> &&
 			std::is_same_v<std::ranges::range_value_t<std::remove_cvref_t<Seq>>, generic_value>
 		)
-		void operator()(Seq* seq, value_visitation_context context)
+		auto operator()(Seq* seq, value_visitation_context context)
     {
 			auto const container_size = std::size(*seq);
 
@@ -578,6 +562,9 @@ namespace jopp2
 					.context = context
 				}
 			);
+
+			if constexpr(Visitor::is_suspendable)
+			{ return visitor_status::keep_going; }
     }
 
 		template<class Seq>
@@ -585,7 +572,7 @@ namespace jopp2
 			sequence_container<std::remove_cvref_t<Seq>> &&
 			std::is_same_v<std::ranges::range_value_t<std::remove_cvref_t<Seq>>, object>
 		)
-		void operator()(Seq* seq, value_visitation_context context)
+		auto operator()(Seq* seq, value_visitation_context context)
 		{
 			auto const container_size = std::size(*seq);
 
@@ -613,21 +600,24 @@ namespace jopp2
 					.context = context
 				}
 			);
+
+			if constexpr(Visitor::is_suspendable)
+			{ return visitor_status::keep_going; }
 		}
 
-		void operator()(begin_of_object /*unused*/, value_visitation_context context)
-		{ m_visitor.handle_begin_of_object(context); }
+		auto operator()(begin_of_object /*unused*/, value_visitation_context context)
+		{ return m_visitor.handle_begin_of_object(context); }
 
-		void operator()(end_of_object /*unused*/, value_visitation_context context)
-		{ m_visitor.handle_end_of_object(context); }
-
-		template<class T>
-		void operator()(begin_of_array<T> /*unused*/, value_visitation_context context)
-		{ m_visitor.handle_begin_of_array(std::type_identity<T>{}, context); }
+		auto operator()(end_of_object /*unused*/, value_visitation_context context)
+		{ return m_visitor.handle_end_of_object(context); }
 
 		template<class T>
-		void operator()(end_of_array<T> /*unused*/, value_visitation_context context)
-		{ m_visitor.handle_end_of_array(std::type_identity<T>{}, context); }
+		auto operator()(begin_of_array<T> /*unused*/, value_visitation_context context)
+		{ return m_visitor.handle_begin_of_array(std::type_identity<T>{}, context); }
+
+		template<class T>
+		auto operator()(end_of_array<T> /*unused*/, value_visitation_context context)
+		{ return m_visitor.handle_end_of_array(std::type_identity<T>{}, context); }
 
 	private:
 		Visitor m_visitor;
@@ -638,9 +628,9 @@ namespace jopp2
 	explicit node_visitor(GenericValue&, VisitorType&&)->node_visitor<GenericValue, VisitorType>;
 
 	template<class GenericValue, class Visitor>
-	void visit_nodes(GenericValue&& root, Visitor&& visitor)
+	auto visit_nodes(GenericValue&& root, Visitor&& visitor)
 	{
-		node_visitor{root, std::forward<Visitor>(visitor)}.visit_nodes();
+		return node_visitor{root, std::forward<Visitor>(visitor)}.visit_nodes();
 	}
 
 	template<class Lhs, class Rhs>
