@@ -642,10 +642,14 @@ namespace jopp2
 	template<class GenericValue, class VisitorType>
 	explicit node_visitor(GenericValue&, VisitorType&&)->node_visitor<GenericValue, VisitorType>;
 
-	template<class GenericValue, class Visitor>
-	auto visit_nodes(GenericValue&& root, Visitor&& visitor)
+	template<class GenericValue, class VisitorType>
+	void visit_nodes(GenericValue&& root, VisitorType&& visitor)
 	{
-		return node_visitor{root, std::forward<Visitor>(visitor)}.visit_nodes();
+		node_visitor node_visitor{root, std::forward<VisitorType>(visitor)};
+		if constexpr(std::remove_cvref_t<VisitorType>::is_suspendable)
+		{ while(node_visitor.visit_nodes() == visitor_status::suspend){} }
+		else
+		{ node_visitor.visit_nodes(); }
 	}
 
 	template<class GenericValue, class VisitorType, class... VisitorArgs>
@@ -655,11 +659,15 @@ namespace jopp2
 		VisitorArgs&&... visitor_args
 	)
 	{
-		return node_visitor<GenericValue,VisitorType>{
+		node_visitor<GenericValue,VisitorType> node_visitor{
 			root,
 			std::in_place_t{},
 			std::forward<VisitorArgs>(visitor_args)...
-		}.visit_nodes();
+		};
+		if constexpr(std::remove_cvref_t<VisitorType>::is_suspendable)
+		{ while(node_visitor.visit_nodes() == visitor_status::suspend){} }
+		else
+		{ node_visitor.visit_nodes(); }
 	}
 
 	template<class Lhs, class Rhs>
