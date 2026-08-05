@@ -65,7 +65,7 @@ namespace
 
 	struct test_node_visitor
 	{
-		static constexpr bool is_suspendable = false;
+		static constexpr bool is_suspendable = true;
 
 		void do_indent()
 		{
@@ -112,17 +112,21 @@ namespace
 			}
 		}
 
+		static auto flush()
+		{ return jopp2::visitor_status::keep_going; }
+
 		template<class T>
-		void handle_leaf_value_array(std::vector<T> const& src, jopp2::value_visitation_context context)
+		auto handle_leaf_value_array(std::vector<T> const& src, jopp2::value_visitation_context context)
 		{
 			handle_begin_of_array(std::type_identity<T>{}, context);
 			auto const size = std::size(src);
 			for(auto&& [index, item]: std::ranges::enumerate_view{src})
 			{ print_without_tag(item, static_cast<size_t>(index), size); }
 			handle_end_of_array(std::type_identity<T>{}, context);
+			return jopp2::visitor_status::keep_going;
 		}
 
-		void handle_leaf_value(std::string const& str, jopp2::value_visitation_context context)
+		auto handle_leaf_value(std::string const& str, jopp2::value_visitation_context context)
 		{
 			do_indent();
 			auto const index = context.node_index ;
@@ -135,9 +139,10 @@ namespace
 			{
 				output.get() += std::format("({} of {}) str({}),\n", index + 1, parent_container_size, str);
 			}
+			return jopp2::visitor_status::keep_going;
 		}
 
-		void handle_leaf_value(double value, jopp2::value_visitation_context context)
+		auto handle_leaf_value(double value, jopp2::value_visitation_context context)
 		{
 			do_indent();
 			auto const index = context.node_index ;
@@ -150,9 +155,10 @@ namespace
 			{
 				output.get() += std::format( "({} of {}) sd{},\n", index + 1, parent_container_size, value);
 			}
+			return jopp2::visitor_status::keep_going;
 		}
 
-		void handle_leaf_value(std::monostate /*unused*/, jopp2::value_visitation_context context)
+		auto handle_leaf_value(std::monostate /*unused*/, jopp2::value_visitation_context context)
 		{
 			do_indent();
 			auto const index = context.node_index ;
@@ -165,9 +171,10 @@ namespace
 			{
 				output.get() += std::format("({} of {}) null,\n", index + 1, parent_container_size);
 			}
+			return jopp2::visitor_status::keep_going;
 		}
 
-		void handle_leaf_value(bool_wrapper value, jopp2::value_visitation_context context)
+		auto handle_leaf_value(bool_wrapper value, jopp2::value_visitation_context context)
 		{
 			do_indent();
 			auto const index = context.node_index ;
@@ -184,16 +191,18 @@ namespace
 					"({} of {}) {},\n", index + 1, parent_container_size, internal_to_string(value)
 				);
 			}
+			return jopp2::visitor_status::keep_going;
 		}
 
-		void handle_property_name(std::string const& name, jopp2::value_visitation_context /*unused*/)
+		auto handle_property_name(std::string const& name, jopp2::value_visitation_context /*unused*/)
 		{
 			do_indent();
 			output.get() += std::format("{}: ", name);
 			skip_indent = true;
+			return jopp2::visitor_status::keep_going;
 		}
 
-		void handle_begin_of_object(jopp2::value_visitation_context context)
+		auto handle_begin_of_object(jopp2::value_visitation_context context)
 		{
 			do_indent();
 			output.get() += std::format(
@@ -202,9 +211,10 @@ namespace
 				context.parent_container_size
 			);
 			++indentation;
+			return jopp2::visitor_status::keep_going;
 		}
 
-		void handle_end_of_object(jopp2::value_visitation_context context)
+		auto handle_end_of_object(jopp2::value_visitation_context context)
 		{
 			--indentation;
 			do_indent();
@@ -212,10 +222,11 @@ namespace
 			{ output.get() += "},\n"; }
 			else
 			{ output.get() += "}\n"; }
+			return jopp2::visitor_status::keep_going;
 		}
 
 		template<class T>
-		void handle_begin_of_array(std::type_identity<T> /*unused*/, jopp2::value_visitation_context context)
+		auto handle_begin_of_array(std::type_identity<T> /*unused*/, jopp2::value_visitation_context context)
 		{
 			assert(context.node_index < context.parent_container_size);
 			do_indent();
@@ -226,10 +237,11 @@ namespace
 				map_type_name<T>::name
 			);
 			++indentation;
+			return jopp2::visitor_status::keep_going;
 		}
 
 		template<class T>
-		void handle_end_of_array(std::type_identity<T> /*unused*/, jopp2::value_visitation_context context)
+		auto handle_end_of_array(std::type_identity<T> /*unused*/, jopp2::value_visitation_context context)
 		{
 			--indentation;
 			do_indent();
@@ -237,6 +249,7 @@ namespace
 			{ output.get() += "],\n"; }
 			else
 			{ output.get() += "]\n"; }
+			return jopp2::visitor_status::keep_going;
 		}
 
 		std::reference_wrapper<std::string> output;
