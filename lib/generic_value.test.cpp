@@ -9,6 +9,7 @@
 #include <testfwk/testfwk.hpp>
 #include <format>
 #include <print>
+#include <random>
 
 namespace
 {
@@ -112,12 +113,13 @@ namespace
 			}
 		}
 
-		static auto flush()
-		{ return jopp2::visitor_status::keep_going; }
+		auto flush()
+		{ return current_state(); }
 
 		template<class T>
 		auto handle_leaf_value_array(std::vector<T> const& src, jopp2::value_visitation_context context)
 		{
+
 			handle_begin_of_array(std::type_identity<T>{}, context);
 			auto const size = std::size(src);
 			for(auto&& [index, item]: std::ranges::enumerate_view{src})
@@ -254,6 +256,10 @@ namespace
 
 		std::reference_wrapper<std::string> output;
 		size_t indentation = 0;
+		std::random_device rng{"/dev/random"};
+		std::move_only_function<jopp2::visitor_status()> current_state = []{
+			return jopp2::visitor_status::keep_going;
+		};
 		bool skip_indent = false;
 	};
 }
@@ -960,7 +966,7 @@ TESTCASE(jopp2_generic_value_visit_nodes)
 
 	auto result = clone<json_value_sorted>(value);
 	std::string output;
-	visit_nodes(result, test_node_visitor{output});
+	visit_nodes(result, std::in_place_type_t<test_node_visitor>{}, output);
 	static constexpr auto expected_output = R"((1 of 1) {
     array_of_arrays_of_bools: (1 of 15) [
         (1 of 2) bool[

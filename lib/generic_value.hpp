@@ -433,6 +433,21 @@ namespace jopp2
 			);
 		}
 
+		template<class ... VisitorArgs>
+		explicit node_visitor(GenericValue& root, std::in_place_t /*unused*/, VisitorArgs&&... args):
+			m_visitor{std::forward<VisitorArgs>(args)...}
+		{
+			m_nodes_to_visit.push(
+				node{
+					.value = make_node_value(root.get_value()),
+					.context = value_visitation_context{
+						.node_index = 0,
+						.parent_container_size = 1
+					}
+				}
+			);
+		}
+
 		[[gnu::always_inline]] static auto make_node_value(value_type& item)
 		{
 			return std::visit(
@@ -631,6 +646,20 @@ namespace jopp2
 	auto visit_nodes(GenericValue&& root, Visitor&& visitor)
 	{
 		return node_visitor{root, std::forward<Visitor>(visitor)}.visit_nodes();
+	}
+
+	template<class GenericValue, class VisitorType, class... VisitorArgs>
+	auto visit_nodes(
+		GenericValue&& root,
+		std::in_place_type_t<VisitorType> /*unused*/,
+		VisitorArgs&&... visitor_args
+	)
+	{
+		return node_visitor<GenericValue,VisitorType>{
+			root,
+			std::in_place_t{},
+			std::forward<VisitorArgs>(visitor_args)...
+		}.visit_nodes();
 	}
 
 	template<class Lhs, class Rhs>
