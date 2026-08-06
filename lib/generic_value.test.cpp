@@ -155,7 +155,7 @@ namespace
 						++index;
 					}
 					visitor.handle_end_of_array(std::type_identity<T>{}, context);
-					visitor.current_state = visitor.default_state;
+					visitor.current_state = default_state;
 					return jopp2::visitor_status::keep_going;
 				};
 			};
@@ -249,6 +249,20 @@ namespace
 
 		auto handle_property_name(std::string const& name, jopp2::value_visitation_context /*unused*/)
 		{
+			if(should_suspend())
+			{
+				current_state = [name](test_node_visitor& visitor){
+					if(visitor.should_suspend())
+					{ return jopp2::visitor_status::suspend; }
+
+					visitor.do_indent();
+					visitor.output.get() += std::format("{}: ", name);
+					visitor.skip_indent = true;
+
+					visitor.current_state = default_state;
+					return jopp2::visitor_status::keep_going;
+				};
+			}
 			do_indent();
 			output.get() += std::format("{}: ", name);
 			skip_indent = true;
