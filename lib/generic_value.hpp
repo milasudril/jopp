@@ -548,7 +548,7 @@ namespace jopp2
 			std::is_same_v<std::ranges::range_value_t<std::remove_cvref_t<Seq>>, generic_value>
 		)
 		auto operator()(Seq* seq, value_visitation_context context)
-    {
+		{
 			auto const container_size = std::size(*seq);
 
 			m_nodes_to_visit.push(
@@ -580,7 +580,7 @@ namespace jopp2
 
 			if constexpr(Visitor::is_suspendable)
 			{ return visitor_status::keep_going; }
-    }
+		}
 
 		template<class Seq>
 		requires(
