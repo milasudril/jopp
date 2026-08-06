@@ -148,7 +148,7 @@ namespace
 					{
 						auto const& item = range[index];
 						if(
-							visitor.print_without_tag(item, static_cast<size_t>(index), size) ==
+							visitor.print_without_tag(item, index, size) ==
 							jopp2::visitor_status::suspend
 						)
 						{ return jopp2::visitor_status::suspend; }
@@ -321,6 +321,7 @@ namespace
 
 		std::reference_wrapper<std::string> output;
 		size_t indentation = 0;
+		// NOLINTNEXTLINE Not according to gcc
 		std::mt19937 rng{};
 		std::move_only_function<jopp2::visitor_status(test_node_visitor&)> current_state = default_state;
 		bool skip_indent = false;
