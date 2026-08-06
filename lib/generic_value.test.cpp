@@ -95,9 +95,17 @@ namespace
 			}
 		};
 
-		template<class T>
-		void print_without_tag(T const& item, size_t index, size_t parent_container_size)
+		bool should_suspend()
 		{
+			return std::bernoulli_distribution{0.5}(rng);
+		}
+
+		template<class T>
+		[[nodiscard]] auto print_without_tag(T const& item, size_t index, size_t parent_container_size)
+		{
+			if(should_suspend())
+			{ return jopp2::visitor_status::suspend; }
+
 			do_indent();
 			if(index + 1== parent_container_size) [[unlikely]]
 			{
@@ -111,19 +119,62 @@ namespace
 					"({} of {}) {},\n", index + 1, parent_container_size, internal_to_string(item)
 				);
 			}
+			return  jopp2::visitor_status::keep_going;
 		}
 
+		static jopp2::visitor_status default_state(test_node_visitor& /*unused*/)
+		{ return jopp2::visitor_status::keep_going; }
+
 		auto flush()
-		{ return current_state(); }
+		{
+			auto const res = current_state(*this);
+			if(res == jopp2::visitor_status::keep_going)
+			{ current_state = default_state;}
+			return res;
+		}
 
 		template<class T>
 		auto handle_leaf_value_array(std::vector<T> const& src, jopp2::value_visitation_context context)
 		{
-
 			handle_begin_of_array(std::type_identity<T>{}, context);
+			auto resume_from = [&](size_t index) {
+				return [
+					range = std::span{src},
+					index,
+					size = std::size(src),
+					context
+				](test_node_visitor& visitor) mutable{
+					while(index != size)
+					{
+						auto const& item = range[index];
+						if(
+							visitor.print_without_tag(item, static_cast<size_t>(index), size) ==
+							jopp2::visitor_status::suspend
+						)
+						{ return jopp2::visitor_status::suspend; }
+						++index;
+					}
+					visitor.handle_end_of_array(std::type_identity<T>{}, context);
+					visitor.current_state = visitor.default_state;
+					return jopp2::visitor_status::keep_going;
+				};
+			};
+
+			if(should_suspend())
+			{
+				current_state = resume_from(0);
+				return jopp2::visitor_status::suspend;
+			}
+
 			auto const size = std::size(src);
 			for(auto&& [index, item]: std::ranges::enumerate_view{src})
-			{ print_without_tag(item, static_cast<size_t>(index), size); }
+			{
+				if(print_without_tag(item, static_cast<size_t>(index), size) == jopp2::visitor_status::suspend)
+				{
+					current_state = resume_from(static_cast<size_t>(index));
+					return jopp2::visitor_status::suspend;
+				}
+			}
 			handle_end_of_array(std::type_identity<T>{}, context);
 			return jopp2::visitor_status::keep_going;
 		}
@@ -256,10 +307,8 @@ namespace
 
 		std::reference_wrapper<std::string> output;
 		size_t indentation = 0;
-		std::random_device rng{"/dev/random"};
-		std::move_only_function<jopp2::visitor_status()> current_state = []{
-			return jopp2::visitor_status::keep_going;
-		};
+		std::mt19937 rng{};
+		std::move_only_function<jopp2::visitor_status(test_node_visitor&)> current_state = default_state;
 		bool skip_indent = false;
 	};
 }
