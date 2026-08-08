@@ -39,12 +39,12 @@ namespace jopp2
 	template<std::ranges::forward_range Range>
 	iter(Range&& range)->iter<std::ranges::iterator_t<Range>>;
 
-		template<class T>
-		requires(
-				!std::ranges::range<std::remove_cvref_t<T>>
-			&&!std::is_same_v<std::remove_cvref_t<T>, iter<T*>>
-		)
-		iter(T& obj) -> iter<T*>;
+	template<class T>
+	requires(
+			!std::ranges::range<std::remove_cvref_t<T>>
+		&&!std::is_same_v<std::remove_cvref_t<T>, iter<T*>>
+	)
+	iter(T& obj) -> iter<T*>;
 }
 
 #endif
