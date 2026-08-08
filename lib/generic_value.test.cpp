@@ -350,7 +350,7 @@ TESTCASE(jopp2_explain_lookup_error_code)
 			// NOLINTNEXTLINE
 			explain(static_cast<jopp2::lookup_error_code>(234));
 		},
-		"jopp internal error: lib/./generic_value.hpp:57: Invalid lookup error code\n",
+		"jopp internal error: lib/./generic_value.hpp:58: Invalid lookup error code\n",
 		SIGABRT
 	);
 }
@@ -386,7 +386,7 @@ TESTCASE(jopp2_lookup_result_from_pointer)
 		[result](){
 			std::ignore = result.error_code();
 		},
-		"jopp internal error: lib/./generic_value.hpp:93: Error code not set in a non-error condition\n",
+		"jopp internal error: lib/./generic_value.hpp:94: Error code not set in a non-error condition\n",
 		SIGABRT
 	);
 }
@@ -1151,4 +1151,14 @@ TESTCASE(jopp2_generic_value_visit_nodes)
 )";
 
 	EXPECT_EQ(output, expected_output);
+}
+
+TESTCASE(jopp2_node_visitor_2_instantiate_with_json_value)
+{
+	using json_value = jopp2::generic_value<std::unordered_map, std::vector, json_value_traits>;
+
+	json_value root;
+	std::string output;
+	jopp2::node_visitor_2<json_value, test_node_visitor> visitor{root, std::in_place_t{}, output};
+	std::ignore = visitor.visit_nodes();
 }

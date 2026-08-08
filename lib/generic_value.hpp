@@ -3,6 +3,7 @@
 
 #include "./variant_utils.hpp"
 #include "./utils.hpp"
+#include "./iter.hpp"
 #include "./template_param_pack.hpp"
 #include "./value_storage.hpp"
 #include "./exception.hpp"
@@ -377,6 +378,53 @@ namespace jopp2
 	}
 
 	enum class visitor_status{suspend, keep_going};
+
+	template<class GenericValue, class Visitor>
+	class node_visitor_2
+	{
+	public:
+		using generic_value = std::remove_cvref_t<GenericValue>;
+		static constexpr auto src_is_const = std::is_const_v<std::remove_reference_t<GenericValue>>;
+		using value_type = typename generic_value::value_type;
+		using node_value = wrap_variant_element_t<
+			std::conditional_t<
+				src_is_const,
+				wrap_variant_element_t<value_type, std::add_const_t>,
+				value_type
+			>,
+			make_iter_t
+		>;
+
+		template<class VisitorType>
+		explicit node_visitor_2(GenericValue& /*TODO*/, VisitorType&& visitor):
+			m_visitor{std::forward<VisitorType>(visitor)}
+		{
+		}
+
+		template<class ... VisitorArgs>
+		explicit node_visitor_2(GenericValue& /*TODO*/, std::in_place_t /*unused*/, VisitorArgs&&... args):
+			m_visitor{std::forward<VisitorArgs>(args)...}
+		{
+		}
+
+		[[nodiscard]] auto visit_nodes()
+		{
+			if constexpr(Visitor::is_suspendable)
+			{
+				auto const result = m_visitor.flush();
+				if(result == visitor_status::suspend)
+				{ return result; }
+			}
+
+			// TODO: Implement loop
+
+			if constexpr(Visitor::is_suspendable)
+			{ return visitor_status::keep_going; }
+		}
+
+	private:
+		Visitor m_visitor;
+	};
 
 	template<class GenericValue, class Visitor>
 	class node_visitor
