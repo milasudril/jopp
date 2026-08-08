@@ -12,10 +12,15 @@ namespace jopp2
 		using iter_type = IterType;
 
 		template<std::ranges::forward_range Range>
+		requires (std::ranges::borrowed_range<Range> || std::is_lvalue_reference_v<Range>)
 		constexpr explicit iter(Range&& range):
-			m_current_position{std::begin(range)},
-			m_end{std::end(range)}
+			m_current_position{std::ranges::begin(range)},
+			m_end{std::ranges::end(range)}
 		{}
+
+		template<std::ranges::forward_range Range>
+		requires (!std::ranges::borrowed_range<Range> && !std::is_lvalue_reference_v<Range>)
+		iter(Range&&) = delete;
 
 		template<class T>
 		requires(
@@ -24,13 +29,13 @@ namespace jopp2
 		)
 		constexpr iter(T& obj):
 			m_current_position{&obj},
-			m_end{&obj + 1}
+			m_end{std::addressof(obj) + 1}
 		{}
 
 		constexpr bool at_end() const
 		{ return m_current_position == m_end; }
 
-		constexpr auto& next()
+		constexpr decltype(auto) next()
 		{ return *m_current_position++; }
 
 	private:

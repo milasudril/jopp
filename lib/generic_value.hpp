@@ -395,6 +395,11 @@ namespace jopp2
 			make_iter_t
 		>;
 
+		struct node
+		{
+			node_value value;
+		};
+
 		template<class VisitorType>
 		explicit node_visitor_2(GenericValue& /*TODO*/, VisitorType&& visitor):
 			m_visitor{std::forward<VisitorType>(visitor)}
@@ -424,6 +429,7 @@ namespace jopp2
 
 	private:
 		Visitor m_visitor;
+		std::stack<node> m_nodes;
 	};
 
 	template<class GenericValue, class Visitor>
