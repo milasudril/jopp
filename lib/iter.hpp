@@ -9,6 +9,8 @@ namespace jopp2
 	class iter
 	{
 	public:
+		using iter_type = IterType;
+
 		template<std::ranges::forward_range Range>
 		constexpr explicit iter(Range&& range):
 			m_current_position{std::begin(range)},
@@ -18,8 +20,8 @@ namespace jopp2
 		template<class T>
 		requires(
 				!std::ranges::range<std::remove_cvref_t<T>>
-			&&!std::is_same_v<std::remove_cvref_t<T>, iter>)
-
+			&&!std::is_same_v<std::remove_cvref_t<T>, iter>
+		)
 		constexpr iter(T& obj):
 			m_current_position{&obj},
 			m_end{&obj + 1}
@@ -45,6 +47,9 @@ namespace jopp2
 		&&!std::is_same_v<std::remove_cvref_t<T>, iter<T*>>
 	)
 	iter(T& obj) -> iter<T*>;
+
+	template<class T>
+	using make_iter_t = decltype(iter(std::declval<T&>()));
 }
 
 #endif

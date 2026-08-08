@@ -16,6 +16,8 @@ TESTCASE(jopp2_iter_from_range)
 		EXPECT_EQ(i.next(), vals[count]);
 		++count;
 	}
+
+	static_assert(std::is_same_v<decltype(i), jopp2::make_iter_t<decltype(vals)>>);
 }
 
 TESTCASE(jopp2_iter_from_value)
@@ -25,4 +27,7 @@ TESTCASE(jopp2_iter_from_value)
 	EXPECT_EQ(i.at_end(), false);
 	EXPECT_EQ(i.next(), val);
 	EXPECT_EQ(i.at_end(), true);
+	static_assert(std::is_same_v<decltype(i), jopp2::make_iter_t<int>>);
+	static_assert(std::is_same_v<jopp2::make_iter_t<int>::iter_type, int*>);
+	static_assert(std::is_same_v<jopp2::make_iter_t<int const>::iter_type, int const*>);
 }
