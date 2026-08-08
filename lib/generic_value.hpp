@@ -400,16 +400,34 @@ namespace jopp2
 			node_value value;
 		};
 
+		[[gnu::always_inline]] static auto make_node_value(auto& item)
+		{
+			return std::visit(
+				[](auto& item){return node_value{iter{item}};},
+				item
+			);
+		};
+
 		template<class VisitorType>
-		explicit node_visitor_2(GenericValue& /*TODO*/, VisitorType&& visitor):
+		explicit node_visitor_2(GenericValue& root, VisitorType&& visitor):
 			m_visitor{std::forward<VisitorType>(visitor)}
 		{
+			m_nodes.push(
+				node{
+					.value = make_node_value(root.get_value())
+				}
+			);
 		}
 
 		template<class ... VisitorArgs>
-		explicit node_visitor_2(GenericValue& /*TODO*/, std::in_place_t /*unused*/, VisitorArgs&&... args):
+		explicit node_visitor_2(GenericValue& root, std::in_place_t /*unused*/, VisitorArgs&&... args):
 			m_visitor{std::forward<VisitorArgs>(args)...}
 		{
+			m_nodes.push(
+				node{
+					.value = make_node_value(root.get_value())
+				}
+			);
 		}
 
 		[[nodiscard]] auto visit_nodes()
