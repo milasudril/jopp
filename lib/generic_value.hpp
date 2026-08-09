@@ -3,10 +3,10 @@
 
 #include "./variant_utils.hpp"
 #include "./utils.hpp"
-#include "./iter.hpp"
 #include "./template_param_pack.hpp"
 #include "./value_storage.hpp"
 #include "./exception.hpp"
+#include "./consumable_range.hpp"
 
 #include <ranges>
 #include <stack>
@@ -379,13 +379,36 @@ namespace jopp2
 
 	enum class visitor_status{suspend, keep_going};
 
+	template<class Type>
+	struct node_item
+	{
+		using type = Type*;
+		static constexpr auto create(Type& val)
+		{ return std::addressof(val); }
+	};
+
+	template<class Type>
+	requires(std::ranges::range<Type>)
+	struct node_item<Type>
+	{
+		using type = consumable_range<typename std::ranges::iterator_t<Type>>;
+
+		static constexpr auto create(Type& val)
+		{ return type{val}; }
+	};
+
+	template<class T>
+	using node_item_t = typename node_item<T>::type;
+
 	template<class GenericValue, class Visitor>
 	class node_visitor_2
 	{
 	public:
-		using generic_value = std::remove_cvref_t<GenericValue>;
+		using generic_value_t = std::remove_cvref_t<GenericValue>;
 		static constexpr auto src_is_const = std::is_const_v<std::remove_reference_t<GenericValue>>;
-		using value_type = typename generic_value::value_type;
+		using value_type = typename generic_value_t::value_type;
+		using object = typename generic_value_t::object;
+
 		using node_value = wrap_variant_element_t<
 			std::conditional_t<
 				src_is_const,
@@ -394,7 +417,7 @@ namespace jopp2
 			>,
 			// TODO: How to deal with strings. make_iter_t will think of it as a range of chars, which
 			//       is not a leaf value
-			make_iter_t
+			node_item_t
 		>;
 
 		struct node
@@ -405,7 +428,7 @@ namespace jopp2
 		[[gnu::always_inline]] static auto make_node_value(auto& item)
 		{
 			return std::visit(
-				[](auto& item){return node_value{iter{item}};},
+				[]<class T>(T& item){return node_value{node_item<T>::create(item)};},
 				item
 			);
 		};
@@ -444,20 +467,26 @@ namespace jopp2
 			return 0;
 		}
 
-		template<class LeafValue>
-		requires(generic_value::template is_leaf_value<LeafValue>)
-		auto operator()(iter<LeafValue*>& /*TODO*/)
-		{return 0;}
+		template<class T>
+		requires(generic_value_t::template is_leaf_value<T>)
+		auto operator()(T* /*TODO*/)
+		{ return 0; }
 
-		template<class IterType>
-		requires(!generic_value::template is_leaf_value<typename IterType::value_type>)
-		auto operator()(IterType& /*TODO*/)
-		{ return 0;}
+		template<class T>
+		auto operator()(consumable_range<T>& /*TODO*/)
+		requires(std::is_trivially_copy_constructible_v<typename consumable_range<T>::value_type>)
+		{ return 0; }
 
-		template<class IterType>
-		requires(generic_value::template is_leaf_value<typename IterType::value_type>)
-		auto operator()(IterType& /*TODO*/)
-		{return 0;}
+		auto operator()(consumable_range<typename object::iterator>& /*TODO*/)
+		{
+			return 0;
+		}
+
+		template<class T>
+		auto operator()(consumable_range<T>& /*TODO*/)
+		{
+			return 0;
+		}
 
 #if 0
 		template<class T>

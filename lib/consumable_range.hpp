@@ -46,6 +46,7 @@ namespace jopp2
 		using base::size;
 
 		using iterator = IterType;
+		using value_type = std::iter_value_t<IterType>;
 
 		template<std::ranges::forward_range Range>
 		requires(std::ranges::borrowed_range<Range> || std::is_lvalue_reference_v<Range>)
