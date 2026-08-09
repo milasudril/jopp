@@ -432,18 +432,17 @@ namespace jopp2
 
 		[[nodiscard]] auto visit_nodes()
 		{
-			if constexpr(Visitor::is_suspendable)
+			while(!m_nodes.empty())
 			{
-				auto const result = m_visitor.flush();
-				if(result == visitor_status::suspend)
-				{ return result; }
+				auto& current_node = m_nodes.top();
+				if(visit_with_args(current_node.value, *this) == 0)
+				{ m_nodes.pop(); }
 			}
-
-			// TODO: Implement loop
-
-			if constexpr(Visitor::is_suspendable)
-			{ return visitor_status::keep_going; }
 		}
+
+		template<class T>
+		size_t operator()(T&& /*TODO*/)
+		{ return 0; }
 
 	private:
 		Visitor m_visitor;

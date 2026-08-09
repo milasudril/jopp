@@ -2,10 +2,7 @@
 #define JOPP_VALUE_STORAGE_HPP
 
 #include <type_traits>
-#include <cstddef>
 #include <tuple>
-#include <cstdio>
-#include <source_location>
 
 namespace jopp2
 {
@@ -109,16 +106,13 @@ namespace jopp2
 	};
 
 	/**
-	 * \brief Concept for used to reject types that are different from update_func_found
-	 */
-	template<class T>
-	concept concept_satisfied_for_type = std::is_same_v<T, update_func_found>;
-
-	/**
 	 * \brief Concept used to check that UpdateTraits satisfies all requirements
 	 */
 	template<class UpdateTraits, template<class> class UpdateResultType, class Sink, class... Types>
-	concept update_traits = concept_satisfied_for_type<typename has_applicable_update<UpdateTraits, UpdateResultType, Sink, Types...>::result>;
+	concept update_traits = std::same_as<
+		typename has_applicable_update<UpdateTraits, UpdateResultType, Sink, Types...>::result,
+		update_func_found
+	>;
 
 	/**
 	 * \brief A type erased wrapper around an entity that can store a value

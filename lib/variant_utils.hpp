@@ -150,7 +150,46 @@ namespace jopp2
 	template<class VariantType, template<class, class...> class Wrapper, class... OtherArgs>
 	using wrap_variant_element_t = wrap_variant_element<VariantType, Wrapper, OtherArgs...>::type;
 
+	struct visitor_overload_func_found{};
+
+	template<class VariantType, class Visitor, size_t Index, class... VisitorArgs>
+	struct visitor_accepts_type
+	{
+		using current_type = std::variant_alternative_t<Index, VariantType>;
+		static constexpr auto current_value = std::is_invocable_v<
+			Visitor,
+			current_type,
+			VisitorArgs...
+		>;
+
+		using result = std::conditional_t<
+			current_value,
+			typename visitor_accepts_type<VariantType, Visitor, Index + 1, VisitorArgs...>::result,
+			current_type
+		>;
+	};
+
+	template<class VariantType, class Visitor, class... VisitorArgs>
+	struct visitor_accepts_type<
+		VariantType,
+		Visitor, std::variant_size_v<VariantType>,
+		VisitorArgs...
+	>
+	{
+		using result = visitor_overload_func_found;
+	};
+
+	/**
+	 * \brief Concept used to check that UpdateTraits satisfies all requirements
+	 */
+	template<class VariantType, class Visitor, class... VisitorArgs>
+	concept variant_visitor = std::same_as<
+		typename visitor_accepts_type<VariantType, Visitor, 0, VisitorArgs...>::result,
+		visitor_overload_func_found
+	>;
+
 	template<class Variant, class Visitor, class... VisitorArgs>
+	requires variant_visitor<std::remove_cvref_t<Variant>, Visitor, VisitorArgs...>
 	constexpr decltype(auto) visit_with_args(Variant&& to_visit, Visitor&& visitor, VisitorArgs&&... args)
 	{
 		return std::visit(
