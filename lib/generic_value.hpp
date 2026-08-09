@@ -392,6 +392,8 @@ namespace jopp2
 				wrap_variant_element_t<value_type, std::add_const_t>,
 				value_type
 			>,
+			// TODO: How to deal with strings. make_iter_t will think of it as a range of chars, which
+			//       is not a leaf value
 			make_iter_t
 		>;
 
@@ -438,11 +440,18 @@ namespace jopp2
 				if(visit_with_args(current_node.value, *this) == 0)
 				{ m_nodes.pop(); }
 			}
+
+			return 0;
 		}
 
+		template<class LeafValue>
+		requires(generic_value::template is_leaf_value<LeafValue>)
+		auto operator()(iter<LeafValue*> /*TODO*/)
+		{return 0;}
+
 		template<class T>
-		size_t operator()(T&& /*TODO*/)
-		{ return 0; }
+		auto operator()(T&& /*TODO*/)
+		{return 0;}
 
 	private:
 		Visitor m_visitor;
