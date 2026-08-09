@@ -162,6 +162,56 @@ namespace jopp2
 		friend constexpr bool operator==(wrapped_pointer lhs, T rhs) noexcept
 		{ return lhs.m_ptr == rhs; }
 
+		constexpr wrapped_pointer& operator++() noexcept
+		{
+			++m_ptr;
+			return *this;
+		}
+
+		constexpr wrapped_pointer operator++(int) noexcept
+		{
+			wrapped_pointer temp = *this;
+			++m_ptr;
+			return temp;
+		}
+
+		constexpr wrapped_pointer& operator--() noexcept
+		{
+			--m_ptr;
+			return *this;
+		}
+
+		constexpr wrapped_pointer operator--(int) noexcept
+		{
+			wrapped_pointer temp = *this;
+			--m_ptr;
+			return temp;
+		}
+
+		constexpr wrapped_pointer& operator+=(std::ptrdiff_t offset) noexcept
+		{
+			m_ptr += offset;
+			return *this;
+		}
+
+		constexpr wrapped_pointer& operator-=(std::ptrdiff_t offset) noexcept
+		{
+			m_ptr -= offset;
+			return *this;
+		}
+
+		friend constexpr wrapped_pointer operator+(wrapped_pointer ptr, std::ptrdiff_t offset) noexcept
+		{ return wrapped_pointer(ptr.m_ptr + offset); }
+
+		friend constexpr wrapped_pointer operator+(std::ptrdiff_t offset, wrapped_pointer ptr) noexcept
+		{ return wrapped_pointer(ptr.m_ptr + offset); }
+
+		friend constexpr wrapped_pointer operator-(wrapped_pointer ptr, std::ptrdiff_t offset) noexcept
+		{ return wrapped_pointer(ptr.m_ptr - offset); }
+
+		friend constexpr std::ptrdiff_t operator-(wrapped_pointer lhs, wrapped_pointer rhs) noexcept
+		{ return lhs.m_ptr - rhs.m_ptr; }
+
 	private:
 		T m_ptr{nullptr};
 	};
