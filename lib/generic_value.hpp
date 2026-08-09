@@ -446,12 +446,24 @@ namespace jopp2
 
 		template<class LeafValue>
 		requires(generic_value::template is_leaf_value<LeafValue>)
-		auto operator()(iter<LeafValue*> /*TODO*/)
+		auto operator()(iter<LeafValue*>& /*TODO*/)
 		{return 0;}
 
+		template<class IterType>
+		requires(!generic_value::template is_leaf_value<typename IterType::value_type>)
+		auto operator()(IterType& /*TODO*/)
+		{ return 0;}
+
+		template<class IterType>
+		requires(generic_value::template is_leaf_value<typename IterType::value_type>)
+		auto operator()(IterType& /*TODO*/)
+		{return 0;}
+
+#if 0
 		template<class T>
 		auto operator()(T&& /*TODO*/)
 		{return 0;}
+#endif
 
 	private:
 		Visitor m_visitor;

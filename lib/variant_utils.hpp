@@ -156,11 +156,11 @@ namespace jopp2
 	struct visitor_accepts_type
 	{
 		using current_type = std::variant_alternative_t<Index, VariantType>;
-		static constexpr auto current_value = std::is_invocable_v<
-			Visitor,
-			current_type,
-			VisitorArgs...
-		>;
+		static constexpr auto current_value =
+			   std::is_invocable_v<Visitor, current_type, VisitorArgs...>
+			|| std::is_invocable_v<Visitor, current_type&, VisitorArgs...>
+			|| std::is_invocable_v<Visitor, current_type const&, VisitorArgs...>
+			|| std::is_invocable_v<Visitor, current_type&&, VisitorArgs...>;
 
 		using result = std::conditional_t<
 			current_value,

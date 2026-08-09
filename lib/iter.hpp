@@ -10,6 +10,7 @@ namespace jopp2
 	{
 	public:
 		using iter_type = IterType;
+		using value_type = typename std::iter_value_t<iter_type>;
 
 		template<std::ranges::forward_range Range>
 		requires (std::ranges::borrowed_range<Range> || std::is_lvalue_reference_v<Range>)
