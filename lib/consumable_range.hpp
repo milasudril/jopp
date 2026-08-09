@@ -7,111 +7,6 @@
 
 namespace jopp2
 {
-	template<class T, class UsageTag>
-	requires(std::is_pointer_v<T>)
-	class wrapped_pointer
-	{
-		using pointer = T;
-		using element_type = std::remove_pointer_t<T>;
-		static_assert(!std::is_void_v<element_type>);
-
-		constexpr wrapped_pointer(std::nullptr_t) noexcept:
-			m_ptr{nullptr}
-		{}
-
-		constexpr explicit wrapped_pointer(T ptr) noexcept:
-			m_ptr{ptr}
-		{}
-
-		constexpr wrapped_pointer& operator=(T ptr) noexcept
-		{
-			m_ptr = ptr;
-			return *this;
-		}
-
-		constexpr wrapped_pointer& operator=(std::nullptr_t) noexcept
-		{
-			m_ptr = nullptr;
-			return *this;
-		}
-
-		[[nodiscard]] constexpr T get() const noexcept
-		{ return m_ptr; }
-
-		[[nodiscard]] constexpr explicit operator bool() const noexcept
-		{ return m_ptr != nullptr; }
-
-		[[nodiscard]] constexpr T operator->() const noexcept
-		{ return m_ptr; }
-
-		[[nodiscard]] constexpr element_type& operator*() const noexcept
-		{ return *m_ptr; }
-
-		[[nodiscard]] constexpr element_type& operator[](std::ptrdiff_t index) const noexcept
-		{ return m_ptr[index]; }
-
-		auto operator<=>(wrapped_pointer const& other) const = default;
-
-		friend constexpr bool operator==(wrapped_pointer lhs, std::nullptr_t) noexcept
-		{ return lhs.m_ptr == nullptr; }
-
-		friend constexpr bool operator==(wrapped_pointer lhs, T rhs) noexcept
-		{ return lhs.m_ptr == rhs; }
-
-		constexpr wrapped_pointer& operator++() noexcept
-		{
-			++m_ptr;
-			return *this;
-		}
-
-		constexpr wrapped_pointer operator++(int) noexcept
-		{
-			wrapped_pointer temp = *this;
-			++m_ptr;
-			return temp;
-		}
-
-		constexpr wrapped_pointer& operator--() noexcept
-		{
-			--m_ptr;
-			return *this;
-		}
-
-		constexpr wrapped_pointer operator--(int) noexcept
-		{
-			wrapped_pointer temp = *this;
-			--m_ptr;
-			return temp;
-		}
-
-		constexpr wrapped_pointer& operator+=(std::ptrdiff_t offset) noexcept
-		{
-			m_ptr += offset;
-			return *this;
-		}
-
-		constexpr wrapped_pointer& operator-=(std::ptrdiff_t offset) noexcept
-		{
-			m_ptr -= offset;
-			return *this;
-		}
-
-		friend constexpr wrapped_pointer operator+(wrapped_pointer ptr, std::ptrdiff_t offset) noexcept
-		{ return wrapped_pointer(ptr.m_ptr + offset); }
-
-		friend constexpr wrapped_pointer operator+(std::ptrdiff_t offset, wrapped_pointer ptr) noexcept
-		{ return wrapped_pointer(ptr.m_ptr + offset); }
-
-		friend constexpr wrapped_pointer operator-(wrapped_pointer ptr, std::ptrdiff_t offset) noexcept
-		{ return wrapped_pointer(ptr.m_ptr - offset); }
-
-		friend constexpr std::ptrdiff_t operator-(wrapped_pointer lhs, wrapped_pointer rhs) noexcept
-		{ return lhs.m_ptr - rhs.m_ptr; }
-
-	private:
-		T m_ptr{nullptr};
-	};
-
 	template<class RangeType>
 	class range_size
 	{
@@ -163,16 +58,6 @@ namespace jopp2
 		template<std::ranges::forward_range Range>
 		requires (!std::ranges::borrowed_range<Range> && !std::is_lvalue_reference_v<Range>)
 		consumable_range(Range&&) = delete;
-
-		template<class T>
-		requires(
-				!std::ranges::range<std::remove_cvref_t<T>>
-			&&!std::is_same_v<std::remove_cvref_t<T>, consumable_range>
-		)
-		constexpr consumable_range(T& obj) noexcept:
-			m_begin{wrapped_pointer<T*, consumable_range>{std::addressof(obj)}},
-			m_end{wrapped_pointer<T*, consumable_range>{std::addressof(obj) + 1}}
-		{}
 
 		constexpr auto begin() const
 		{ return m_begin; }
