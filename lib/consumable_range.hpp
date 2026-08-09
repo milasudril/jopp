@@ -7,7 +7,7 @@
 
 namespace jopp2
 {
-	template<class T>
+	template<class T, class UsageTag>
 	requires(std::is_pointer_v<T>)
 	class wrapped_pointer
 	{
@@ -170,8 +170,8 @@ namespace jopp2
 			&&!std::is_same_v<std::remove_cvref_t<T>, consumable_range>
 		)
 		constexpr consumable_range(T& obj) noexcept:
-			m_begin{std::addressof(obj)},
-			m_end{std::addressof(obj) + 1}
+			m_begin{wrapped_pointer<T*, consumable_range>{std::addressof(obj)}},
+			m_end{wrapped_pointer<T*, consumable_range>{std::addressof(obj) + 1}}
 		{}
 
 		constexpr auto begin() const
