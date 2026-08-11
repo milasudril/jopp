@@ -4,6 +4,7 @@
 #include "testfwk/death_test.hpp"
 #include "testfwk/validation.hpp"
 
+#include <type_traits>
 #include <vector>
 #include <flat_map>
 #include <testfwk/testfwk.hpp>
@@ -1153,7 +1154,6 @@ TESTCASE(jopp2_generic_value_visit_nodes)
 	EXPECT_EQ(output, expected_output);
 }
 
-#if 0
 TESTCASE(jopp2_node_visitor_2_instantiate_with_json_value)
 {
 	static_assert(jopp2::pass_by_value_v<std::monostate>);
@@ -1161,7 +1161,7 @@ TESTCASE(jopp2_node_visitor_2_instantiate_with_json_value)
 
 	json_value root;
 	std::string output;
-	jopp2::node_visitor_2<json_value, test_node_visitor> visitor{
+	jopp2::node_visitor_2<json_value const, test_node_visitor> visitor{
 		root,
 		std::in_place_t{},
 		output
@@ -1169,4 +1169,3 @@ TESTCASE(jopp2_node_visitor_2_instantiate_with_json_value)
 
 	std::ignore = visitor.visit_nodes();
 }
-#endif

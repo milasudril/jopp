@@ -381,24 +381,23 @@ namespace jopp2
 
 	enum class visitor_status{suspend, keep_going};
 
-	template<class Type>
+	template<class Type, bool IsConst>
 	struct node_item
 	{
-		using input_type_cv = std::remove_reference_t<Type>;
-		using input_type = std::remove_const_t<input_type_cv>;
+		using input_type = std::remove_cvref_t<Type>;
 
 		using type = std::conditional_t<
-			std::is_const_v<input_type_cv>,
+			IsConst,
 			std::conditional_t<
 				pass_by_value_v<input_type>,
 				input_type,
-				std::reference_wrapper<Type const>
+				std::reference_wrapper<input_type const>
 			>,
-			std::reference_wrapper<Type>
+			std::reference_wrapper<input_type>
 		>;
 
 		using param_type = std::conditional_t<
-			std::is_const_v<input_type_cv>,
+			IsConst,
 			std::conditional_t<
 				pass_by_value_v<input_type>,
 				input_type,
@@ -411,33 +410,47 @@ namespace jopp2
 		{ return val; }
 	};
 
-	template<class Type>
+	template<class Type, bool IsConst>
 	requires(std::ranges::range<Type>)
-	struct node_item<Type>
+	struct node_item<Type, IsConst>
 	{
-		using type = consumable_range<typename std::ranges::iterator_t<Type>>;
-
-		static constexpr auto create(Type& val)
-		{ return type(val); }
-	};
-
-	template<class Type>
-	requires(std::ranges::contiguous_range<Type>)
-	struct node_item<Type>
-	{
-		using range_value_type = std::conditional_t<
-			std::is_const_v<Type>,
-			typename std::ranges::range_value_t<Type> const,
-			typename std::ranges::range_value_t<Type>
+		using input_type =  std::conditional_t<
+			IsConst,
+			std::remove_cvref_t<Type> const,
+			std::remove_cvref_t<Type>
 		>;
-		using type = consumable_range<range_value_type*>;
 
-		static constexpr auto create(Type& val)
+		using type = consumable_range<typename std::ranges::iterator_t<input_type>>;
+
+		using param_type = type&;
+
+		static constexpr auto create(input_type& val)
 		{ return type{val}; }
 	};
 
-	template<class T>
-	using node_item_t = typename node_item<T>::type;
+	template<class Type, bool IsConst>
+	requires(std::ranges::contiguous_range<Type>)
+	struct node_item<Type, IsConst>
+	{
+		using input_type =  std::conditional_t<
+			IsConst,
+			std::remove_cvref_t<Type> const,
+			std::remove_cvref_t<Type>
+		>;
+
+		using range_value_type = std::conditional_t<
+			IsConst,
+			typename std::ranges::range_value_t<input_type> const,
+			typename std::ranges::range_value_t<input_type>
+		>;
+
+		using type = consumable_range<range_value_type*>;
+
+		using param_type = type&;
+
+		static constexpr auto create(input_type& val)
+		{ return type{val}; }
+	};
 
 	template<class GenericValue, class Visitor>
 	class node_visitor_2
@@ -449,7 +462,10 @@ namespace jopp2
 		using object = typename generic_value_t::object;
 
 		template <class T>
-		using callback_param_t = node_item<T>::param_type;
+		using callback_param_t = typename node_item<T, src_is_const>::param_type;
+
+		template<class T>
+		using node_item_t = typename node_item<T, src_is_const>::type;
 
 		using node_value = wrap_variant_element_t<
 			std::conditional_t<
@@ -469,7 +485,7 @@ namespace jopp2
 		{
 			return std::visit(
 				[]<class T>(T& item){
-					return node_value{node_item<T>::create(item)};
+					return node_value{node_item<T, src_is_const>::create(item)};
 				},
 				item
 			);
@@ -497,6 +513,7 @@ namespace jopp2
 			);
 		}
 
+
 		[[nodiscard]] auto visit_nodes()
 		{
 			while(!m_nodes.empty())
@@ -505,18 +522,23 @@ namespace jopp2
 				if(visit_with_args(current_node.value, *this) == 0)
 				{ m_nodes.pop(); }
 			}
-
 			return 0;
 		}
 
 		template<class T>
 		requires(generic_value_t::template is_leaf_value<std::remove_cvref_t<T>>)
-		auto operator()(T /*TODO*/)
+		auto dispatch(callback_param_t<std::remove_cvref_t<T>>/* val*/)
 		{
-			static_assert(std::is_same_v<T, int>);
 			return 0;
 		}
 
+		template<class T>
+		[[gnu::always_inline]] auto operator()(std::reference_wrapper<T> obj)
+		{ return dispatch<T>(obj.get()); }
+
+		template<class T>
+		[[gnu::always_inline]] auto operator()(T&& obj)
+		{ return dispatch<std::remove_cvref_t<T>>(std::forward<T>(obj)); }
 #if 0
 		template<class T>
 		requires(generic_value_t::template is_leaf_value<std::remove_cvref_t<T>>)
