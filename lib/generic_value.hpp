@@ -124,9 +124,11 @@ namespace jopp2
 		static_assert(sequence_container<sequence_container_type<leaf_value_type>>);
 
 		template<class T>
-		static constexpr auto is_leaf_value = requires(T&& x){
+		static constexpr auto is_leaf_value = type_is_present_v<T, leaf_value_template_param_pack>;
+
+		/*requires(T&& x){
 			{ leaf_value_type{std::forward<T>(x)} };
-		};
+		};*/
 
 		using array_value_template_param_pack = concatenate_template_param_packs_t<
 			wrap_template_param_pack_elements_t<

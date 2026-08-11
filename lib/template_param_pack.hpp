@@ -6,6 +6,7 @@
 #include <type_traits>
 #include <cstddef>
 #include <utility>
+#include <limits>
 
 /**
  * \file template_param_pack.hpp
@@ -55,7 +56,7 @@ namespace jopp2
 		else
 		{
 			if constexpr(sizeof...(Types) == 0)
-			{ throw exception{"Type not found"}; }
+			{ return std::numeric_limits<size_t>::max(); }
 			else
 			{ return get_index_of_type_impl<Current + 1, Which, Types...>(); }
 		}
@@ -80,6 +81,10 @@ namespace jopp2
 
 	template<class Which, class ... Types>
 	inline constexpr auto index_of_type_v = index_of_type<Which, Types...>::value;
+
+	template<class Which, class... Types>
+	inline constexpr auto type_is_present_v =
+		index_of_type_v<Which, Types...> != std::numeric_limits<size_t>::max();
 
 
 
