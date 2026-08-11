@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <iterator>
+#include <ranges>
 #include <type_traits>
 
 namespace jopp2
@@ -49,11 +50,25 @@ namespace jopp2
 		using value_type = std::iter_value_t<IterType>;
 
 		template<std::ranges::forward_range Range>
-		requires(std::ranges::borrowed_range<Range> || std::is_lvalue_reference_v<Range>)
+		requires(
+			(std::ranges::borrowed_range<Range> || std::is_lvalue_reference_v<Range>)
+			&& !std::is_pointer_v<IterType>
+		)
 		constexpr explicit consumable_range(Range&& range) noexcept:
 			base{range},
 			m_begin{std::ranges::begin(range)},
 			m_end{std::ranges::end(range)}
+		{}
+
+		template<std::ranges::contiguous_range Range>
+		requires(
+			(std::ranges::borrowed_range<Range> || std::is_lvalue_reference_v<Range>)
+			&& std::is_pointer_v<IterType>
+		)
+		constexpr explicit consumable_range(Range&& range) noexcept:
+			base{range},
+			m_begin{std::ranges::data(range)},
+			m_end{std::ranges::data(range) + std::ranges::size(range)}
 		{}
 
 		template<std::ranges::forward_range Range>

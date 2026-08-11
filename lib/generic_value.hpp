@@ -382,9 +382,31 @@ namespace jopp2
 	template<class Type>
 	struct node_item
 	{
-		using type = Type*;
-		static constexpr auto create(Type& val)
-		{ return std::addressof(val); }
+		using input_type_cv = std::remove_reference_t<Type>;
+		using input_type = std::remove_const_t<input_type_cv>;
+
+		using type = std::conditional_t<
+			std::is_const_v<input_type_cv>,
+			std::conditional_t<
+				pass_by_value_v<input_type>,
+				input_type,
+				std::reference_wrapper<Type const>
+			>,
+			std::reference_wrapper<Type>
+		>;
+
+		using param_type = std::conditional_t<
+			std::is_const_v<input_type_cv>,
+			std::conditional_t<
+				pass_by_value_v<input_type>,
+				input_type,
+				Type const&
+			>,
+			Type&
+		>;
+
+		static constexpr decltype(auto) create(type val)
+		{ return val; }
 	};
 
 	template<class Type>
@@ -392,6 +414,21 @@ namespace jopp2
 	struct node_item<Type>
 	{
 		using type = consumable_range<typename std::ranges::iterator_t<Type>>;
+
+		static constexpr auto create(Type& val)
+		{ return type(val); }
+	};
+
+	template<class Type>
+	requires(std::ranges::contiguous_range<Type>)
+	struct node_item<Type>
+	{
+		using range_value_type = std::conditional_t<
+			std::is_const_v<Type>,
+			typename std::ranges::range_value_t<Type> const,
+			typename std::ranges::range_value_t<Type>
+		>;
+		using type = consumable_range<range_value_type*>;
 
 		static constexpr auto create(Type& val)
 		{ return type{val}; }
@@ -409,14 +446,15 @@ namespace jopp2
 		using value_type = typename generic_value_t::value_type;
 		using object = typename generic_value_t::object;
 
+		template <class T>
+		using callback_param_t = node_item<T>::param_type;
+
 		using node_value = wrap_variant_element_t<
 			std::conditional_t<
 				src_is_const,
 				wrap_variant_element_t<value_type, std::add_const_t>,
 				value_type
 			>,
-			// TODO: How to deal with strings. make_iter_t will think of it as a range of chars, which
-			//       is not a leaf value
 			node_item_t
 		>;
 
@@ -428,7 +466,9 @@ namespace jopp2
 		[[gnu::always_inline]] static auto make_node_value(auto& item)
 		{
 			return std::visit(
-				[]<class T>(T& item){return node_value{node_item<T>::create(item)};},
+				[]<class T>(T& item){
+					return node_value{node_item<T>::create(item)};
+				},
 				item
 			);
 		};
@@ -468,14 +508,23 @@ namespace jopp2
 		}
 
 		template<class T>
-		requires(generic_value_t::template is_leaf_value<T>)
-		auto operator()(T* /*TODO*/)
-		{ return 0; }
+		requires(generic_value_t::template is_leaf_value<std::remove_cvref_t<T>>)
+		auto operator()(T /*TODO*/)
+		{
+			static_assert(std::is_same_v<T, int>);
+			return 0;
+		}
 
+#if 0
+		template<class T>
+		requires(generic_value_t::template is_leaf_value<std::remove_cvref_t<T>>)
+		auto operator()(callback_param_t<T> /*TODO*/)
+		{ return 0; }
 		template<class T>
 		auto operator()(consumable_range<T>& /*TODO*/)
-		requires(std::is_trivially_copy_constructible_v<typename consumable_range<T>::value_type>)
+		requires(generic_value_t::template is_leaf_value<typename consumable_range<T>::value_type>)
 		{ return 0; }
+
 
 		auto operator()(consumable_range<typename object::iterator>& /*TODO*/)
 		{
@@ -488,10 +537,6 @@ namespace jopp2
 			return 0;
 		}
 
-#if 0
-		template<class T>
-		auto operator()(T&& /*TODO*/)
-		{return 0;}
 #endif
 
 	private:
