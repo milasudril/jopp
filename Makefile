@@ -5,7 +5,7 @@
 .PHONY: coverage
 .PHONY: coverage-build
 
-all: release release32 sanitize sanitize32 coverage
+all: release release32 coverage
 
 release:
 	maike2 --configfiles=maikeconfig2.json,maikeconfig2-rel.json --target-dir=__targets_rel
