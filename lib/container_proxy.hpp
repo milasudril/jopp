@@ -55,17 +55,19 @@ namespace jopp2
 			return *this;
 		}
 
-		void clear_backing_store()
+		template<class C=void>
 		requires(!std::is_const_v<Container>)
+		void clear_backing_store()
 		{
 			m_backing_store.get().clear();
 			m_active_range = active_range_type{};
 		}
 
-		void replace_backing_store(Container&& container)
+		template<class Other>
 		requires(!std::is_const_v<Container>)
+		void replace_backing_store(Other&& container)
 		{
-			m_backing_store.get() = std::move(container);
+			m_backing_store.get() = std::forward<Other>(container);
 			m_active_range = std::ranges::subrange{m_backing_store.get()};
 		}
 
