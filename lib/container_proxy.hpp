@@ -55,9 +55,7 @@ namespace jopp2
 			return *this;
 		}
 
-		template<class C=void>
-		requires(!std::is_const_v<Container>)
-		void clear_backing_store()
+		void clear_backing_store() requires(!std::is_const_v<Container>)
 		{
 			m_backing_store.get().clear();
 			m_active_range = active_range_type{};
