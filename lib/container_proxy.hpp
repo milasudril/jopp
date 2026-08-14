@@ -67,16 +67,17 @@ namespace jopp2
 
 		explicit container_proxy(Container& container):
 			base{container},
+			m_active_range{container},
 			m_backing_store{container}
 		{}
 
 		constexpr auto active_range() const
 		{ return m_active_range; }
 
-		constexpr auto& pop_element()
-		{ return pop_element(); }
+		constexpr auto& pop_active_element()
+		{ return pop_active_elements(); }
 
-		constexpr auto& pop_elements(size_t count)
+		constexpr auto& pop_active_elements(size_t count)
 		{
 			auto const num_elems_to_pop = std::min(count, size());
 			if constexpr(std::random_access_iterator<iterator>)
@@ -92,10 +93,18 @@ namespace jopp2
 			}
 		}
 
-		auto clear() requires(!std::is_const_v<Container>)
+		void clear_backing_store()
+		requires(!std::is_const_v<Container>)
 		{
 			m_backing_store.get().clear();
 			m_active_range = std::ranges::subrange<iterator>{};
+		}
+
+		void replace_backing_store(Container&& container)
+		requires(!std::is_const_v<Container>)
+		{
+			m_backing_store.get() = std::move(container);
+			m_active_range = std::ranges::subrange<iterator>{container};
 		}
 
 	private:
