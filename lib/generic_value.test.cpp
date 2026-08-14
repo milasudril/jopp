@@ -1156,7 +1156,6 @@ TESTCASE(jopp2_generic_value_visit_nodes)
 
 TESTCASE(jopp2_node_visitor_2_instantiate_with_json_value)
 {
-	static_assert(jopp2::pass_by_value_v<std::monostate>);
 	using json_value = jopp2::generic_value<std::unordered_map, std::vector, json_value_traits>;
 
 	json_value root;

@@ -519,6 +519,10 @@ namespace jopp2
 			while(!m_nodes.empty())
 			{
 				auto& current_node = m_nodes.top();
+				static_assert(
+					std::is_same_v<decltype(static_cast<node_value&>(current_node.value)), node_value&>
+				);
+
 				if(visit_with_args(current_node.value, *this) == 0)
 				{ m_nodes.pop(); }
 			}
@@ -527,41 +531,35 @@ namespace jopp2
 
 		template<class T>
 		requires(generic_value_t::template is_leaf_value<std::remove_cvref_t<T>>)
-		auto dispatch(callback_param_t<std::remove_cvref_t<T>>/* val*/)
-		{
-			return 0;
-		}
+		size_t dispatch(callback_param_t<std::remove_cvref_t<T>> /*TODO*/)
+		{ return 0; }
 
 		template<class T>
-		[[gnu::always_inline]] auto operator()(std::reference_wrapper<T> obj)
+		size_t dispatch(consumable_range<T>& /*TODO*/)
+		{ return 0; }
+
+		size_t dispatch(consumable_range<typename object::const_iterator>& /*TODO*/)
+		{ return 0; }
+
+		size_t dispatch(consumable_range<GenericValue const*>& /*TODO*/)
+		{ return 0; }
+
+		size_t dispatch(consumable_range<object const*>& /*TODO*/)
+		{ return 0; }
+
+
+		template<class T>
+		requires(generic_value_t::template is_leaf_value<std::remove_cvref_t<T>>)
+		[[gnu::always_inline]] size_t operator()(std::reference_wrapper<T> obj)
 		{ return dispatch<T>(obj.get()); }
 
 		template<class T>
-		[[gnu::always_inline]] auto operator()(T&& obj)
+		[[gnu::always_inline]] size_t operator()(T&& obj)
 		{ return dispatch<std::remove_cvref_t<T>>(std::forward<T>(obj)); }
-#if 0
-		template<class T>
-		requires(generic_value_t::template is_leaf_value<std::remove_cvref_t<T>>)
-		auto operator()(callback_param_t<T> /*TODO*/)
-		{ return 0; }
-		template<class T>
-		auto operator()(consumable_range<T>& /*TODO*/)
-		requires(generic_value_t::template is_leaf_value<typename consumable_range<T>::value_type>)
-		{ return 0; }
-
-
-		auto operator()(consumable_range<typename object::iterator>& /*TODO*/)
-		{
-			return 0;
-		}
 
 		template<class T>
-		auto operator()(consumable_range<T>& /*TODO*/)
-		{
-			return 0;
-		}
-
-#endif
+		[[gnu::always_inline]] size_t operator()(consumable_range<T>& obj)
+		{ return dispatch(obj); }
 
 	private:
 		Visitor m_visitor;
