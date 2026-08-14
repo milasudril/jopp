@@ -4,6 +4,7 @@
 .PHONY: clean
 .PHONY: coverage
 .PHONY: coverage-build
+.PHONY: all
 
 all: release release32 coverage
 
@@ -22,16 +23,16 @@ sanitize32:
 debug:
 	maike2 --configfiles=maikeconfig2.json,maikeconfig2-dbg.json --target-dir=__targets_dbg
 
-clean:
-	rm -rf __targets_*
-
-coverage: __targets_gcov/.coverage/coverage.html
-
 coverage-build:
 	maike2 --configfiles=maikeconfig2.json,maikeconfig2-gcov.json --target-dir=__targets_gcov
 
+coverage: __targets_gcov/.coverage/coverage.html
+
 __targets_gcov/.coverage/coverage.html: coverage-build ./coverage_collect.sh
 	./coverage_collect.sh
+
+clean:
+	rm -rf __targets_*
 
 DESTDIR?=""
 PREFIX?="/usr"

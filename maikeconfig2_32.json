@@ -28,7 +28,7 @@
             "cxx": {
                 "compiler": {
                     "config": {
-                        "actions":["compile", "sanitize"],
+                        "actions":["compile"],
                         "cflags": [
                             "-I.",
                             "-m32",
@@ -57,7 +57,7 @@
             "cxx_test": {
                 "compiler": {
                     "config": {
-                    "actions":["link", "run", "sanitize"],
+                    "actions":["link", "run"],
                         "cflags": [
                             "-I.",
                             "-m32",
