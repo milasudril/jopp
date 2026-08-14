@@ -2,43 +2,11 @@
 #define JOPP2_CONTAINER_PROXY_HPP
 
 #include <cstddef>
-#include <iterator>
 #include <ranges>
 #include <type_traits>
 
 namespace jopp2
 {
-	template<class RangeType>
-	class range_size
-	{
-	public:
-		friend RangeType;
-
-		template<std::ranges::sized_range R>
-		explicit range_size(R const& r):
-			m_size{std::ranges::size(r)}
-		{}
-
-		constexpr auto size() const
-		{ return m_size; }
-
-	private:
-		size_t m_size;
-	};
-
-	template<class RangeType>
-	requires(std::random_access_iterator<typename RangeType::iterator>)
-	class range_size<RangeType>
-	{
-	public:
-		template<class R>
-		explicit range_size(R const&/*unused*/){}
-
-		template<class Self>
-		constexpr auto size(this Self const& self)
-		{ return self.end() - self.begin(); }
-	};
-
 	template<class Container>
 	struct container_wrapper
 	{
@@ -52,21 +20,24 @@ namespace jopp2
 		using std::reference_wrapper<Container>::reference_wrapper;
 	};
 
-	template<class Container>
-	class container_proxy:
-		private range_size<container_proxy<Container>>
+	template<class Range>
+	struct selected_iterator
 	{
-		using base = range_size<container_proxy<std::ranges::iterator_t<Container>>>;
+		using type = std::ranges::iterator_t<Range>;
+	};
+
+	template<class Container>
+	class container_proxy
+	{
 	public:
-		using base::size;
-		using iterator = std::conditional_t<
-			std::ranges::contiguous_range<Container>,
-			decltype(std::ranges::data(std::declval<Container&>())),
-			std::ranges::iterator_t<Container>
+		using iterator = selected_iterator<Container>::type;
+		using active_range_type = std::ranges::subrange<
+			iterator,
+			iterator,
+			std::ranges::subrange_kind::sized
 		>;
 
 		explicit container_proxy(Container& container):
-			base{container},
 			m_active_range{container},
 			m_backing_store{container}
 		{}
@@ -75,40 +46,31 @@ namespace jopp2
 		{ return m_active_range; }
 
 		constexpr auto& pop_active_element()
-		{ return pop_active_elements(); }
+		{ return pop_active_elements(1); }
 
 		constexpr auto& pop_active_elements(size_t count)
 		{
-			auto const num_elems_to_pop = std::min(count, size());
-			if constexpr(std::random_access_iterator<iterator>)
-			{
-				m_active_range.advance(num_elems_to_pop);
-				return *this;
-			}
-			else
-			{
-				m_active_range.advance(num_elems_to_pop);
-				base::m_size -= num_elems_to_pop;
-				return *this;
-			}
+			auto const num_elems_to_pop = static_cast<ssize_t>(std::min(count, m_active_range.size()));
+			m_active_range.advance(num_elems_to_pop);
+			return *this;
 		}
 
 		void clear_backing_store()
 		requires(!std::is_const_v<Container>)
 		{
 			m_backing_store.get().clear();
-			m_active_range = std::ranges::subrange<iterator>{};
+			m_active_range = active_range_type{};
 		}
 
 		void replace_backing_store(Container&& container)
 		requires(!std::is_const_v<Container>)
 		{
 			m_backing_store.get() = std::move(container);
-			m_active_range = std::ranges::subrange<iterator>{container};
+			m_active_range = std::ranges::subrange{m_backing_store.get()};
 		}
 
 	private:
-		std::ranges::subrange<iterator> m_active_range;
+		active_range_type m_active_range;
 		[[no_unique_address]] container_wrapper<Container> m_backing_store;
 	};
 };
