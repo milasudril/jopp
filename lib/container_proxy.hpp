@@ -26,7 +26,7 @@ namespace jopp2
 		constexpr explicit container_wrapper(std::reference_wrapper<Container> container):
 			m_begin{selected_iterator<Container>::get_begin(container.get())},
 			m_end{selected_iterator<Container>::get_end(container.get())},
-			m_size(std::size(container.get()))
+			m_size(std::ranges::size(container.get()))
 		{}
 
 		constexpr auto begin() const
@@ -77,7 +77,7 @@ namespace jopp2
 		using active_range_type = std::ranges::subrange<iterator, iterator>;
 
 		explicit container_proxy(std::reference_wrapper<Container> container):
-			m_current_iterator{selected_iterator<Container>::get_begin(container)},
+			m_current_iterator{selected_iterator<Container>::get_begin(container.get())},
 			m_backing_store{container}
 		{}
 
@@ -92,8 +92,9 @@ namespace jopp2
 
 		constexpr auto& pop_active_elements(size_t count)
 		{
+			using diff_t = std::ranges::range_difference_t<Container>;
 			auto const num_elems_to_pop = std::min(
-				static_cast<ssize_t>(count),
+				static_cast<diff_t>(count),
 				std::ranges::distance(m_current_iterator, m_backing_store.end())
 			);
 			std::ranges::advance(m_current_iterator, num_elems_to_pop);
