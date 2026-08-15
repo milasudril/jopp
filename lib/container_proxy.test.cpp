@@ -97,6 +97,19 @@ TESTCASE(jopp2_selected_iterator_get_end)
 	);
 }
 
+TESTCASE(jopp2_container_wrapper_const_object_size)
+{
+	static_assert(
+		sizeof(jopp2::container_wrapper<std::list<int> const>) == 2*sizeof(std::list<int>::iterator) + sizeof(size_t)
+	);
+	static_assert(
+		sizeof(jopp2::container_wrapper<std::deque<int> const>) == 2*sizeof(std::deque<int>::iterator) + sizeof(size_t)
+	);
+	static_assert(
+		sizeof(jopp2::container_wrapper<std::vector<int> const>) == 2*sizeof(int*) + sizeof(size_t)
+	);
+}
+
 #if 0
 TESTCASE(jopp2_container_proxy_mutable_non_random_access_container)
 {
