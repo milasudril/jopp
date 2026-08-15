@@ -19,6 +19,19 @@ namespace jopp2
 		{ return std::ranges::end(container); }
 	};
 
+	template<class Range>
+	requires(std::ranges::contiguous_range<Range>)
+	struct selected_iterator<Range>
+	{
+		using type = std::ranges::range_value_t<Range>*;
+
+		static constexpr auto get_begin(Range& container)
+		{ return std::ranges::data(container); }
+
+		static constexpr auto get_end(Range& container)
+		{ return std::ranges::data(container) + std::ranges::size(container); }
+	};
+
 	template<class Container>
 	class container_wrapper
 	{
