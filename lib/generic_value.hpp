@@ -12,7 +12,7 @@
 #include <stack>
 #include <algorithm>
 #include <type_traits>
-#include <list>
+#include <vector>
 
 namespace jopp2
 {
@@ -481,7 +481,7 @@ namespace jopp2
 		explicit node_visitor_2(GenericValue& root, VisitorType&& visitor):
 			m_visitor{std::forward<VisitorType>(visitor)}
 		{
-		//	m_nodes.reserve(1024);
+			m_nodes.reserve(1024);
 			m_nodes.push_back(
 				node{
 					.value = make_node_value(root.get_value())
@@ -493,7 +493,7 @@ namespace jopp2
 		explicit node_visitor_2(GenericValue& root, std::in_place_t /*unused*/, VisitorArgs&&... args):
 			m_visitor{std::forward<VisitorArgs>(args)...}
 		{
-		//	m_nodes.reserve(1024);
+			m_nodes.reserve(1024);
 			m_nodes.push_back(
 				node{
 					.value = make_node_value(root.get_value())
@@ -626,7 +626,7 @@ namespace jopp2
 
 	private:
 		Visitor m_visitor;
-		std::list<node> m_nodes;
+		std::vector<node> m_nodes;
 	};
 
 	template<class GenericValue, class Visitor>
