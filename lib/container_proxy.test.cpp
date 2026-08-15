@@ -226,14 +226,37 @@ TESTCASE(jopp2_container_wrapper_non_const_container_clear)
 {
 	std::list<int> a_list{1, 2, 3};
 	jopp2::container_wrapper wrapper{std::ref(a_list)};
+
 	EXPECT_EQ(wrapper.size(), 3);
 	EXPECT_EQ(a_list.size(), 3);
+	EXPECT_EQ(wrapper.begin(), a_list.begin());
+	EXPECT_EQ(wrapper.end(), a_list.end());
+
 	wrapper.clear();
 
 	EXPECT_EQ(wrapper.size(), 0);
 	EXPECT_EQ(a_list.size(), 0);
 	EXPECT_EQ(wrapper.begin(), a_list.begin());
 	EXPECT_EQ(wrapper.end(), a_list.end());
+}
+
+TESTCASE(jopp2_container_wrapper_non_const_container_replace_width)
+{
+	std::list<int> a_list{1, 2, 3};
+	jopp2::container_wrapper wrapper{std::ref(a_list)};
+
+	EXPECT_EQ(wrapper.size(), 3);
+	EXPECT_EQ(a_list.size(), 3);
+	EXPECT_EQ(wrapper.begin(), a_list.begin());
+	EXPECT_EQ(wrapper.end(), a_list.end());
+
+	wrapper.replace_with(std::list<int>{4, 5, 6, 10});
+
+	EXPECT_EQ(wrapper.size(), 4);
+	EXPECT_EQ(a_list.size(), 4);
+	EXPECT_EQ(wrapper.begin(), a_list.begin());
+	EXPECT_EQ(wrapper.end(), a_list.end());
+	EXPECT_EQ(*a_list.begin(), 4);
 }
 
 #if 1
