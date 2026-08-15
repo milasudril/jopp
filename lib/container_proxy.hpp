@@ -40,7 +40,6 @@ namespace jopp2
 	class container_range
 	{
 	public:
-
 		constexpr explicit container_range(std::reference_wrapper<Container> container):
 			m_begin{selected_iterator<Container>::get_begin(container.get())},
 			m_end{selected_iterator<Container>::get_end(container.get())},
