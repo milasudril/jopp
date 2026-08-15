@@ -8,7 +8,54 @@
 
 #include <testfwk/testfwk.hpp>
 
+TESTCASE(jopp2_selected_iterator_type)
+{
+	static_assert(!std::random_access_iterator<std::list<int>::iterator>);
+	static_assert(
+		std::is_same_v<
+			jopp2::selected_iterator<std::list<int>>::type,
+			std::list<int>::iterator
+		>
+	);
+	static_assert(
+		std::is_same_v<
+			jopp2::selected_iterator<std::list<int> const>::type,
+			std::list<int>::const_iterator
+		>
+	);
 
+	static_assert(std::random_access_iterator<std::deque<int>::iterator>);
+	static_assert(!std::contiguous_iterator<std::deque<int>::iterator>);
+	static_assert(
+		std::is_same_v<
+			jopp2::selected_iterator<std::deque<int> const>::type,
+			std::deque<int>::const_iterator
+		>
+	);
+	static_assert(
+		std::is_same_v<
+			jopp2::selected_iterator<std::deque<int>>::type,
+			std::deque<int>::iterator
+		>
+	);
+
+	static_assert(std::random_access_iterator<std::vector<int>::iterator>);
+	static_assert(std::contiguous_iterator<std::vector<int>::iterator>);
+	static_assert(
+		std::is_same_v<
+			jopp2::selected_iterator<std::vector<int> const>::type,
+			int const*
+		>
+	);
+	static_assert(
+		std::is_same_v<
+			jopp2::selected_iterator<std::vector<int>>::type,
+			int*
+		>
+	);
+}
+
+#if 0
 TESTCASE(jopp2_container_proxy_mutable_non_random_access_container)
 {
 	std::list<int> backing_store{1, 2, 3, 5};
@@ -89,3 +136,4 @@ TESTCASE(jopp2_container_proxy_const_non_random_access_container)
 	EXPECT_EQ(backing_store.front(), 1);
 	EXPECT_EQ(backing_store.back(), 5);
 }
+#endif

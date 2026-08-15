@@ -23,7 +23,11 @@ namespace jopp2
 	requires(std::ranges::contiguous_range<Range>)
 	struct selected_iterator<Range>
 	{
-		using type = std::ranges::range_value_t<Range>*;
+		using type = std::conditional_t<
+			std::is_const_v<Range>,
+			std::ranges::range_value_t<Range> const*,
+			std::ranges::range_value_t<Range>*
+		>;
 
 		static constexpr auto get_begin(Range& container)
 		{ return std::ranges::data(container); }
