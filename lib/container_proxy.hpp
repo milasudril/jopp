@@ -68,12 +68,12 @@ namespace jopp2
 		using active_range_type = std::ranges::subrange<iterator, iterator>;
 
 		explicit container_proxy(Container& container):
-			m_current_pointer{selected_iterator<Container>::get_begin(container)},
+			m_current_iterator{selected_iterator<Container>::get_begin(container)},
 			m_backing_store{container}
 		{}
 
 		constexpr auto active_range() const
-		{ return active_range_type{m_current_pointer, m_backing_store.end()}; }
+		{ return active_range_type{m_current_iterator, m_backing_store.end()}; }
 
 		constexpr auto total_size() const
 		{ return m_backing_store.size(); }
@@ -85,16 +85,16 @@ namespace jopp2
 		{
 			auto const num_elems_to_pop = std::min(
 				static_cast<ssize_t>(count),
-				std::ranges::distance(m_current_pointer, m_backing_store.end())
+				std::ranges::distance(m_current_iterator, m_backing_store.end())
 			);
-			std::ranges::advance(m_current_pointer, num_elems_to_pop);
+			std::ranges::advance(m_current_iterator, num_elems_to_pop);
 			return *this;
 		}
 
 		constexpr void clear_backing_store() requires(!std::is_const_v<Container>)
 		{
 			m_backing_store.get().clear();
-			m_current_pointer = m_backing_store.begin();
+			m_current_iterator = m_backing_store.begin();
 		}
 
 		template<class Other>
@@ -102,11 +102,11 @@ namespace jopp2
 		constexpr void replace_backing_store(Other&& container)
 		{
 			m_backing_store.get() = std::forward<Other>(container);
-			m_current_pointer = m_backing_store.begin();
+			m_current_iterator = m_backing_store.begin();
 		}
 
 	private:
-		iterator m_current_pointer;
+		iterator m_current_iterator;
 		container_wrapper<Container> m_backing_store;
 	};
 };
