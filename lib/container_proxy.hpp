@@ -62,6 +62,9 @@ namespace jopp2
 	};
 
 	template<class Container>
+	container_wrapper(std::reference_wrapper<Container> container) -> container_wrapper<Container>;
+
+	template<class Container>
 	requires(!std::is_const_v<Container>)
 	class container_wrapper<Container>
 	{

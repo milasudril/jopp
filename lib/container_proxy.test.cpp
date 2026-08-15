@@ -97,7 +97,7 @@ TESTCASE(jopp2_selected_iterator_get_end)
 	);
 }
 
-TESTCASE(jopp2_container_wrapper_const_object_size)
+TESTCASE(jopp2_container_wrapper_const_wrapper_object_size)
 {
 	static_assert(
 		sizeof(jopp2::container_wrapper<std::list<int> const>) == 2*sizeof(std::list<int>::iterator) + sizeof(size_t)
@@ -108,6 +108,33 @@ TESTCASE(jopp2_container_wrapper_const_object_size)
 	static_assert(
 		sizeof(jopp2::container_wrapper<std::vector<int> const>) == 2*sizeof(int*) + sizeof(size_t)
 	);
+}
+
+TESTCASE(jopp2_container_wrapper_const_container_begin)
+{
+	std::list<int> a_list{1, 2, 3};
+	EXPECT_EQ(jopp2::container_wrapper{std::cref(a_list)}.begin(), a_list.begin());
+
+	std::vector<int> a_vector{1, 2, 3};
+	EXPECT_EQ(jopp2::container_wrapper{std::cref(a_vector)}.begin(), a_vector.data());
+}
+
+TESTCASE(jopp2_container_wrapper_const_container_end)
+{
+	std::list<int> a_list{1, 2, 3};
+	EXPECT_EQ(jopp2::container_wrapper{std::cref(a_list)}.end(), a_list.end());
+
+	std::vector<int> a_vector{1, 2, 3};
+	EXPECT_EQ(jopp2::container_wrapper{std::cref(a_vector)}.end(), a_vector.data() + a_vector.size());
+}
+
+TESTCASE(jopp2_container_wrapper_const_container_size)
+{
+	std::list<int> a_list{1, 2, 3};
+	EXPECT_EQ(jopp2::container_wrapper{std::cref(a_list)}.size(), a_list.size());
+
+	std::vector<int> a_vector{1, 2, 3};
+	EXPECT_EQ(jopp2::container_wrapper{std::cref(a_vector)}.size(), a_vector.size());
 }
 
 #if 0
