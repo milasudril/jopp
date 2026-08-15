@@ -548,7 +548,6 @@ namespace jopp2
 
 		template<class T>
 		requires instance_of<std::remove_cvref_t<T>, container_proxy>
-			&& (!std::is_same_v<std::remove_cvref_t<T>, container_proxy<objcontainer>>)
 		size_t dispatch(T& obj)
 		{
 			if constexpr(std::ranges::range<typename std::remove_cvref_t<T>::value_type>)
