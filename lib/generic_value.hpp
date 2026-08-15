@@ -498,16 +498,11 @@ namespace jopp2
 			);
 		}
 
-
 		[[nodiscard]] auto visit_nodes()
 		{
 			while(!m_nodes.empty())
 			{
 				auto& current_node = m_nodes.top();
-				static_assert(
-					std::is_same_v<decltype(static_cast<node_value&>(current_node.value)), node_value&>
-				);
-
 				if(visit_with_args(current_node.value, *this) == 0)
 				{ m_nodes.pop(); }
 			}
