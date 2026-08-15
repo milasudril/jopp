@@ -222,6 +222,21 @@ TESTCASE(jopp2_container_wrapper_non_const_container_size)
 	EXPECT_EQ(jopp2::container_wrapper{std::ref(a_vector)}.size(), a_vector.size());
 }
 
+TESTCASE(jopp2_container_wrapper_non_const_container_clear)
+{
+	std::list<int> a_list{1, 2, 3};
+	jopp2::container_wrapper wrapper{std::ref(a_list)};
+	EXPECT_EQ(wrapper.size(), 3);
+	EXPECT_EQ(a_list.size(), 3);
+	wrapper.clear();
+
+	EXPECT_EQ(wrapper.size(), 0);
+	EXPECT_EQ(a_list.size(), 0);
+	EXPECT_EQ(wrapper.begin(), a_list.begin());
+	EXPECT_EQ(wrapper.end(), a_list.end());
+}
+
+#if 1
 TESTCASE(jopp2_container_proxy_mutable_non_random_access_container)
 {
 	std::list<int> backing_store{1, 2, 3, 5};
