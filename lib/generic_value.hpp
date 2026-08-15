@@ -520,6 +520,32 @@ namespace jopp2
 			return 0;
 		}
 
+		size_t dispatch(container_proxy<sequence_container_type<generic_value_t>>& obj)
+		{
+			if(obj.at_begin())
+			{
+				puts("[");
+			}
+
+			if(obj.at_end())
+			{
+				puts("]");
+				return 0;
+			}
+
+			auto& next_item = obj.active_range().begin()->get_value();
+			obj.pop_active_element();
+
+			m_nodes.push_back(
+				node{
+					.value = make_node_value(next_item)
+				}
+			);
+
+			return 1;
+		}
+
+
 		template<class T>
 		requires instance_of<std::remove_cvref_t<T>, container_proxy>
 			&& (!std::is_same_v<std::remove_cvref_t<T>, container_proxy<objcontainer>>)
@@ -554,32 +580,6 @@ namespace jopp2
 				printf("(array) %s\n", typeid(T).name());
 				return 0;
 			}
-
-		}
-
-		size_t dispatch(container_proxy<sequence_container_type<generic_value_t>>& obj)
-		{
-			if(obj.at_begin())
-			{
-				puts("[");
-			}
-
-			if(obj.at_end())
-			{
-				puts("]");
-				return 0;
-			}
-
-			auto& next_item = obj.active_range().begin()->get_value();
-			obj.pop_active_element();
-
-			m_nodes.push_back(
-				node{
-					.value = make_node_value(next_item)
-				}
-			);
-
-			return 1;
 		}
 
 		size_t dispatch(container_proxy<sequence_container_type<object>>& obj)
