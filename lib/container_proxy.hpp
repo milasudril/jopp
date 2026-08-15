@@ -25,7 +25,8 @@ namespace jopp2
 	public:
 		constexpr explicit container_wrapper(Container& container):
 			m_begin{selected_iterator<Container>::get_begin(container)},
-			m_end{selected_iterator<Container>::get_end(container)}
+			m_end{selected_iterator<Container>::get_end(container)},
+			m_size(std::size(container))
 		{}
 
 		constexpr auto begin() const
@@ -34,9 +35,13 @@ namespace jopp2
 		constexpr auto end() const
 		{ return m_end; }
 
+		constexpr auto size() const
+		{ return m_size; }
+
 	private:
 		selected_iterator<Container>::type m_begin;
 		selected_iterator<Container>::type m_end;
+		size_t m_size;
 	};
 
 	template<class Container>
@@ -50,6 +55,9 @@ namespace jopp2
 
 		constexpr auto end() const
 		{ return std::ranges::end(std::reference_wrapper<Container>::get()); }
+
+		constexpr auto size() const
+		{ return std::ranges::size(std::reference_wrapper<Container>::get()); }
 	};
 
 	template<class Container>
@@ -66,6 +74,9 @@ namespace jopp2
 
 		constexpr auto active_range() const
 		{ return active_range_type{m_current_pointer, m_backing_store.end()}; }
+
+		constexpr auto total_size() const
+		{ return m_backing_store.size(); }
 
 		constexpr auto& pop_active_element()
 		{ return pop_active_elements(1); }
