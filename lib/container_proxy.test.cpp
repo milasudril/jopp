@@ -137,7 +137,54 @@ TESTCASE(jopp2_container_wrapper_const_container_size)
 	EXPECT_EQ(jopp2::container_wrapper{std::cref(a_vector)}.size(), a_vector.size());
 }
 
-#if 0
+TESTCASE(jopp2_container_wrapper_non_const_wrapper_object_size)
+{
+	static_assert(
+		  sizeof(jopp2::container_wrapper<std::list<int>>) ==
+		  sizeof(void*) + sizeof(jopp2::container_range<std::list<int>>)
+	);
+
+	static_assert(
+		sizeof(jopp2::container_wrapper<std::deque<int>>) ==
+		sizeof(void*) + sizeof(jopp2::container_range<std::deque<int>>)
+	);
+
+	static_assert(
+		sizeof(jopp2::container_wrapper<std::vector<int>>) ==
+		sizeof(void*) + sizeof(jopp2::container_range<std::vector<int>>)
+	);
+}
+
+TESTCASE(jopp2_container_wrapper_non_const_container_begin)
+{
+	std::list<int> a_list{1, 2, 3};
+	EXPECT_EQ(jopp2::container_wrapper{std::ref(a_list)}.begin(), a_list.begin());
+
+	std::vector<int> a_vector{1, 2, 3};
+	EXPECT_EQ(jopp2::container_wrapper{std::ref(a_vector)}.begin(), a_vector.data());
+}
+
+TESTCASE(jopp2_container_wrapper_non_const_container_end)
+{
+	std::list<int> a_list{1, 2, 3};
+	EXPECT_EQ(jopp2::container_wrapper{std::ref(a_list)}.end(), a_list.end());
+
+	std::vector<int> a_vector{1, 2, 3};
+	EXPECT_EQ(jopp2::container_wrapper{std::ref(a_vector)}.end(), a_vector.data() + a_vector.size());
+}
+
+TESTCASE(jopp2_container_wrapper_non_const_container_size)
+{
+	std::list<int> a_list{1, 2, 3};
+	EXPECT_EQ(jopp2::container_wrapper{std::ref(a_list)}.size(), a_list.size());
+
+	std::vector<int> a_vector{1, 2, 3};
+	EXPECT_EQ(jopp2::container_wrapper{std::ref(a_vector)}.size(), a_vector.size());
+}
+
+
+
+#if 1
 TESTCASE(jopp2_container_proxy_mutable_non_random_access_container)
 {
 	std::list<int> backing_store{1, 2, 3, 5};

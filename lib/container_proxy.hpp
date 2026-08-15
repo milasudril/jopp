@@ -37,10 +37,11 @@ namespace jopp2
 	};
 
 	template<class Container>
-	class container_wrapper
+	class container_range
 	{
 	public:
-		constexpr explicit container_wrapper(std::reference_wrapper<Container> container):
+
+		constexpr explicit container_range(std::reference_wrapper<Container> container):
 			m_begin{selected_iterator<Container>::get_begin(container.get())},
 			m_end{selected_iterator<Container>::get_end(container.get())},
 			m_size(std::ranges::size(container.get()))
@@ -62,28 +63,39 @@ namespace jopp2
 	};
 
 	template<class Container>
+	struct container_wrapper:public container_range<Container>
+	{
+		using base = container_range<Container>;
+		using base::container_range;
+	};
+
+	template<class Container>
 	container_wrapper(std::reference_wrapper<Container> container) -> container_wrapper<Container>;
 
 	template<class Container>
 	requires(!std::is_const_v<Container>)
-	class container_wrapper<Container>
+	class container_wrapper<Container>:public container_range<Container>
 	{
 	public:
+		using base = container_range<Container>;
+
 		explicit container_wrapper(std::reference_wrapper<Container> container):
+			base{container},
 			m_container{container}
 		{}
 
-		constexpr auto begin() const
-		{ return std::ranges::begin(m_container.get()); }
+		void clear()
+		{
+			m_container.get().clear();
+			static_cast<base&>(*this) = base{m_container};
+		}
 
-		constexpr auto end() const
-		{ return std::ranges::end(m_container.get()); }
-
-		constexpr auto size() const
-		{ return std::ranges::size(m_container.get()); }
-
-		constexpr auto& get() const
-		{ return m_container.get(); }
+		template<class Other>
+		void replace_with(Other&& other)
+		{
+			m_container.get() = std::forward<Other>(other);
+			static_cast<base&>(*this) = base{m_container};
+		}
 
 	private:
 		std::reference_wrapper<Container> m_container;
@@ -123,7 +135,7 @@ namespace jopp2
 
 		constexpr void clear_backing_store() requires(!std::is_const_v<Container>)
 		{
-			m_backing_store.get().clear();
+			m_backing_store.clear();
 			m_current_iterator = m_backing_store.begin();
 		}
 
@@ -131,7 +143,7 @@ namespace jopp2
 		requires(!std::is_const_v<Container>)
 		constexpr void replace_backing_store(Other&& container)
 		{
-			m_backing_store.get() = std::forward<Other>(container);
+			m_backing_store.replace_with(std::forward<Other>(container));
 			m_current_iterator = m_backing_store.begin();
 		}
 
