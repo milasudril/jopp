@@ -12,6 +12,7 @@
 #include <stack>
 #include <algorithm>
 #include <type_traits>
+#include <list>
 
 namespace jopp2
 {
@@ -480,7 +481,8 @@ namespace jopp2
 		explicit node_visitor_2(GenericValue& root, VisitorType&& visitor):
 			m_visitor{std::forward<VisitorType>(visitor)}
 		{
-			m_nodes.push(
+		//	m_nodes.reserve(1024);
+			m_nodes.push_back(
 				node{
 					.value = make_node_value(root.get_value())
 				}
@@ -491,7 +493,8 @@ namespace jopp2
 		explicit node_visitor_2(GenericValue& root, std::in_place_t /*unused*/, VisitorArgs&&... args):
 			m_visitor{std::forward<VisitorArgs>(args)...}
 		{
-			m_nodes.push(
+		//	m_nodes.reserve(1024);
+			m_nodes.push_back(
 				node{
 					.value = make_node_value(root.get_value())
 				}
@@ -502,9 +505,9 @@ namespace jopp2
 		{
 			while(!m_nodes.empty())
 			{
-				auto& current_node = m_nodes.top();
+				auto& current_node = m_nodes.back();
 				if(visit_with_args(current_node.value, *this) == 0)
-				{ m_nodes.pop(); }
+				{ m_nodes.pop_back(); }
 			}
 			return 0;
 		}
@@ -513,7 +516,7 @@ namespace jopp2
 		requires(generic_value_t::template is_leaf_value<std::remove_cvref_t<T>>)
 		size_t dispatch(callback_param_t<std::remove_cvref_t<T>> /*TODO*/)
 		{
-			printf("leaf value %s\n", typeid(T).name());
+		//	printf("leaf value %s\n", typeid(T).name());
 			return 0;
 		}
 
@@ -522,38 +525,49 @@ namespace jopp2
 			&& (!std::is_same_v<std::remove_cvref_t<T>, container_proxy<objcontainer>>)
 		size_t dispatch(T& /*TODO*/)
 		{
-			puts("leaf value container");
+		//	puts("leaf value container");
 			return 0;
 
 		}
 
 		size_t dispatch(container_proxy<sequence_container_type<generic_value_t>>& /*TODO*/)
 		{
-			puts("array of values");
+		//	puts("array of values");
 			return 0;
 
 		}
 
 		size_t dispatch(container_proxy<sequence_container_type<object>>& /*TODO*/)
 		{
-			puts("array of objects");
+		//	puts("array of objects");
 			return 0;
 		}
 
 		size_t dispatch(container_proxy<objcontainer>& obj)
 		{
-			puts("object");
-			if(obj.at_begin())
-			{ m_visitor.handle_begin_of_object(obj.total_size()); }
-
-			obj.pop_active_element();
-
 			if(obj.at_end())
 			{
+				puts("}");
 				m_visitor.handle_end_of_object();
 				return 0;
 			}
 
+			if(obj.at_begin())
+			{
+				puts("{");
+				m_visitor.handle_begin_of_object(obj.total_size());
+			}
+
+			printf("key: %s\n", obj.active_range().begin()->first.c_str());
+			fflush(stdout);
+
+			m_nodes.push_back(
+				node{
+					.value = make_node_value(obj.active_range().begin()->second.get_value())
+				}
+			);
+
+			obj.pop_active_element();
 			return 1;
 		}
 
@@ -579,7 +593,7 @@ namespace jopp2
 
 	private:
 		Visitor m_visitor;
-		std::stack<node> m_nodes;
+		std::list<node> m_nodes;
 	};
 
 	template<class GenericValue, class Visitor>

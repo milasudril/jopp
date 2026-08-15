@@ -304,6 +304,7 @@ namespace
 
 		auto handle_end_of_object()
 		{
+			assert(indentation != 0);
 			--indentation;
 			do_indent();
 			output.get() += "}\n";

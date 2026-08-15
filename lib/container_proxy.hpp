@@ -115,6 +115,12 @@ namespace jopp2
 		using active_range_type = std::ranges::subrange<iterator, iterator>;
 		using value_type = typename Container::value_type;
 
+		container_proxy(container_proxy const&) = delete;
+		container_proxy(container_proxy&&) = default;
+		container_proxy& operator=(container_proxy const&) = delete;
+		container_proxy& operator=(container_proxy&&) = default;
+		~container_proxy() = default;
+
 		explicit container_proxy(std::reference_wrapper<Container> container):
 			m_current_iterator{selected_iterator<Container>::get_begin(container.get())},
 			m_backing_store{container}
