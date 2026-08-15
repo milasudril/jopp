@@ -512,22 +512,50 @@ namespace jopp2
 		template<class T>
 		requires(generic_value_t::template is_leaf_value<std::remove_cvref_t<T>>)
 		size_t dispatch(callback_param_t<std::remove_cvref_t<T>> /*TODO*/)
-		{ return 0; }
+		{
+			printf("leaf value %s\n", typeid(T).name());
+			return 0;
+		}
 
 		template<class T>
 		requires instance_of<std::remove_cvref_t<T>, container_proxy>
 			&& (!std::is_same_v<std::remove_cvref_t<T>, container_proxy<objcontainer>>)
 		size_t dispatch(T& /*TODO*/)
-		{ return 0; }
+		{
+			puts("leaf value container");
+			return 0;
+
+		}
 
 		size_t dispatch(container_proxy<sequence_container_type<generic_value_t>>& /*TODO*/)
-		{ return 0; }
+		{
+			puts("array of values");
+			return 0;
+
+		}
 
 		size_t dispatch(container_proxy<sequence_container_type<object>>& /*TODO*/)
-		{ return 0; }
+		{
+			puts("array of objects");
+			return 0;
+		}
 
-		size_t dispatch(container_proxy<objcontainer>& /*TODO*/)
-		{ return 0; }
+		size_t dispatch(container_proxy<objcontainer>& obj)
+		{
+			puts("object");
+			if(obj.at_begin())
+			{ m_visitor.handle_begin_of_object(obj.total_size()); }
+
+			obj.pop_active_element();
+
+			if(obj.at_end())
+			{
+				m_visitor.handle_end_of_object();
+				return 0;
+			}
+
+			return 1;
+		}
 
 
 		template<class T>

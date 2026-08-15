@@ -1,6 +1,7 @@
 //@	{"target":{"name": "generic_value.test"}}
 
 #include "./generic_value.hpp"
+#include "lib/container_proxy.hpp"
 #include "testfwk/death_test.hpp"
 #include "testfwk/validation.hpp"
 
@@ -282,6 +283,14 @@ namespace
 			return jopp2::visitor_status::keep_going;
 		}
 
+		auto handle_begin_of_object(size_t)
+		{
+			do_indent();
+			output.get() += std::format("{{\n");
+			++indentation;
+			return jopp2::visitor_status::keep_going;
+		}
+
 		auto handle_end_of_object(jopp2::value_visitation_context context)
 		{
 			--indentation;
@@ -290,6 +299,14 @@ namespace
 			{ output.get() += "},\n"; }
 			else
 			{ output.get() += "}\n"; }
+			return jopp2::visitor_status::keep_going;
+		}
+
+		auto handle_end_of_object()
+		{
+			--indentation;
+			do_indent();
+			output.get() += "}\n";
 			return jopp2::visitor_status::keep_going;
 		}
 
@@ -1158,13 +1175,201 @@ TESTCASE(jopp2_node_visitor_2_instantiate_with_json_value)
 {
 	using json_value = jopp2::generic_value<std::unordered_map, std::vector, json_value_traits>;
 
-	json_value root;
+	json_value value{json_value::object{}};
+	{
+		auto const res = value.store_value_as(std::vector<json_value>{}, "array_of_arrays_of_bools");
+		res.second.emplace_back(
+			json_value{std::vector{bool_wrapper::enabled, bool_wrapper::disabled}}
+		);
+
+		res.second.emplace_back(
+			std::vector<bool_wrapper>{
+				bool_wrapper::disabled,
+				bool_wrapper::enabled,
+				bool_wrapper::enabled
+			}
+		);
+	}
+
+	{
+		auto const res = value.store_value_as(std::vector<json_value>{}, "array_of_arrays_of_nulls");
+		res.second.emplace_back(
+			json_value{std::vector{std::monostate{}, std::monostate{}}}
+		);
+
+		res.second.emplace_back(
+			json_value{std::vector{std::monostate{}}}
+		);
+	}
+
+	{
+		auto const res = value.store_value_as(std::vector<json_value>{}, "array_of_arrays_of_numbers");
+		res.second.emplace_back(
+			json_value{std::vector{1.0, 2.0, 3.0}}
+		);
+
+		res.second.emplace_back(
+			json_value{std::vector{4.5, 5.5}}
+		);
+	}
+
+	{
+		auto const res = value.store_value_as(
+			std::vector<json_value>{}, "array_of_arrays_of_objects"
+		);
+
+		{
+			std::vector<json_value::object> to_append;
+
+			{
+				json_value::object obj;
+				obj.emplace("id", json_value{1.0});
+				obj.emplace("status", "active");
+				to_append.emplace_back(std::move(obj));
+			}
+
+			{
+				json_value::object obj;
+				obj.emplace("id", json_value{2.0});
+				obj.emplace("status", "pending");
+				to_append.emplace_back(std::move(obj));
+			}
+
+			res.second.emplace_back(std::move(to_append));
+		}
+
+		{
+			std::vector<json_value::object> to_append;
+
+			{
+				json_value::object obj;
+				obj.emplace("id", json_value{3.0});
+				obj.emplace("status", "completed");
+				to_append.emplace_back(std::move(obj));
+			}
+
+			res.second.emplace_back(std::move(to_append));
+		}
+	}
+
+	{
+		auto const res = value.store_value_as(std::vector<json_value>{}, "array_of_arrays_of_strings");
+		res.second.emplace_back(
+			json_value{std::vector<std::string>{"apple", "banana"}}
+		);
+
+		res.second.emplace_back(
+			json_value{std::vector<std::string>{"cherry" ,"date"}}
+		);
+	}
+
+	value.store_value_as(
+		std::vector{
+			bool_wrapper::enabled,
+			bool_wrapper::disabled,
+			bool_wrapper::enabled
+		},
+		"array_of_bools"
+	);
+
+	{
+		auto const res = value.store_value_as(
+			std::vector<json_value>{}, "array_of_heterogenous_arrays"
+		);
+		{
+			std::vector<json_value> to_append;
+			to_append.emplace_back(1.0);
+			to_append.emplace_back("two");
+			to_append.emplace_back(bool_wrapper::enabled);
+			to_append.emplace_back(json_value{});
+			res.second.emplace_back(std::move(to_append));
+		}
+
+		{
+			std::vector<json_value> to_append;
+			to_append.emplace_back(bool_wrapper::disabled);
+			to_append.emplace_back(3.14);
+			{
+				json_value::object obj;
+				obj.emplace("key", "value");
+				to_append.emplace_back(std::move(obj));
+			}
+
+			res.second.emplace_back(std::move(to_append));
+		}
+	}
+
+	value.store_value_as(
+		std::vector{
+			std::monostate{},
+			std::monostate{},
+			std::monostate{}
+		},
+		"array_of_nulls"
+	);
+
+	{
+		auto const res = value.store_value_as(std::vector<json_value::object>{}, "array_of_objects");
+		{
+			json_value::object to_append;
+			to_append.emplace("item", "A");
+			to_append.emplace("value", 100.0);
+			res.second.emplace_back(std::move(to_append));
+		}
+
+		{
+			json_value::object to_append;
+			to_append.emplace("item", "B");
+			to_append.emplace("value", 200.0);
+			res.second.emplace_back(std::move(to_append));
+		}
+	}
+
+	{
+		value.store_value_as(
+			std::vector<std::string>{
+				"test 1",
+				"test 2",
+				"test 3"
+			},
+			"array_of_strings"
+		);
+	}
+
+	value.store_value_as(bool_wrapper::enabled, "bool");
+
+	{
+		auto const res = value.store_value_as(std::vector<json_value>{}, "heterogenous_arrays");
+		res.second.emplace_back("text");
+		res.second.emplace_back(123.0);
+		res.second.emplace_back(bool_wrapper::disabled);
+		res.second.emplace_back(std::monostate{});
+
+		{
+			json_value::object to_append;
+			to_append.emplace("nested", "object");
+			res.second.emplace_back(std::move(to_append));
+		}
+	}
+
+	value.store_value_as(42.0, "number");
+
+	{
+		auto const res = value.store_value_as(json_value::object{}, "object");
+		res.second.emplace("sample_key", "sample_value");
+		res.second.emplace("is_dummy", bool_wrapper::enabled);
+	}
+
+	value.store_value_as(std::string{"lorem ipsum"}, "string_value");
+
 	std::string output;
 	jopp2::node_visitor_2<json_value, test_node_visitor> visitor{
-		root,
+		value,
 		std::in_place_t{},
 		output
 	};
 
 	std::ignore = visitor.visit_nodes();
+
+	printf("%s\n", output.c_str());
 }

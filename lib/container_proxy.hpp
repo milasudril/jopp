@@ -129,6 +129,12 @@ namespace jopp2
 		constexpr auto& pop_active_element()
 		{ return pop_active_elements(1); }
 
+		constexpr bool at_begin() const
+		{ return m_current_iterator == m_backing_store.begin(); }
+
+		constexpr bool at_end() const
+		{ return m_current_iterator == m_backing_store.end(); }
+
 		constexpr auto& pop_active_elements(size_t count)
 		{
 			using diff_t = std::ranges::range_difference_t<Container>;
