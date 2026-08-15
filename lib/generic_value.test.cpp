@@ -1160,7 +1160,7 @@ TESTCASE(jopp2_node_visitor_2_instantiate_with_json_value)
 
 	json_value root;
 	std::string output;
-	jopp2::node_visitor_2<json_value const, test_node_visitor> visitor{
+	jopp2::node_visitor_2<json_value, test_node_visitor> visitor{
 		root,
 		std::in_place_t{},
 		output
