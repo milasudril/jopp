@@ -55,6 +55,48 @@ TESTCASE(jopp2_selected_iterator_type)
 	);
 }
 
+TESTCASE(jopp2_selected_iterator_get_begin)
+{
+	std::list<int> a_list{1, 2, 3};
+	EXPECT_EQ(
+		jopp2::selected_iterator<std::list<int>>::get_begin(a_list),
+		std::ranges::begin(a_list)
+	);
+
+	std::deque<int> a_deque{1, 2, 3};
+	EXPECT_EQ(
+		jopp2::selected_iterator<std::deque<int>>::get_begin(a_deque),
+		std::ranges::begin(a_deque)
+	);
+
+	std::vector<int> a_vector{1, 2, 3};
+	EXPECT_EQ(
+		jopp2::selected_iterator<std::vector<int>>::get_begin(a_vector),
+		std::ranges::data(a_vector)
+	);
+}
+
+TESTCASE(jopp2_selected_iterator_get_end)
+{
+	std::list<int> a_list{1, 2, 3};
+	EXPECT_EQ(
+		jopp2::selected_iterator<std::list<int>>::get_end(a_list),
+		std::ranges::end(a_list)
+	);
+
+	std::deque<int> a_deque{1, 2, 3};
+	EXPECT_EQ(
+		jopp2::selected_iterator<std::deque<int>>::get_end(a_deque),
+		std::ranges::end(a_deque)
+	);
+
+	std::vector<int> a_vector{1, 2, 3};
+	EXPECT_EQ(
+		jopp2::selected_iterator<std::vector<int>>::get_end(a_vector),
+		std::ranges::data(a_vector) + std::ranges::size(a_vector)
+	);
+}
+
 #if 0
 TESTCASE(jopp2_container_proxy_mutable_non_random_access_container)
 {
