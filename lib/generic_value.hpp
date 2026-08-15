@@ -572,10 +572,10 @@ namespace jopp2
 
 			m_nodes.push_back(
 				node{
-					.value = node_item<object, src_is_const>::create(next_item)
+					.value = node_value{node_item<object, src_is_const>::create(next_item)}
 				}
 			);
-			return 0;
+			return 1;
 		}
 
 		size_t dispatch(container_proxy<objcontainer>& obj)
