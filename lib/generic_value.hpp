@@ -581,30 +581,6 @@ namespace jopp2
 			}
 		}
 
-		size_t dispatch(container_proxy<sequence_container_type<object>>& obj)
-		{
-			if(obj.at_begin())
-			{
-				puts("[");
-			}
-
-			if(obj.at_end())
-			{
-				puts("]");
-				return 0;
-			}
-
-			auto& next_item = *obj.active_range().begin();
-			obj.pop_active_element();
-
-			m_nodes.push_back(
-				node{
-					.value = node_value{node_item<object, src_is_const>::create(next_item)}
-				}
-			);
-			return 1;
-		}
-
 		size_t dispatch(container_proxy<objcontainer>& obj)
 		{
 			if(obj.at_begin())
@@ -642,9 +618,6 @@ namespace jopp2
 
 		[[gnu::always_inline]]
 		size_t operator()(container_proxy<sequence_container_type<generic_value_t>>& item)
-		{ return dispatch(item); }
-
-		[[gnu::always_inline]] size_t operator()(container_proxy<sequence_container_type<object>>& item)
 		{ return dispatch(item); }
 
 		[[gnu::always_inline]] size_t operator()(container_proxy<objcontainer>& item)
