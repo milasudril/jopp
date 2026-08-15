@@ -6,7 +6,7 @@
 #include "./template_param_pack.hpp"
 #include "./value_storage.hpp"
 #include "./exception.hpp"
-#include "./consumable_range.hpp"
+#include "./container_proxy.hpp"
 
 #include <ranges>
 #include <stack>
@@ -16,6 +16,7 @@
 namespace jopp2
 {
 	using jopp::overload;
+	using jopp::instance_of;
 
 	template<class T>
 	concept sequence_container = requires(T& obj){
@@ -125,10 +126,6 @@ namespace jopp2
 
 		template<class T>
 		static constexpr auto is_leaf_value = type_is_present_v<T, leaf_value_template_param_pack>;
-
-		/*requires(T&& x){
-			{ leaf_value_type{std::forward<T>(x)} };
-		};*/
 
 		using array_value_template_param_pack = concatenate_template_param_packs_t<
 			wrap_template_param_pack_elements_t<
@@ -420,38 +417,13 @@ namespace jopp2
 			std::remove_cvref_t<Type>
 		>;
 
-		using type = consumable_range<typename std::ranges::iterator_t<input_type>>;
+		using type = container_proxy<input_type>;
 
 		using param_type = type&;
 
 		static constexpr auto create(input_type& val)
 		{ return type{val}; }
 	};
-
-	template<class Type, bool IsConst>
-	requires(std::ranges::contiguous_range<Type>)
-	struct node_item<Type, IsConst>
-	{
-		using input_type =  std::conditional_t<
-			IsConst,
-			std::remove_cvref_t<Type> const,
-			std::remove_cvref_t<Type>
-		>;
-
-		using range_value_type = std::conditional_t<
-			IsConst,
-			typename std::ranges::range_value_t<input_type> const,
-			typename std::ranges::range_value_t<input_type>
-		>;
-
-		using type = consumable_range<range_value_type*>;
-
-		using param_type = type&;
-
-		static constexpr auto create(input_type& val)
-		{ return type{val}; }
-	};
-
 	template<class GenericValue, class Visitor>
 	class node_visitor_2
 	{
@@ -460,6 +432,19 @@ namespace jopp2
 		static constexpr auto src_is_const = std::is_const_v<std::remove_reference_t<GenericValue>>;
 		using value_type = typename generic_value_t::value_type;
 		using object = typename generic_value_t::object;
+		using objcontainer = std::conditional_t<
+			src_is_const,
+			object const,
+			object
+		>;
+
+		template<class T>
+		using sequence_container_type =
+			std::conditional_t<
+				src_is_const,
+				typename generic_value_t::template sequence_container_type<T> const,
+				typename generic_value_t::template sequence_container_type<T>
+			>;
 
 		template <class T>
 		using callback_param_t = typename node_item<T, src_is_const>::param_type;
@@ -535,31 +520,39 @@ namespace jopp2
 		{ return 0; }
 
 		template<class T>
-		size_t dispatch(consumable_range<T>& /*TODO*/)
+		requires instance_of<std::remove_cvref_t<T>, container_proxy>
+			&& (!std::is_same_v<std::remove_cvref_t<T>, container_proxy<objcontainer>>)
+		size_t dispatch(T& /*TODO*/)
 		{ return 0; }
 
-		size_t dispatch(consumable_range<typename object::const_iterator>& /*TODO*/)
+		size_t dispatch(container_proxy<sequence_container_type<generic_value_t>>& /*TODO*/)
 		{ return 0; }
 
-		size_t dispatch(consumable_range<GenericValue const*>& /*TODO*/)
+		size_t dispatch(container_proxy<sequence_container_type<object>>& /*TODO*/)
 		{ return 0; }
 
-		size_t dispatch(consumable_range<object const*>& /*TODO*/)
+		size_t dispatch(container_proxy<objcontainer>& /*TODO*/)
 		{ return 0; }
 
 
 		template<class T>
 		requires(generic_value_t::template is_leaf_value<std::remove_cvref_t<T>>)
-		[[gnu::always_inline]] size_t operator()(std::reference_wrapper<T> obj)
-		{ return dispatch<T>(obj.get()); }
+		[[gnu::always_inline]] size_t operator()(std::reference_wrapper<T> item)
+		{ return dispatch<T>(item.get()); }
 
 		template<class T>
-		[[gnu::always_inline]] size_t operator()(T&& obj)
-		{ return dispatch<std::remove_cvref_t<T>>(std::forward<T>(obj)); }
+		[[gnu::always_inline]] size_t operator()(T&& item)
+		{ return dispatch<std::remove_cvref_t<T>>(std::forward<T>(item)); }
 
-		template<class T>
-		[[gnu::always_inline]] size_t operator()(consumable_range<T>& obj)
-		{ return dispatch(obj); }
+		[[gnu::always_inline]]
+		size_t operator()(container_proxy<sequence_container_type<generic_value_t>>& item)
+		{ return dispatch(item); }
+
+		[[gnu::always_inline]] size_t operator()(container_proxy<sequence_container_type<object>>& item)
+		{ return dispatch(item); }
+
+		[[gnu::always_inline]] size_t operator()(container_proxy<objcontainer>& item)
+		{ return dispatch(item); }
 
 	private:
 		Visitor m_visitor;

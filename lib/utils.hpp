@@ -71,6 +71,22 @@ namespace jopp
 		assert(val != nullptr);
 		return *val;
 	}
+
+	// 1. Primary template: defaults to false
+	template <typename T, template <typename...> class C>
+	struct is_instantiation_of : std::false_type {};
+
+	// 2. Partial specialization: matches any instantiation of C<Args...>
+	template <template <typename...> class C, typename... Args>
+	struct is_instantiation_of<C<Args...>, C> : std::true_type {};
+
+	// 3. Variable template helper
+	template <typename T, template <typename...> class C>
+	inline constexpr bool is_instantiation_of_v = is_instantiation_of<T, C>::value;
+
+	// 4. C++20 Concept
+	template <typename T, template <typename...> class C>
+	concept instance_of = is_instantiation_of_v<T, C>;
 }
 
 #endif
