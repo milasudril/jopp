@@ -12,10 +12,10 @@ namespace jopp2
 	{
 		using type = std::ranges::iterator_t<Range>;
 
-		static constexpr auto get_begin(Range& container)
+		[[gnu::always_inline]] static constexpr auto get_begin(Range& container)
 		{ return std::ranges::begin(container); }
 
-		static constexpr auto get_end(Range& container)
+		[[gnu::always_inline]] static constexpr auto get_end(Range& container)
 		{ return std::ranges::end(container); }
 	};
 
@@ -29,10 +29,10 @@ namespace jopp2
 			std::ranges::range_value_t<Range>*
 		>;
 
-		static constexpr auto get_begin(Range& container)
+		[[gnu::always_inline]] static constexpr auto get_begin(Range& container)
 		{ return std::ranges::data(container); }
 
-		static constexpr auto get_end(Range& container)
+		[[gnu::always_inline]] static constexpr auto get_end(Range& container)
 		{ return std::ranges::data(container) + std::ranges::size(container); }
 	};
 
@@ -46,6 +46,7 @@ namespace jopp2
 			std::ranges::subrange_kind::sized
 		>;
 
+		[[gnu::always_inline]]
 		constexpr explicit container_range(std::reference_wrapper<Container> container):
 			m_range{
 				selected_iterator<Container>::get_begin(container.get()),
@@ -54,13 +55,13 @@ namespace jopp2
 			}
 		{}
 
-		constexpr auto begin() const
+		[[gnu::always_inline]] constexpr auto begin() const
 		{ return std::ranges::begin(m_range); }
 
-		constexpr auto end() const
+		[[gnu::always_inline]] constexpr auto end() const
 		{ return std::ranges::end(m_range); }
 
-		constexpr auto size() const
+		[[gnu::always_inline]] constexpr auto size() const
 		{ return std::ranges::size(m_range); }
 
 	private:
