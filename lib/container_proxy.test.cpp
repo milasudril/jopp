@@ -103,10 +103,10 @@ TESTCASE(jopp2_container_range_wrapper_object_size)
 		sizeof(jopp2::container_range<std::list<int>>) == 2*sizeof(std::list<int>::iterator) + sizeof(size_t)
 	);
 	static_assert(
-		sizeof(jopp2::container_range<std::deque<int>>) == 2*sizeof(std::deque<int>::iterator) + sizeof(size_t)
+		sizeof(jopp2::container_range<std::deque<int>>) == 2*sizeof(std::deque<int>::iterator)
 	);
 	static_assert(
-		sizeof(jopp2::container_range<std::vector<int>>) == 2*sizeof(int*) + sizeof(size_t)
+		sizeof(jopp2::container_range<std::vector<int>>) == 2*sizeof(int*)
 	);
 }
 
@@ -143,10 +143,10 @@ TESTCASE(jopp2_container_wrapper_const_wrapper_object_size)
 		sizeof(jopp2::container_wrapper<std::list<int> const>) == 2*sizeof(std::list<int>::iterator) + sizeof(size_t)
 	);
 	static_assert(
-		sizeof(jopp2::container_wrapper<std::deque<int> const>) == 2*sizeof(std::deque<int>::iterator) + sizeof(size_t)
+		sizeof(jopp2::container_wrapper<std::deque<int> const>) == 2*sizeof(std::deque<int>::iterator)
 	);
 	static_assert(
-		sizeof(jopp2::container_wrapper<std::vector<int> const>) == 2*sizeof(int*) + sizeof(size_t)
+		sizeof(jopp2::container_wrapper<std::vector<int> const>) == 2*sizeof(int*)
 	);
 }
 
@@ -259,7 +259,6 @@ TESTCASE(jopp2_container_wrapper_non_const_container_replace_width)
 	EXPECT_EQ(*a_list.begin(), 4);
 }
 
-#if 1
 TESTCASE(jopp2_container_proxy_mutable_non_random_access_container)
 {
 	std::list<int> backing_store{1, 2, 3, 5};
@@ -340,4 +339,3 @@ TESTCASE(jopp2_container_proxy_const_non_random_access_container)
 	EXPECT_EQ(backing_store.front(), 1);
 	EXPECT_EQ(backing_store.back(), 5);
 }
-#endif

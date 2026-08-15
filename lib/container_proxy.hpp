@@ -40,25 +40,31 @@ namespace jopp2
 	class container_range
 	{
 	public:
+		using range_type = std::ranges::subrange<
+			typename selected_iterator<Container>::type,
+			typename selected_iterator<Container>::type,
+			std::ranges::subrange_kind::sized
+		>;
+
 		constexpr explicit container_range(std::reference_wrapper<Container> container):
-			m_begin{selected_iterator<Container>::get_begin(container.get())},
-			m_end{selected_iterator<Container>::get_end(container.get())},
-			m_size(std::ranges::size(container.get()))
+			m_range{
+				selected_iterator<Container>::get_begin(container.get()),
+				selected_iterator<Container>::get_end(container.get()),
+				std::ranges::size(container.get())
+			}
 		{}
 
 		constexpr auto begin() const
-		{ return m_begin; }
+		{ return std::ranges::begin(m_range); }
 
 		constexpr auto end() const
-		{ return m_end; }
+		{ return std::ranges::end(m_range); }
 
 		constexpr auto size() const
-		{ return m_size; }
+		{ return std::ranges::size(m_range); }
 
 	private:
-		selected_iterator<Container>::type m_begin;
-		selected_iterator<Container>::type m_end;
-		size_t m_size;
+		range_type m_range;
 	};
 
 	template<class Container>
