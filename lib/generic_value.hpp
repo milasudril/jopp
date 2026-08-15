@@ -523,10 +523,38 @@ namespace jopp2
 		template<class T>
 		requires instance_of<std::remove_cvref_t<T>, container_proxy>
 			&& (!std::is_same_v<std::remove_cvref_t<T>, container_proxy<objcontainer>>)
-		size_t dispatch(T& /*TODO*/)
+		size_t dispatch(T& obj)
 		{
-			printf("(array) %s\n", typeid(T).name());
-			return 0;
+			if constexpr(std::ranges::range<typename std::remove_cvref_t<T>::value_type>)
+			{
+				using next_level = typename std::remove_cvref_t<T>::value_type;
+				if(obj.at_begin())
+				{
+					puts("[");
+				}
+
+				if(obj.at_end())
+				{
+					puts("]");
+					return 0;
+				}
+
+				auto& next_item = *obj.active_range().begin();
+				obj.pop_active_element();
+
+				m_nodes.push_back(
+					node{
+						.value = node_value{node_item<next_level, src_is_const>::create(next_item)}
+					}
+				);
+				return 1;
+			}
+			else
+			{
+				printf("(array) %s\n", typeid(T).name());
+				return 0;
+			}
+
 		}
 
 		size_t dispatch(container_proxy<sequence_container_type<generic_value_t>>& obj)
