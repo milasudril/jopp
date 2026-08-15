@@ -561,13 +561,15 @@ namespace jopp2
 			printf("key: %s\n", obj.active_range().begin()->first.c_str());
 			fflush(stdout);
 
+			auto& next_item = obj.active_range().begin()->second.get_value();
+			obj.pop_active_element();
+
 			m_nodes.push_back(
 				node{
-					.value = make_node_value(obj.active_range().begin()->second.get_value())
+					.value = make_node_value(next_item)
 				}
 			);
 
-			obj.pop_active_element();
 			return 1;
 		}
 
