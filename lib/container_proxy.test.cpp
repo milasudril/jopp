@@ -13,7 +13,7 @@ TESTCASE(jopp2_container_proxy_mutable_non_random_access_container)
 {
 	std::list<int> backing_store{1, 2, 3, 5};
 
-	jopp2::container_proxy proxy{backing_store};
+	jopp2::container_proxy proxy{std::ref(backing_store)};
 
 	{
 		auto const active_range = proxy.active_range();
@@ -62,9 +62,9 @@ TESTCASE(jopp2_container_proxy_mutable_non_random_access_container)
 
 TESTCASE(jopp2_container_proxy_const_non_random_access_container)
 {
-	std::list<int> const backing_store{1, 2, 3, 5};
+	std::list<int> backing_store{1, 2, 3, 5};
 
-	jopp2::container_proxy proxy{backing_store};
+	jopp2::container_proxy proxy{std::cref(backing_store)};
 
 	{
 		auto const active_range = proxy.active_range();

@@ -23,10 +23,10 @@ namespace jopp2
 	class container_wrapper
 	{
 	public:
-		constexpr explicit container_wrapper(Container& container):
-			m_begin{selected_iterator<Container>::get_begin(container)},
-			m_end{selected_iterator<Container>::get_end(container)},
-			m_size(std::size(container))
+		constexpr explicit container_wrapper(std::reference_wrapper<Container> container):
+			m_begin{selected_iterator<Container>::get_begin(container.get())},
+			m_end{selected_iterator<Container>::get_end(container.get())},
+			m_size(std::size(container.get()))
 		{}
 
 		constexpr auto begin() const
@@ -46,18 +46,27 @@ namespace jopp2
 
 	template<class Container>
 	requires(!std::is_const_v<Container>)
-	struct container_wrapper<Container>:std::reference_wrapper<Container>
+	class container_wrapper<Container>
 	{
-		using std::reference_wrapper<Container>::reference_wrapper;
+	public:
+		explicit container_wrapper(std::reference_wrapper<Container> container):
+			m_container{container}
+		{}
 
 		constexpr auto begin() const
-		{ return std::ranges::begin(std::reference_wrapper<Container>::get()); }
+		{ return std::ranges::begin(m_container.get()); }
 
 		constexpr auto end() const
-		{ return std::ranges::end(std::reference_wrapper<Container>::get()); }
+		{ return std::ranges::end(m_container.get()); }
 
 		constexpr auto size() const
-		{ return std::ranges::size(std::reference_wrapper<Container>::get()); }
+		{ return std::ranges::size(m_container.get()); }
+
+		constexpr auto& get() const
+		{ return m_container.get(); }
+
+	private:
+		std::reference_wrapper<Container> m_container;
 	};
 
 	template<class Container>
@@ -67,7 +76,7 @@ namespace jopp2
 		using iterator = selected_iterator<Container>::type;
 		using active_range_type = std::ranges::subrange<iterator, iterator>;
 
-		explicit container_proxy(Container& container):
+		explicit container_proxy(std::reference_wrapper<Container> container):
 			m_current_iterator{selected_iterator<Container>::get_begin(container)},
 			m_backing_store{container}
 		{}
@@ -109,6 +118,9 @@ namespace jopp2
 		iterator m_current_iterator;
 		container_wrapper<Container> m_backing_store;
 	};
+
+	template<class Container>
+	container_proxy(std::reference_wrapper<Container> container) -> container_proxy<Container>;
 };
 
 #endif
