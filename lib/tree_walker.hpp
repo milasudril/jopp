@@ -63,7 +63,7 @@ namespace jopp2
 		{ return type{val}; }
 	};
 	template<class GenericValue, class Visitor>
-	class node_visitor_2
+	class tree_walker
 	{
 	public:
 		using generic_value_t = std::remove_cvref_t<GenericValue>;
@@ -115,7 +115,7 @@ namespace jopp2
 		};
 
 		template<class VisitorType>
-		explicit node_visitor_2(GenericValue& root, VisitorType&& visitor):
+		explicit tree_walker(GenericValue& root, VisitorType&& visitor):
 			m_visitor{std::forward<VisitorType>(visitor)}
 		{
 			m_nodes.reserve(1024);
@@ -127,7 +127,7 @@ namespace jopp2
 		}
 
 		template<class ... VisitorArgs>
-		explicit node_visitor_2(GenericValue& root, std::in_place_t /*unused*/, VisitorArgs&&... args):
+		explicit tree_walker(GenericValue& root, std::in_place_t /*unused*/, VisitorArgs&&... args):
 			m_visitor{std::forward<VisitorArgs>(args)...}
 		{
 			m_nodes.reserve(1024);
