@@ -279,6 +279,7 @@ namespace jopp2
 
 			auto& next_item = *obj.active_range().begin();
 			obj.pop_active_element();
+			current_context.step_node_index();
 
 			m_nodes.push_back(
 				node{
@@ -308,11 +309,12 @@ namespace jopp2
 				return visit_node_result::completed;
 			}
 
-			if(m_visitor.handle_key(obj.active_range().begin()->first, current_context) == node_visitor_status::suspended)
+			if(m_visitor.handle_key(obj.active_range().begin()->first, std::as_const(current_context)) == node_visitor_status::suspended)
 			{ return visit_node_result::node_visitor_suspended; }
 
 			auto& next_item = obj.active_range().begin()->second.get_value();
 			obj.pop_active_element();
+			current_context.step_node_index();
 
 			m_nodes.push_back(
 				node{
