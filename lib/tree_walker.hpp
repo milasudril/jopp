@@ -62,6 +62,46 @@ namespace jopp2
 		static constexpr auto create(input_type& val)
 		{ return type{val}; }
 	};
+
+	class value_visitation_context
+	{
+	public:
+		value_visitation_context() = default;
+
+		constexpr void step_node_index()
+		{ ++m_node_index; }
+
+		constexpr bool is_last_node() const
+		{ return m_node_index == m_parent_container_size - 1; }
+
+		constexpr bool is_first_node () const
+		{ return m_node_index == 0; }
+
+		constexpr size_t depth() const
+		{ return m_depth; }
+
+		constexpr value_visitation_context next_level(size_t parent_container_size) const
+		{
+			return value_visitation_context{
+				parent_container_size,
+				m_depth + 1
+			};
+		}
+
+	private:
+		constexpr explicit
+		// NOLINTNEXTLINE
+		value_visitation_context(size_t parent_container_size, size_t depth):
+			m_node_index{0},
+			m_parent_container_size{parent_container_size},
+			m_depth{depth}
+		{}
+
+		size_t m_node_index{};
+		size_t m_parent_container_size{};
+		size_t m_depth{};
+	};
+
 	template<class GenericValue, class Visitor>
 	class tree_walker
 	{
@@ -102,6 +142,7 @@ namespace jopp2
 		struct node
 		{
 			node_value value;
+			value_visitation_context context;
 		};
 
 		[[gnu::always_inline]] static auto make_node_value(auto& item)
@@ -121,7 +162,8 @@ namespace jopp2
 			m_nodes.reserve(1024);
 			m_nodes.push_back(
 				node{
-					.value = make_node_value(root.get_value())
+					.value = make_node_value(root.get_value()),
+					.context = {}
 				}
 			);
 		}
@@ -133,7 +175,8 @@ namespace jopp2
 			m_nodes.reserve(1024);
 			m_nodes.push_back(
 				node{
-					.value = make_node_value(root.get_value())
+					.value = make_node_value(root.get_value()),
+					.context = {}
 				}
 			);
 		}
@@ -143,7 +186,7 @@ namespace jopp2
 			while(!m_nodes.empty())
 			{
 				auto& current_node = m_nodes.back();
-				if(visit_with_args(current_node.value, *this) == 0)
+				if(visit_with_args(current_node.value, *this, current_node.context) == 0)
 				{ m_nodes.pop_back(); }
 			}
 			return 0;
@@ -151,7 +194,10 @@ namespace jopp2
 
 		template<class T>
 		requires(generic_value_t::template is_leaf_value<std::remove_cvref_t<T>>)
-		size_t dispatch(callback_param_t<std::remove_cvref_t<T>> /*TODO*/)
+		size_t dispatch(
+			callback_param_t<std::remove_cvref_t<T>> /*TODO*/,
+			value_visitation_context const& /*TODO*/
+		)
 		{
 			printf("(scalar) %s\n", typeid(T).name());
 			return 0;
@@ -165,7 +211,10 @@ namespace jopp2
 			return 0;
 		}
 
-		size_t dispatch(container_proxy<sequence_container_type<generic_value_t>>& obj)
+		size_t dispatch(
+			container_proxy<sequence_container_type<generic_value_t>>& obj,
+			value_visitation_context const& /*TODO*/
+		)
 		{
 			if(obj.at_begin())
 			{
@@ -193,7 +242,7 @@ namespace jopp2
 		template<class T>
 		requires instance_of<std::remove_cvref_t<T>, container_proxy>
 		&& std::ranges::range<typename std::remove_cvref_t<T>::value_type>
-		size_t dispatch(T& obj)
+		size_t dispatch(T& obj, value_visitation_context const& /*TODO*/)
 		{
 			using next_level = typename std::remove_cvref_t<T>::value_type;
 			if(obj.at_begin())
@@ -219,7 +268,7 @@ namespace jopp2
 
 		}
 
-		size_t dispatch(container_proxy<objcontainer>& obj)
+		size_t dispatch(container_proxy<objcontainer>& obj, value_visitation_context const& /*TODO*/)
 		{
 			if(obj.at_begin())
 			{ puts("{"); }
@@ -247,19 +296,28 @@ namespace jopp2
 
 		template<class T>
 		requires(generic_value_t::template is_leaf_value<std::remove_cvref_t<T>>)
-		[[gnu::always_inline]] size_t operator()(std::reference_wrapper<T> item)
-		{ return dispatch<T>(item.get()); }
+		[[gnu::always_inline]] size_t operator()(
+			std::reference_wrapper<T> item,
+			value_visitation_context const& context
+		)
+		{ return dispatch<T>(item.get(), context); }
 
 		template<class T>
-		[[gnu::always_inline]] size_t operator()(T&& item)
-		{ return dispatch<std::remove_cvref_t<T>>(std::forward<T>(item)); }
+		[[gnu::always_inline]] size_t operator()(T&& item, value_visitation_context const& context)
+		{ return dispatch<std::remove_cvref_t<T>>(std::forward<T>(item), context); }
 
 		[[gnu::always_inline]]
-		size_t operator()(container_proxy<sequence_container_type<generic_value_t>>& item)
-		{ return dispatch(item); }
+		size_t operator()(
+			container_proxy<sequence_container_type<generic_value_t>>& item,
+			value_visitation_context const& context
+		)
+		{ return dispatch(item, context); }
 
-		[[gnu::always_inline]] size_t operator()(container_proxy<objcontainer>& item)
-		{ return dispatch(item); }
+		[[gnu::always_inline]] size_t operator()(
+			container_proxy<objcontainer>& item,
+			value_visitation_context const& context
+		)
+		{ return dispatch(item, context); }
 
 	private:
 		Visitor m_visitor;
