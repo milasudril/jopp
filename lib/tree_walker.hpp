@@ -102,9 +102,20 @@ namespace jopp2
 		size_t m_depth{};
 	};
 
-	template<class GenericValue, class Visitor>
+	enum class node_visitor_status {
+		ready,
+		suspended
+	};
+
+	template<class GenericValue, class NodeVisitor>
 	class tree_walker
 	{
+		enum class visit_node_result{
+			node_visitor_ready = node_visitor_status::ready,
+			node_visitor_suspended = node_visitor_status::suspended,
+			completed
+		};
+
 	public:
 		using generic_value_t = std::remove_cvref_t<GenericValue>;
 		static constexpr auto src_is_const = std::is_const_v<std::remove_reference_t<GenericValue>>;
@@ -155,9 +166,9 @@ namespace jopp2
 			);
 		};
 
-		template<class VisitorType>
-		explicit tree_walker(GenericValue& root, VisitorType&& visitor):
-			m_visitor{std::forward<VisitorType>(visitor)}
+		template<class NodeVisitorType>
+		explicit tree_walker(GenericValue& root, NodeVisitorType&& visitor):
+			m_visitor{std::forward<NodeVisitorType>(visitor)}
 		{
 			m_nodes.reserve(1024);
 			m_nodes.push_back(
@@ -168,9 +179,9 @@ namespace jopp2
 			);
 		}
 
-		template<class ... VisitorArgs>
-		explicit tree_walker(GenericValue& root, std::in_place_t /*unused*/, VisitorArgs&&... args):
-			m_visitor{std::forward<VisitorArgs>(args)...}
+		template<class ... NodeVisitorArgs>
+		explicit tree_walker(GenericValue& root, std::in_place_t /*unused*/, NodeVisitorArgs&&... args):
+			m_visitor{std::forward<NodeVisitorArgs>(args)...}
 		{
 			m_nodes.reserve(1024);
 			m_nodes.push_back(
@@ -186,74 +197,88 @@ namespace jopp2
 			while(!m_nodes.empty())
 			{
 				auto& current_node = m_nodes.back();
-				if(visit_with_args(current_node.value, *this, current_node.context) == 0)
-				{ m_nodes.pop_back(); }
+				switch(visit_with_args(current_node.value, *this, current_node.context))
+				{
+					case visit_node_result::node_visitor_ready:
+						break;
+					case visit_node_result::node_visitor_suspended:
+						return node_visitor_status::suspended;
+					case visit_node_result::completed:
+						m_nodes.pop_back();
+				}
 			}
-			return 0;
+			return node_visitor_status::ready;
 		}
 
 		template<class T>
 		requires(generic_value_t::template is_leaf_value<std::remove_cvref_t<T>>)
-		size_t dispatch(
-			callback_param_t<std::remove_cvref_t<T>> /*TODO*/,
-			value_visitation_context const& /*TODO*/
+		visit_node_result dispatch(
+			callback_param_t<std::remove_cvref_t<T>> item,
+			value_visitation_context const& current_context
 		)
 		{
-			printf("(scalar) %s\n", typeid(T).name());
-			return 0;
+			return m_visitor.handle_leaf_value(item, current_context);
 		}
 
 		template<class T>
 		requires instance_of<std::remove_cvref_t<T>, container_proxy>
-		size_t dispatch(T& /*TODO*/)
+		visit_node_result dispatch(T& item, value_visitation_context const& current_context)
 		{
-			printf("(array) %s\n", typeid(T).name());
-			return 0;
+			return m_visitor.handle_leaf_value_array(item, current_context);
 		}
 
-		size_t dispatch(
+		visit_node_result dispatch(
 			container_proxy<sequence_container_type<generic_value_t>>& obj,
-			value_visitation_context const& /*TODO*/
+			value_visitation_context& current_context
 		)
 		{
 			if(obj.at_begin())
 			{
-				puts("[");
+				if(m_visitor.handle_begin_of_container(obj, std::as_const(current_context)) == node_visitor_status::suspended)
+				{ return visit_node_result::node_visitor_suspended; }
 			}
 
 			if(obj.at_end())
 			{
-				puts("]");
-				return 0;
+				if(m_visitor.handle_end_of_container(obj, std::as_const(current_context)) == node_visitor_status::suspended)
+				{ return visit_node_result::node_visitor_suspended; }
+				return visit_node_result::completed;
 			}
 
 			auto& next_item = obj.active_range().begin()->get_value();
 			obj.pop_active_element();
+			current_context.step_node_index();
 
 			m_nodes.push_back(
 				node{
-					.value = make_node_value(next_item)
+					.value = make_node_value(next_item),
+					.context = current_context.next_level(obj.total_size())
 				}
 			);
 
-			return 1;
+			return visit_node_result::node_visitor_ready;
 		}
 
 		template<class T>
 		requires instance_of<std::remove_cvref_t<T>, container_proxy>
 		&& std::ranges::range<typename std::remove_cvref_t<T>::value_type>
-		size_t dispatch(T& obj, value_visitation_context const& /*TODO*/)
+		visit_node_result dispatch(
+			T& obj,
+			value_visitation_context& current_context
+		)
 		{
 			using next_level = typename std::remove_cvref_t<T>::value_type;
 			if(obj.at_begin())
 			{
-				puts("[");
+				if(m_visitor.handle_begin_of_container(obj, std::as_const(current_context)) == node_visitor_status::suspended)
+				{ return visit_node_result::node_visitor_suspended; }
 			}
 
 			if(obj.at_end())
 			{
-				puts("]");
-				return 0;
+				if(m_visitor.handle_end_of_container(obj, std::as_const(current_context)) == node_visitor_status::suspended)
+				{ return visit_node_result::node_visitor_suspended; }
+				return visit_node_result::completed;
 			}
 
 			auto& next_item = *obj.active_range().begin();
@@ -264,22 +289,30 @@ namespace jopp2
 					.value = node_value{node_item<next_level, src_is_const>::create(next_item)}
 				}
 			);
-			return 1;
 
+			return visit_node_result::node_visitor_ready;
 		}
 
-		size_t dispatch(container_proxy<objcontainer>& obj, value_visitation_context const& /*TODO*/)
+		visit_node_result dispatch(
+			container_proxy<objcontainer>& obj,
+			value_visitation_context& current_context
+		)
 		{
 			if(obj.at_begin())
-			{ puts("{"); }
+			{
+				if(m_visitor.handle_begin_of_container(obj, std::as_const(current_context)) == node_visitor_status::suspended)
+				{ return visit_node_result::node_visitor_suspended; }
+			}
 
 			if(obj.at_end())
 			{
-				puts("}");
-				return 0;
+				if(m_visitor.handle_end_of_container(obj, std::as_const(current_context)) == node_visitor_status::suspended)
+				{ return visit_node_result::node_visitor_suspended; }
+				return visit_node_result::completed;
 			}
 
-			printf("%s: ", obj.active_range().begin()->first.c_str());
+			if(m_visitor.handle_key(obj.active_range().begin()->first, current_context) == node_visitor_status::suspended)
+			{ return visit_node_result::node_visitor_suspended; }
 
 			auto& next_item = obj.active_range().begin()->second.get_value();
 			obj.pop_active_element();
@@ -290,37 +323,40 @@ namespace jopp2
 				}
 			);
 
-			return 1;
+			return visit_node_result::node_visitor_ready;
 		}
 
 
 		template<class T>
 		requires(generic_value_t::template is_leaf_value<std::remove_cvref_t<T>>)
-		[[gnu::always_inline]] size_t operator()(
+		[[gnu::always_inline]] visit_node_result operator()(
 			std::reference_wrapper<T> item,
-			value_visitation_context const& context
+			value_visitation_context& context
 		)
 		{ return dispatch<T>(item.get(), context); }
 
 		template<class T>
-		[[gnu::always_inline]] size_t operator()(T&& item, value_visitation_context const& context)
+		[[gnu::always_inline]] visit_node_result operator()(T&& item, value_visitation_context& context)
 		{ return dispatch<std::remove_cvref_t<T>>(std::forward<T>(item), context); }
 
 		[[gnu::always_inline]]
-		size_t operator()(
+		visit_node_result operator()(
 			container_proxy<sequence_container_type<generic_value_t>>& item,
-			value_visitation_context const& context
+			value_visitation_context& context
 		)
 		{ return dispatch(item, context); }
 
-		[[gnu::always_inline]] size_t operator()(
+		[[gnu::always_inline]] visit_node_result operator()(
 			container_proxy<objcontainer>& item,
-			value_visitation_context const& context
+			value_visitation_context& context
 		)
 		{ return dispatch(item, context); }
+
+		size_t current_depth() const
+		{ return std::size(m_nodes); }
 
 	private:
-		Visitor m_visitor;
+		NodeVisitor m_visitor;
 		std::vector<node> m_nodes;
 	};
 }
