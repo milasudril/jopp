@@ -14,8 +14,6 @@ namespace jopp2
 {
 	using jopp::instance_of;
 
-	enum class visitor_status{suspend, keep_going};
-
 	template<class Type, bool IsConst>
 	struct node_item
 	{
