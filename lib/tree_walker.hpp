@@ -216,9 +216,7 @@ namespace jopp2
 			callback_param_t<std::remove_cvref_t<T>> item,
 			value_visitation_context const& current_context
 		)
-		{
-			return m_visitor.handle_leaf_value(item, current_context);
-		}
+		{ return m_visitor.handle_leaf_value(item, current_context); }
 
 		template<class T>
 		requires instance_of<std::remove_cvref_t<T>, container_proxy>
@@ -286,7 +284,8 @@ namespace jopp2
 
 			m_nodes.push_back(
 				node{
-					.value = node_value{node_item<next_level, src_is_const>::create(next_item)}
+					.value = make_node_value(next_item),
+					.context = current_context.next_level(obj.total_size())
 				}
 			);
 
@@ -319,13 +318,13 @@ namespace jopp2
 
 			m_nodes.push_back(
 				node{
-					.value = make_node_value(next_item)
+					.value = make_node_value(next_item),
+					.context = current_context.next_level(obj.total_size())
 				}
 			);
 
 			return visit_node_result::node_visitor_ready;
 		}
-
 
 		template<class T>
 		requires(generic_value_t::template is_leaf_value<std::remove_cvref_t<T>>)
