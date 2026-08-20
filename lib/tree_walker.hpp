@@ -12,6 +12,50 @@
 
 namespace jopp2
 {
+	class value_visitation_context
+	{
+	public:
+		value_visitation_context() = default;
+
+		constexpr void step_node_index()
+		{ ++m_node_index; }
+
+		constexpr bool is_last_node() const
+		{ return m_node_index == m_parent_container_size - 1; }
+
+		constexpr bool is_first_node () const
+		{ return m_node_index == 0; }
+
+		constexpr size_t depth() const
+		{ return m_depth; }
+
+		constexpr value_visitation_context next_level(size_t parent_container_size) const
+		{
+			return value_visitation_context{
+				parent_container_size,
+				m_depth + 1
+			};
+		}
+
+	private:
+		constexpr explicit
+		// NOLINTNEXTLINE
+		value_visitation_context(size_t parent_container_size, size_t depth):
+			m_node_index{0},
+			m_parent_container_size{parent_container_size},
+			m_depth{depth}
+		{}
+
+		size_t m_node_index{};
+		size_t m_parent_container_size{};
+		size_t m_depth{};
+	};
+
+	enum class node_visitor_status {
+		ready,
+		suspended
+	};
+
 	using jopp::instance_of;
 
 	template<class Type, bool IsConst>
@@ -59,50 +103,6 @@ namespace jopp2
 
 		static constexpr auto create(input_type& val)
 		{ return type{val}; }
-	};
-
-	class value_visitation_context
-	{
-	public:
-		value_visitation_context() = default;
-
-		constexpr void step_node_index()
-		{ ++m_node_index; }
-
-		constexpr bool is_last_node() const
-		{ return m_node_index == m_parent_container_size - 1; }
-
-		constexpr bool is_first_node () const
-		{ return m_node_index == 0; }
-
-		constexpr size_t depth() const
-		{ return m_depth; }
-
-		constexpr value_visitation_context next_level(size_t parent_container_size) const
-		{
-			return value_visitation_context{
-				parent_container_size,
-				m_depth + 1
-			};
-		}
-
-	private:
-		constexpr explicit
-		// NOLINTNEXTLINE
-		value_visitation_context(size_t parent_container_size, size_t depth):
-			m_node_index{0},
-			m_parent_container_size{parent_container_size},
-			m_depth{depth}
-		{}
-
-		size_t m_node_index{};
-		size_t m_parent_container_size{};
-		size_t m_depth{};
-	};
-
-	enum class node_visitor_status {
-		ready,
-		suspended
 	};
 
 	template<class GenericValue, class NodeVisitor>
