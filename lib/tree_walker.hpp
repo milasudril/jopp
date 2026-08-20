@@ -70,8 +70,8 @@ namespace jopp2
 	class tree_walker
 	{
 		enum class visit_node_result{
-			node_visitor_ready = node_visitor_status::ready,
-			node_visitor_suspended = node_visitor_status::suspended,
+			node_visitor_ready = static_cast<int>(node_visitor_status::ready),
+			node_visitor_suspended = static_cast<int>(node_visitor_status::suspended),
 			completed
 		};
 
@@ -306,5 +306,9 @@ namespace jopp2
 		NodeVisitor m_visitor;
 		std::vector<node> m_nodes;
 	};
+
+	template<class GenericValue, class NodeVisitorType>
+	tree_walker(GenericValue& root, NodeVisitorType& visitor)->
+		tree_walker<GenericValue&, NodeVisitorType&>;
 }
 #endif
