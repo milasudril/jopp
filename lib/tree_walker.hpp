@@ -133,7 +133,7 @@ namespace jopp2
 			m_nodes.push_back(
 				node{
 					.value = make_node_value(root.get_value()),
-					.context = {}
+					.depth = 0
 				}
 			);
 		}
@@ -146,7 +146,7 @@ namespace jopp2
 			m_nodes.push_back(
 				node{
 					.value = make_node_value(root.get_value()),
-					.context = {}
+					.depth = 0
 				}
 			);
 		}
@@ -301,6 +301,9 @@ namespace jopp2
 
 		size_t current_depth() const
 		{ return std::size(m_nodes); }
+
+		auto const& visitor() const
+		{ return m_visitor; }
 
 	private:
 		NodeVisitor m_visitor;
