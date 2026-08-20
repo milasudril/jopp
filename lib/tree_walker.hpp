@@ -263,7 +263,6 @@ namespace jopp2
 			value_visitation_context& current_context
 		)
 		{
-			using next_level = typename std::remove_cvref_t<T>::value_type;
 			if(obj.at_begin())
 			{
 				if(m_visitor.handle_begin_of_container(obj, std::as_const(current_context)) == node_visitor_status::suspended)
