@@ -115,6 +115,9 @@ namespace jopp2
 			size_t depth;
 		};
 
+		template<class Other, class... Args>
+		tree_walker(Other&&, Args&&...) = delete;
+
 		[[gnu::always_inline]] static auto make_node_value(auto& item)
 		{
 			return std::visit(

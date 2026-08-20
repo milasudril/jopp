@@ -32,4 +32,36 @@ TESTCASE(jopp2_tree_walker_create_with_ref_to_visitor)
 	jopp2::tree_walker walker{value, visitor};
 	EXPECT_EQ(&walker.visitor(), &visitor);
 	EXPECT_EQ(walker.current_depth(), 1);
+	static_assert(
+		std::is_same_v<
+			decltype(walker),
+			jopp2::tree_walker<test_generic_value&, test_node_visitor&>
+		>
+	);
+}
+
+TESTCASE(jopp2_tree_walker_create_with_ref_to_const_value)
+{
+	test_generic_value value;
+	test_node_visitor visitor;
+	jopp2::tree_walker walker{std::as_const(value), visitor};
+	EXPECT_EQ(&walker.visitor(), &visitor);
+	EXPECT_EQ(walker.current_depth(), 1);
+	static_assert(
+		std::is_same_v<
+			decltype(walker),
+			jopp2::tree_walker<test_generic_value const&, test_node_visitor&>
+		>
+	);
+}
+
+TESTCASE(jopp2_tree_walker_create_with_value)
+{
+	static_assert(!
+		std::is_constructible_v<
+			jopp2::tree_walker<test_generic_value const, test_node_visitor&>,
+			test_generic_value,
+			test_node_visitor
+		>
+	);
 }
