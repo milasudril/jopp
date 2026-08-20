@@ -12,45 +12,6 @@
 
 namespace jopp2
 {
-	class value_visitation_context
-	{
-	public:
-		value_visitation_context() = default;
-
-		constexpr void step_node_index()
-		{ ++m_node_index; }
-
-		constexpr bool is_last_node() const
-		{ return m_node_index == m_parent_container_size - 1; }
-
-		constexpr bool is_first_node () const
-		{ return m_node_index == 0; }
-
-		constexpr size_t depth() const
-		{ return m_depth; }
-
-		constexpr value_visitation_context next_level(size_t parent_container_size) const
-		{
-			return value_visitation_context{
-				parent_container_size,
-				m_depth + 1
-			};
-		}
-
-	private:
-		constexpr explicit
-		// NOLINTNEXTLINE
-		value_visitation_context(size_t parent_container_size, size_t depth):
-			m_node_index{0},
-			m_parent_container_size{parent_container_size},
-			m_depth{depth}
-		{}
-
-		size_t m_node_index{};
-		size_t m_parent_container_size{};
-		size_t m_depth{};
-	};
-
 	enum class node_visitor_status {
 		ready,
 		suspended
@@ -151,7 +112,7 @@ namespace jopp2
 		struct node
 		{
 			node_value value;
-			value_visitation_context context;
+			size_t depth;
 		};
 
 		[[gnu::always_inline]] static auto make_node_value(auto& item)
@@ -195,7 +156,7 @@ namespace jopp2
 			while(!m_nodes.empty())
 			{
 				auto& current_node = m_nodes.back();
-				switch(visit_with_args(current_node.value, *this, current_node.context))
+				switch(visit_with_args(current_node.value, *this, current_node.depth))
 				{
 					case visit_node_result::node_visitor_ready:
 						break;
@@ -210,45 +171,39 @@ namespace jopp2
 
 		template<class T>
 		requires(generic_value_t::template is_leaf_value<std::remove_cvref_t<T>>)
-		visit_node_result dispatch(
-			callback_param_t<std::remove_cvref_t<T>> item,
-			value_visitation_context const& current_context
-		)
-		{ return m_visitor.handle_leaf_value(item, current_context); }
+		visit_node_result dispatch(callback_param_t<std::remove_cvref_t<T>> item, size_t depth)
+		{ return m_visitor.handle_leaf_value(item, depth); }
 
 		template<class T>
 		requires instance_of<std::remove_cvref_t<T>, container_proxy>
-		visit_node_result dispatch(T& item, value_visitation_context const& current_context)
-		{
-			return m_visitor.handle_leaf_value_array(item, current_context);
-		}
+		visit_node_result dispatch(T& item, size_t depth)
+		{ return m_visitor.handle_leaf_value_array(item, depth); }
 
 		visit_node_result dispatch(
 			container_proxy<sequence_container_type<generic_value_t>>& obj,
-			value_visitation_context& current_context
+			size_t depth
 		)
 		{
 			if(obj.at_begin())
 			{
-				if(m_visitor.handle_begin_of_container(obj, std::as_const(current_context)) == node_visitor_status::suspended)
+				if(m_visitor.handle_begin_of_container(obj, depth) == node_visitor_status::suspended)
 				{ return visit_node_result::node_visitor_suspended; }
 			}
 
 			if(obj.at_end())
 			{
-				if(m_visitor.handle_end_of_container(obj, std::as_const(current_context)) == node_visitor_status::suspended)
+				if(m_visitor.handle_end_of_container(obj, depth) == node_visitor_status::suspended)
 				{ return visit_node_result::node_visitor_suspended; }
 				return visit_node_result::completed;
 			}
 
 			auto& next_item = obj.active_range().begin()->get_value();
 			obj.pop_active_element();
-			current_context.step_node_index();
 
 			m_nodes.push_back(
 				node{
 					.value = make_node_value(next_item),
-					.context = current_context.next_level(obj.total_size())
+					.depth = depth + 1
 				}
 			);
 
@@ -258,69 +213,61 @@ namespace jopp2
 		template<class T>
 		requires instance_of<std::remove_cvref_t<T>, container_proxy>
 		&& std::ranges::range<typename std::remove_cvref_t<T>::value_type>
-		visit_node_result dispatch(
-			T& obj,
-			value_visitation_context& current_context
-		)
+		visit_node_result dispatch(T& obj, size_t depth)
 		{
 			if(obj.at_begin())
 			{
-				if(m_visitor.handle_begin_of_container(obj, std::as_const(current_context)) == node_visitor_status::suspended)
+				if(m_visitor.handle_begin_of_container(obj, depth) == node_visitor_status::suspended)
 				{ return visit_node_result::node_visitor_suspended; }
 			}
 
 			if(obj.at_end())
 			{
-				if(m_visitor.handle_end_of_container(obj, std::as_const(current_context)) == node_visitor_status::suspended)
+				if(m_visitor.handle_end_of_container(obj, depth) == node_visitor_status::suspended)
 				{ return visit_node_result::node_visitor_suspended; }
 				return visit_node_result::completed;
 			}
 
 			auto& next_item = *obj.active_range().begin();
 			obj.pop_active_element();
-			current_context.step_node_index();
 
 			m_nodes.push_back(
 				node{
 					.value = make_node_value(next_item),
-					.context = current_context.next_level(obj.total_size())
+					.depth = depth + 1
 				}
 			);
 
 			return visit_node_result::node_visitor_ready;
 		}
 
-		visit_node_result dispatch(
-			container_proxy<objcontainer>& obj,
-			value_visitation_context& current_context
-		)
+		visit_node_result dispatch(container_proxy<objcontainer>& obj, size_t depth)
 		{
 			if(obj.at_begin())
 			{
-				if(m_visitor.handle_begin_of_container(obj, std::as_const(current_context)) == node_visitor_status::suspended)
+				if(m_visitor.handle_begin_of_container(obj, depth) == node_visitor_status::suspended)
 				{ return visit_node_result::node_visitor_suspended; }
 			}
 
 			if(obj.at_end())
 			{
-				if(m_visitor.handle_end_of_container(obj, std::as_const(current_context)) == node_visitor_status::suspended)
+				if(m_visitor.handle_end_of_container(obj, depth) == node_visitor_status::suspended)
 				{ return visit_node_result::node_visitor_suspended; }
 				return visit_node_result::completed;
 			}
 /*
 			TODO: Need to push key as well...
-			if(m_visitor.handle_key(obj.active_range().begin()->first, std::as_const(current_context)) == node_visitor_status::suspended)
+			if(m_visitor.handle_key(obj.active_range().begin()->first, depth) == node_visitor_status::suspended)
 			{ return visit_node_result::node_visitor_suspended; }
 */
 
 			auto& next_item = obj.active_range().begin()->second.get_value();
 			obj.pop_active_element();
-			current_context.step_node_index();
 
 			m_nodes.push_back(
 				node{
 					.value = make_node_value(next_item),
-					.context = current_context.next_level(obj.total_size())
+					.depth = depth + 1
 				}
 			);
 
@@ -331,26 +278,26 @@ namespace jopp2
 		requires(generic_value_t::template is_leaf_value<std::remove_cvref_t<T>>)
 		[[gnu::always_inline]] visit_node_result operator()(
 			std::reference_wrapper<T> item,
-			value_visitation_context& context
+			size_t depth
 		)
-		{ return dispatch<T>(item.get(), context); }
+		{ return dispatch<T>(item.get(), depth); }
 
 		template<class T>
-		[[gnu::always_inline]] visit_node_result operator()(T&& item, value_visitation_context& context)
-		{ return dispatch<std::remove_cvref_t<T>>(std::forward<T>(item), context); }
+		[[gnu::always_inline]] visit_node_result operator()(T&& item, size_t depth)
+		{ return dispatch<std::remove_cvref_t<T>>(std::forward<T>(item), depth); }
 
 		[[gnu::always_inline]]
 		visit_node_result operator()(
 			container_proxy<sequence_container_type<generic_value_t>>& item,
-			value_visitation_context& context
+			size_t depth
 		)
-		{ return dispatch(item, context); }
+		{ return dispatch(item, depth); }
 
 		[[gnu::always_inline]] visit_node_result operator()(
 			container_proxy<objcontainer>& item,
-			value_visitation_context& context
+			size_t depth
 		)
-		{ return dispatch(item, context); }
+		{ return dispatch(item, depth); }
 
 		size_t current_depth() const
 		{ return std::size(m_nodes); }
