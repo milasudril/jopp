@@ -141,8 +141,12 @@ namespace jopp2
 			);
 		}
 
-		template<class ... NodeVisitorArgs>
-		explicit tree_walker(GenericValue& root, std::in_place_t /*unused*/, NodeVisitorArgs&&... args):
+		template<class NodeVisitorType, class ... NodeVisitorArgs>
+		explicit tree_walker(
+			GenericValue& root,
+			std::in_place_type_t<NodeVisitorType> /*unused*/,
+			NodeVisitorArgs&&... args
+		):
 			m_visitor{std::forward<NodeVisitorArgs>(args)...}
 		{
 			m_nodes.reserve(1024);
@@ -314,7 +318,16 @@ namespace jopp2
 	};
 
 	template<class GenericValue, class NodeVisitorType>
-	tree_walker(GenericValue& root, NodeVisitorType& visitor)->
-		tree_walker<GenericValue&, NodeVisitorType&>;
+	tree_walker(GenericValue&, NodeVisitorType&) -> tree_walker<GenericValue&, NodeVisitorType&>;
+
+	template<class GenericValue, class NodeVisitorType>
+	tree_walker(GenericValue&, NodeVisitorType&&) -> tree_walker<GenericValue&, NodeVisitorType>;
+
+	template<class GenericValue, class NodeVisitorType, class ... NodeVisitorArgs>
+	tree_walker(
+		GenericValue&,
+		std::in_place_type_t<NodeVisitorType> /*unused*/,
+		NodeVisitorArgs&&...
+	) -> tree_walker<GenericValue&, NodeVisitorType>;
 }
 #endif
