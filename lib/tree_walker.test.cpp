@@ -27,6 +27,13 @@ namespace
 	};
 }
 
+TESTCASE(jopp2_value_visitation_context_default_state)
+{
+	jopp2::value_visitation_context ctxt;
+	EXPECT_EQ(ctxt.is_first_node(), true);
+	EXPECT_EQ(ctxt.depth(), 0);
+}
+
 TESTCASE(jopp2_tree_walker_create_with_ref_to_visitor)
 {
 	test_generic_value value;
