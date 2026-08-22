@@ -2,6 +2,8 @@
 
 #include "./tree_walker.hpp"
 #include "testfwk/death_test.hpp"
+#include "testfwk/testsuite.hpp"
+#include "testfwk/validation.hpp"
 
 #include <functional>
 #include <testfwk/testfwk.hpp>
@@ -75,9 +77,41 @@ namespace
 			return handle_leaf_value_action(container, ctxt);
 		}
 
+			std::move_only_function<
+			jopp2::node_visitor_status(
+				jopp2::container_proxy<std::vector<test_generic_value> const>&,
+				jopp2::value_visitation_context const&
+			)
+		> handle_begin_of_container_generic_value;
+		auto handle_begin_of_container(
+			jopp2::container_proxy<std::vector<test_generic_value> const>& container,
+			jopp2::value_visitation_context const& ctxt
+		)
+		{
+			REQUIRE_EQ(static_cast<bool>(handle_begin_of_container_generic_value), true);
+			return handle_begin_of_container_generic_value(container, ctxt);
+		}
+
+		std::move_only_function<
+			jopp2::node_visitor_status(
+				jopp2::container_proxy<std::vector<test_generic_value> const>&,
+				jopp2::value_visitation_context const&
+			)
+		> handle_end_of_container_generic_value;
+		auto handle_end_of_container(
+			jopp2::container_proxy<std::vector<test_generic_value> const>& container,
+			jopp2::value_visitation_context const& ctxt
+		)
+		{
+			REQUIRE_EQ(static_cast<bool>(handle_end_of_container_generic_value), true);
+			return handle_end_of_container_generic_value(container, ctxt);
+		}
+
 		~test_node_visitor()
 		{
 			EXPECT_EQ(static_cast<bool>(handle_leaf_value_action), false);
+			EXPECT_EQ(static_cast<bool>(handle_begin_of_container_generic_value), false);
+			EXPECT_EQ(static_cast<bool>(handle_end_of_container_generic_value), false);
 			EXPECT_EQ(handle_leaf_value_int_call_expected.has_value(), false);
 		}
 	};
@@ -334,4 +368,47 @@ TESTCASE(jopp2_tree_walker_dispatch_leaf_value_array_return_junk)
 		SIGABRT
 	);
 	visitor.handle_leaf_value_action = {};
+}
+
+TESTCASE(jopp2_tree_walker_dispatch_generic_value_array_cursor_at_begin_visitor_suspended)
+{
+	std::vector<test_generic_value> vals{
+		test_generic_value{},
+		test_generic_value{},
+		test_generic_value{}
+	};
+	jopp2::container_proxy vals_proxy{std::cref(vals)};
+	test_generic_value value;
+	test_node_visitor visitor{};
+	jopp2::tree_walker walker{std::as_const(value), visitor};
+	auto visitation_ctxt = jopp2::value_visitation_context{}.enter_next_level(42);
+
+	visitor.handle_begin_of_container_generic_value = [](auto&&... /*ignore*/){
+		return jopp2::node_visitor_status::suspended;
+	};
+	auto const result = walker.dispatch(vals_proxy, visitation_ctxt);
+	EXPECT_EQ(result, jopp2::visit_node_result::node_visitor_suspended);
+	visitor.handle_begin_of_container_generic_value = {};
+}
+
+TESTCASE(jopp2_tree_walker_dispatch_generic_value_array_cursor_at_end_visitor_suspended)
+{
+	std::vector<test_generic_value> vals{
+		test_generic_value{},
+		test_generic_value{},
+		test_generic_value{}
+	};
+	jopp2::container_proxy vals_proxy{std::cref(vals)};
+	vals_proxy.pop_active_elements(std::size(vals));
+	test_generic_value value;
+	test_node_visitor visitor{};
+	jopp2::tree_walker walker{std::as_const(value), visitor};
+	auto visitation_ctxt = jopp2::value_visitation_context{}.enter_next_level(42);
+
+	visitor.handle_end_of_container_generic_value = [](auto&&... /*ignore*/){
+		return jopp2::node_visitor_status::suspended;
+	};
+	auto const result = walker.dispatch(vals_proxy, visitation_ctxt);
+	EXPECT_EQ(result, jopp2::visit_node_result::node_visitor_suspended);
+	visitor.handle_end_of_container_generic_value = {};
 }
