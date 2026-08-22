@@ -249,7 +249,20 @@ namespace jopp2
 		requires instance_of<std::remove_cvref_t<T>, container_proxy>
 		visit_node_result dispatch(T& item, value_visitation_context const& current_context)
 		{
-			return m_visitor.handle_leaf_value_array(item, current_context);
+			switch(m_visitor.handle_leaf_value_array(item, current_context))
+			{
+				case node_visitor_status::ready:
+					if(item.at_end())
+					{ return visit_node_result::completed; }
+					else
+					{ return visit_node_result::node_visitor_ready; }
+
+				case node_visitor_status::suspended:
+					return visit_node_result::node_visitor_suspended;
+
+				default:
+					raise_internal_error("Invalid return value from node visitor");
+			}
 		}
 
 		visit_node_result dispatch(
