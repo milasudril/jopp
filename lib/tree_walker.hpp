@@ -29,7 +29,10 @@ namespace jopp2
 		constexpr size_t depth() const
 		{ return m_depth; }
 
-		constexpr value_visitation_context next_level(size_t parent_container_size) const
+		constexpr size_t parent_container_size() const
+		{ return m_parent_container_size; }
+
+		constexpr value_visitation_context enter_next_level(size_t parent_container_size) const
 		{
 			return value_visitation_context{
 				parent_container_size,
@@ -255,7 +258,7 @@ namespace jopp2
 			m_nodes.push_back(
 				node{
 					.value = make_node_value(next_item),
-					.context = current_context.next_level(obj.total_size())
+					.context = current_context.enter_next_level(obj.total_size())
 				}
 			);
 
@@ -290,7 +293,7 @@ namespace jopp2
 			m_nodes.push_back(
 				node{
 					.value = make_node_value(next_item),
-					.context = current_context.next_level(obj.total_size())
+					.context = current_context.enter_next_level(obj.total_size())
 				}
 			);
 
@@ -327,7 +330,7 @@ namespace jopp2
 			m_nodes.push_back(
 				node{
 					.value = make_node_value(next_item),
-					.context = current_context.next_level(obj.total_size())
+					.context = current_context.enter_next_level(obj.total_size())
 				}
 			);
 
