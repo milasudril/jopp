@@ -89,6 +89,7 @@ TESTCASE(jopp2_value_visitation_context_default_state)
 	EXPECT_EQ(ctxt.is_first_node(), true);
 	EXPECT_EQ(ctxt.depth(), 0);
 	EXPECT_EQ(ctxt.parent_container_size(), 0);
+	EXPECT_EQ(ctxt.node_index(), 0);
 }
 
 TESTCASE(jopp2_value_visitation_context_enter_next_level)
@@ -97,19 +98,27 @@ TESTCASE(jopp2_value_visitation_context_enter_next_level)
 	EXPECT_EQ(ctxt.is_first_node(), true);
 	EXPECT_EQ(ctxt.depth(), 0);
 	EXPECT_EQ(ctxt.parent_container_size(), 0);
+	EXPECT_EQ(ctxt.node_index(), 0);
 
 	auto next_level = ctxt.enter_next_level(23);
 	EXPECT_EQ(next_level.is_first_node(), true);
 	EXPECT_EQ(next_level.depth(), 1);
 	EXPECT_EQ(next_level.is_last_node(), false);
 	EXPECT_EQ(next_level.parent_container_size(), 23);
+	EXPECT_EQ(next_level.node_index(), 0);
 
 	for(size_t k = 0; k != 22; ++k)
 	{
 		EXPECT_EQ(next_level.is_last_node(), false);
+		EXPECT_EQ(next_level.node_index(), k);
 		next_level.step_node_index();
 	}
+	EXPECT_EQ(next_level.node_index(), 22);
 	EXPECT_EQ(next_level.is_last_node(), true);
+
+	auto const third_level = next_level.enter_next_level(3);;
+	EXPECT_EQ(third_level.node_index(), 0);
+	EXPECT_EQ(third_level.depth(), 2);
 }
 
 TESTCASE(jopp2_tree_walker_create_with_ref_to_visitor)
