@@ -5,10 +5,13 @@
 #include "./value_storage.hpp"
 #include "./container_proxy.hpp"
 #include "./utils.hpp"
+#include "./exception.hpp"
 
 #include <type_traits>
 #include <ranges>
 #include <vector>
+#include <string>
+#include <format>
 
 namespace jopp2
 {
@@ -26,8 +29,8 @@ namespace jopp2
 		constexpr bool is_first_node () const
 		{ return m_node_index == 0; }
 
-		constexpr size_t depth() const
-		{ return m_depth; }
+		constexpr size_t node_index() const
+		{ return m_node_index; }
 
 		constexpr size_t parent_container_size() const
 		{ return m_parent_container_size; }
@@ -39,6 +42,12 @@ namespace jopp2
 				m_depth + 1
 			};
 		}
+
+		constexpr size_t depth() const
+		{ return m_depth; }
+
+		constexpr bool operator==(value_visitation_context const&) const = default;
+		constexpr bool operator!=(value_visitation_context const&) const = default;
 
 	private:
 		constexpr explicit
@@ -57,6 +66,12 @@ namespace jopp2
 	enum class node_visitor_status {
 		ready,
 		suspended
+	};
+
+	enum class visit_node_result{
+		node_visitor_ready = static_cast<int>(node_visitor_status::ready),
+		node_visitor_suspended = static_cast<int>(node_visitor_status::suspended),
+		completed
 	};
 
 	using jopp::instance_of;
@@ -111,12 +126,6 @@ namespace jopp2
 	template<class GenericValue, class NodeVisitor>
 	class tree_walker
 	{
-		enum class visit_node_result{
-			node_visitor_ready = static_cast<int>(node_visitor_status::ready),
-			node_visitor_suspended = static_cast<int>(node_visitor_status::suspended),
-			completed
-		};
-
 	public:
 		using generic_value_t = std::remove_cvref_t<GenericValue>;
 		static constexpr auto src_is_const = std::is_const_v<std::remove_reference_t<GenericValue>>;
@@ -224,7 +233,17 @@ namespace jopp2
 			callback_param_t<std::remove_cvref_t<T>> item,
 			value_visitation_context const& current_context
 		)
-		{ return m_visitor.handle_leaf_value(item, current_context); }
+		{
+			switch(m_visitor.handle_leaf_value(item, current_context))
+			{
+				case node_visitor_status::ready:
+					return visit_node_result::completed;
+				case node_visitor_status::suspended:
+					return visit_node_result::node_visitor_suspended;
+				default:
+					raise_internal_error("Invalid return value from node visitor");
+			}
+		}
 
 		template<class T>
 		requires instance_of<std::remove_cvref_t<T>, container_proxy>
