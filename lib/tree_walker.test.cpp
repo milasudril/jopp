@@ -1,11 +1,10 @@
 //@	{"target":{"name":"tree_walker.test"}}
 
 #include "./tree_walker.hpp"
-#include "testfwk/death_test.hpp"
-#include "testfwk/testsuite.hpp"
-#include "testfwk/validation.hpp"
+#include "lib/container_proxy.hpp"
+#include <testfwk/death_test.hpp>
+#include <testfwk/mock_util.hpp>
 
-#include <functional>
 #include <testfwk/testfwk.hpp>
 
 namespace
@@ -33,86 +32,50 @@ namespace
 		int test_value{};
 
 		test_node_visitor() = default;
-		test_node_visitor(test_node_visitor&&) = default;
-		test_node_visitor(test_node_visitor const&) = default;
-		test_node_visitor& operator=(test_node_visitor&&) = default;
-		test_node_visitor& operator=(test_node_visitor const&) = default;
 
 		explicit test_node_visitor(int val):
 			test_value{val}
 		{}
 
-		struct handle_leaf_value_int_expectation
-		{
-			int expected_value{};
-			jopp2::value_visitation_context ctxt;
-			jopp2::node_visitor_status retval;
-		};
+		TestFwk::mock_entry<jopp2::node_visitor_status(int, jopp2::value_visitation_context)>
+			handle_leaf_value;
 
-		std::optional<handle_leaf_value_int_expectation> handle_leaf_value_int_call_expected;
-		auto handle_leaf_value(int recv_value, jopp2::value_visitation_context const& ctxt)
-		{
-			REQUIRE_EQ(handle_leaf_value_int_call_expected.has_value(), true);
-			EXPECT_EQ(recv_value, handle_leaf_value_int_call_expected->expected_value);
-			EXPECT_EQ(ctxt, handle_leaf_value_int_call_expected->ctxt);
-
-			auto retval = handle_leaf_value_int_call_expected->retval;
-			handle_leaf_value_int_call_expected.reset();
-			return retval;
-		}
-
-		std::move_only_function<
+		TestFwk::mock_entry<
 			jopp2::node_visitor_status(
+				// TODO: should be vector const when src_is_const
 				jopp2::container_proxy<std::vector<int>>&,
-				jopp2::value_visitation_context const&
+				jopp2::value_visitation_context const& ctxt
 			)
-		> handle_leaf_value_action;
+		> handle_leaf_value_array;
 
-		auto handle_leaf_value_array(
-			jopp2::container_proxy<std::vector<int>>& container,
-			jopp2::value_visitation_context const& ctxt
-		)
-		{
-			REQUIRE_EQ(static_cast<bool>(handle_leaf_value_action), true);
-			return handle_leaf_value_action(container, ctxt);
-		}
-
-			std::move_only_function<
+		TestFwk::mock_entry<
 			jopp2::node_visitor_status(
 				jopp2::container_proxy<std::vector<test_generic_value> const>&,
-				jopp2::value_visitation_context const&
+				jopp2::value_visitation_context const& ctxt
 			)
 		> handle_begin_of_container_generic_value;
-		auto handle_begin_of_container(
-			jopp2::container_proxy<std::vector<test_generic_value> const>& container,
+
+		jopp2::node_visitor_status handle_begin_of_container(
+			jopp2::container_proxy<std::vector<test_generic_value> const>& val,
 			jopp2::value_visitation_context const& ctxt
 		)
 		{
-			REQUIRE_EQ(static_cast<bool>(handle_begin_of_container_generic_value), true);
-			return handle_begin_of_container_generic_value(container, ctxt);
+			return handle_begin_of_container_generic_value(val, ctxt);
 		}
 
-		std::move_only_function<
+		TestFwk::mock_entry<
 			jopp2::node_visitor_status(
 				jopp2::container_proxy<std::vector<test_generic_value> const>&,
-				jopp2::value_visitation_context const&
+				jopp2::value_visitation_context const& ctxt
 			)
 		> handle_end_of_container_generic_value;
-		auto handle_end_of_container(
-			jopp2::container_proxy<std::vector<test_generic_value> const>& container,
+
+		jopp2::node_visitor_status handle_end_of_container(
+			jopp2::container_proxy<std::vector<test_generic_value> const>& val,
 			jopp2::value_visitation_context const& ctxt
 		)
 		{
-			REQUIRE_EQ(static_cast<bool>(handle_end_of_container_generic_value), true);
-			return handle_end_of_container_generic_value(container, ctxt);
-		}
-
-		~test_node_visitor()
-		{
-			EXPECT_EQ(static_cast<bool>(handle_leaf_value_action), false);
-			EXPECT_EQ(static_cast<bool>(handle_begin_of_container_generic_value), false);
-			EXPECT_EQ(static_cast<bool>(handle_end_of_container_generic_value), false);
-			EXPECT_EQ(handle_leaf_value_int_call_expected.has_value(), false);
+			return handle_end_of_container_generic_value(val, ctxt);
 		}
 	};
 }
@@ -229,12 +192,14 @@ TESTCASE(jopp2_tree_walker_dispatch_leaf_value_return_ready)
 	test_generic_value value;
 	test_node_visitor visitor{};
 	jopp2::tree_walker walker{std::as_const(value), visitor};
-	visitor.handle_leaf_value_int_call_expected =
-		test_node_visitor::handle_leaf_value_int_expectation{
-			.expected_value = 123,
-			.ctxt = jopp2::value_visitation_context{}.enter_next_level(42),
-			.retval = jopp2::node_visitor_status::ready
-		};;
+
+	visitor.handle_leaf_value.expect_call_with_action(
+		[](int value, jopp2::value_visitation_context const& ctxt){
+			EXPECT_EQ(value, 123);
+			EXPECT_EQ(ctxt, jopp2::value_visitation_context{}.enter_next_level(42));
+			return jopp2::node_visitor_status::ready;
+		}
+	);
 	auto const res = walker.dispatch<int>(
 		123,
 		jopp2::value_visitation_context{}.enter_next_level(42)
@@ -247,12 +212,15 @@ TESTCASE(jopp2_tree_walker_dispatch_leaf_value_return_suspended)
 	test_generic_value value;
 	test_node_visitor visitor{};
 	jopp2::tree_walker walker{std::as_const(value), visitor};
-	visitor.handle_leaf_value_int_call_expected =
-		test_node_visitor::handle_leaf_value_int_expectation{
-			.expected_value = 123,
-			.ctxt = jopp2::value_visitation_context{}.enter_next_level(42),
-			.retval = jopp2::node_visitor_status::suspended
-		};;
+
+	visitor.handle_leaf_value.expect_call_with_action(
+		[](int value, jopp2::value_visitation_context const& ctxt){
+			EXPECT_EQ(value, 123);
+			EXPECT_EQ(ctxt, jopp2::value_visitation_context{}.enter_next_level(42));
+			return jopp2::node_visitor_status::suspended;
+		}
+	);
+
 	auto const res = walker.dispatch<int>(
 		123,
 		jopp2::value_visitation_context{}.enter_next_level(42)
@@ -265,12 +233,18 @@ TESTCASE(jopp2_tree_walker_dispatch_leaf_value_return_junk)
 	test_generic_value value;
 	test_node_visitor visitor{};
 	jopp2::tree_walker walker{std::as_const(value), visitor};
-	visitor.handle_leaf_value_int_call_expected =
-		test_node_visitor::handle_leaf_value_int_expectation{
-			.expected_value = 123,
-			.ctxt = jopp2::value_visitation_context{}.enter_next_level(42),
-			.retval = static_cast<jopp2::node_visitor_status>(23),
-		};
+
+	visitor.handle_leaf_value.expect_call_with_action(
+		[](int value, jopp2::value_visitation_context const& ctxt){
+			EXPECT_EQ(value, 123);
+			EXPECT_EQ(ctxt, jopp2::value_visitation_context{}.enter_next_level(42));
+			return static_cast<jopp2::node_visitor_status>(34);
+		},
+		TestFwk::expectation_options{
+			.cardinality = TestFwk::cardinality_constraint::exactly(1),
+			.count_with_fd = true
+		}
+	);
 	TestFwk::expect_death(
 		[&walker](){
 			std::ignore = walker.dispatch<int>(123,jopp2::value_visitation_context{}.enter_next_level(42));
@@ -278,7 +252,6 @@ TESTCASE(jopp2_tree_walker_dispatch_leaf_value_return_junk)
 		"jopp internal error: lib/./tree_walker.hpp:244: Invalid return value from node visitor\n",
 		SIGABRT
 	);
-	visitor.handle_leaf_value_int_call_expected.reset();
 }
 
 TESTCASE(jopp2_tree_walker_dispatch_leaf_value_array_return_ready)
@@ -289,14 +262,23 @@ TESTCASE(jopp2_tree_walker_dispatch_leaf_value_array_return_ready)
 	test_node_visitor visitor{};
 	jopp2::tree_walker walker{std::as_const(value), visitor};
 
-	visitor.handle_leaf_value_action = [callcount = 0](auto& vals, auto const& ctxt) mutable {
-		REQUIRE_LT(callcount, 3);
-		EXPECT_EQ(ctxt, jopp2::value_visitation_context{}.enter_next_level(42));
-		EXPECT_EQ(*vals.active_range().begin(), callcount + 1);
-		vals.pop_active_element();
-		++callcount;
-		return jopp2::node_visitor_status::ready;
-	};
+	visitor.handle_leaf_value_array.expect_call_with_action(
+		[callcount = static_cast<size_t>(0), &vals](
+			jopp2::container_proxy<std::vector<int>>& obj,
+			jopp2::value_visitation_context const& ctxt
+		) mutable {
+			EXPECT_EQ(ctxt, jopp2::value_visitation_context{}.enter_next_level(42));
+			REQUIRE_LT(callcount, std::size(vals));
+			EXPECT_EQ(obj.total_size(), std::size(vals));
+			EXPECT_EQ(*obj.active_range().begin(), vals[callcount]);
+			obj.pop_active_element();
+			++callcount;
+			return jopp2::node_visitor_status::ready;
+		},
+		TestFwk::expectation_options{
+			.cardinality = TestFwk::cardinality_constraint::exactly(3)
+		}
+	);
 
 	for(size_t k = 0; k != std::size(vals) - 1; ++k)
 	{
@@ -312,7 +294,6 @@ TESTCASE(jopp2_tree_walker_dispatch_leaf_value_array_return_ready)
 		jopp2::value_visitation_context{}.enter_next_level(42)
 	);
 	EXPECT_EQ(res, jopp2::visit_node_result::completed);
-	visitor.handle_leaf_value_action = {};
 }
 
 TESTCASE(jopp2_tree_walker_dispatch_leaf_value_array_return_suspended)
@@ -323,22 +304,20 @@ TESTCASE(jopp2_tree_walker_dispatch_leaf_value_array_return_suspended)
 	test_node_visitor visitor{};
 	jopp2::tree_walker walker{std::as_const(value), visitor};
 
-	visitor.handle_leaf_value_action = [callcount = 0](auto& vals, auto const& ctxt) mutable {
-		REQUIRE_EQ(callcount, 0);
-		EXPECT_EQ(ctxt, jopp2::value_visitation_context{}.enter_next_level(42));
-		EXPECT_EQ(*vals.active_range().begin(), 1);
-		++callcount;
-		return jopp2::node_visitor_status::suspended;
-	};
-
-	{
-		auto const res = walker.dispatch(
-			vals_proxy,
-			jopp2::value_visitation_context{}.enter_next_level(42)
-		);
-		EXPECT_EQ(res, jopp2::visit_node_result::node_visitor_suspended);
-	}
-	visitor.handle_leaf_value_action = {};
+	visitor.handle_leaf_value_array.expect_call_with_action(
+		[](
+			jopp2::container_proxy<std::vector<int>>& ,
+			jopp2::value_visitation_context const& ctxt
+		) {
+			EXPECT_EQ(ctxt, jopp2::value_visitation_context{}.enter_next_level(42));
+			return jopp2::node_visitor_status::suspended;
+		}
+	);
+	auto const res = walker.dispatch(
+		vals_proxy,
+		jopp2::value_visitation_context{}.enter_next_level(42)
+	);
+	EXPECT_EQ(res, jopp2::visit_node_result::node_visitor_suspended);
 }
 
 TESTCASE(jopp2_tree_walker_dispatch_leaf_value_array_return_junk)
@@ -349,13 +328,19 @@ TESTCASE(jopp2_tree_walker_dispatch_leaf_value_array_return_junk)
 	test_node_visitor visitor{};
 	jopp2::tree_walker walker{std::as_const(value), visitor};
 
-	visitor.handle_leaf_value_action = [callcount = 0](auto& vals, auto const& ctxt) mutable {
-		REQUIRE_EQ(callcount, 0);
-		EXPECT_EQ(ctxt, jopp2::value_visitation_context{}.enter_next_level(42));
-		EXPECT_EQ(*vals.active_range().begin(), 1);
-		++callcount;
-		return static_cast<jopp2::node_visitor_status>(23);
-	};
+	visitor.handle_leaf_value_array.expect_call_with_action(
+		[](
+			jopp2::container_proxy<std::vector<int>>& ,
+			jopp2::value_visitation_context const& ctxt
+		){
+			EXPECT_EQ(ctxt, jopp2::value_visitation_context{}.enter_next_level(42));
+			return static_cast<jopp2::node_visitor_status>(34);
+		},
+		TestFwk::expectation_options{
+			.cardinality = TestFwk::cardinality_constraint::exactly(1),
+			.count_with_fd = true
+		}
+	);
 
 	TestFwk::expect_death(
 		[&walker, &vals_proxy](){
@@ -367,7 +352,6 @@ TESTCASE(jopp2_tree_walker_dispatch_leaf_value_array_return_junk)
 		"jopp internal error: lib/./tree_walker.hpp:264: Invalid return value from node visitor\n",
 		SIGABRT
 	);
-	visitor.handle_leaf_value_action = {};
 }
 
 TESTCASE(jopp2_tree_walker_dispatch_generic_value_array_cursor_at_begin_visitor_suspended)
@@ -383,12 +367,20 @@ TESTCASE(jopp2_tree_walker_dispatch_generic_value_array_cursor_at_begin_visitor_
 	jopp2::tree_walker walker{std::as_const(value), visitor};
 	auto visitation_ctxt = jopp2::value_visitation_context{}.enter_next_level(42);
 
-	visitor.handle_begin_of_container_generic_value = [](auto&&... /*ignore*/){
-		return jopp2::node_visitor_status::suspended;
-	};
+	visitor.handle_begin_of_container_generic_value.expect_call_with_action(
+		[visitation_ctxt, &vals] (
+			jopp2::container_proxy<std::vector<test_generic_value> const>& obj,
+			jopp2::value_visitation_context const& ctxt
+		)
+		{
+			EXPECT_EQ(obj.at_begin(), true);
+			EXPECT_EQ(obj.active_range().begin(), std::data(vals));
+			EXPECT_EQ(ctxt, visitation_ctxt);
+			return jopp2::node_visitor_status::suspended;
+		}
+	);
 	auto const result = walker.dispatch(vals_proxy, visitation_ctxt);
 	EXPECT_EQ(result, jopp2::visit_node_result::node_visitor_suspended);
-	visitor.handle_begin_of_container_generic_value = {};
 }
 
 TESTCASE(jopp2_tree_walker_dispatch_generic_value_array_cursor_at_end_visitor_suspended)
@@ -405,10 +397,18 @@ TESTCASE(jopp2_tree_walker_dispatch_generic_value_array_cursor_at_end_visitor_su
 	jopp2::tree_walker walker{std::as_const(value), visitor};
 	auto visitation_ctxt = jopp2::value_visitation_context{}.enter_next_level(42);
 
-	visitor.handle_end_of_container_generic_value = [](auto&&... /*ignore*/){
-		return jopp2::node_visitor_status::suspended;
-	};
+	visitor.handle_end_of_container_generic_value.expect_call_with_action(
+		[visitation_ctxt, &vals] (
+			jopp2::container_proxy<std::vector<test_generic_value> const>& obj,
+			jopp2::value_visitation_context const& ctxt
+		)
+		{
+			EXPECT_EQ(obj.at_end(), true);
+			EXPECT_EQ(obj.active_range().begin(), std::data(vals) + std::size(vals));
+			EXPECT_EQ(ctxt, visitation_ctxt);
+			return jopp2::node_visitor_status::suspended;
+		}
+	);
 	auto const result = walker.dispatch(vals_proxy, visitation_ctxt);
 	EXPECT_EQ(result, jopp2::visit_node_result::node_visitor_suspended);
-	visitor.handle_end_of_container_generic_value = {};
 }
