@@ -42,7 +42,6 @@ namespace
 
 		TestFwk::mock_entry<
 			jopp2::node_visitor_status(
-				// TODO: should be vector const when src_is_const
 				jopp2::container_proxy<std::vector<int>>&,
 				jopp2::value_visitation_context const& ctxt
 			)
