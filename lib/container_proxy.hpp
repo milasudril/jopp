@@ -64,6 +64,9 @@ namespace jopp2
 		[[gnu::always_inline]] constexpr auto size() const
 		{ return std::ranges::size(m_range); }
 
+		[[gnu::always_inline]] constexpr auto empty() const
+		{ return std::ranges::empty(m_range); }
+
 	private:
 		range_type m_range;
 	};
@@ -136,13 +139,19 @@ namespace jopp2
 		{ return pop_active_elements(1); }
 
 		constexpr bool at_begin() const
-		{ return m_current_iterator == m_backing_store.begin(); }
+		{ return m_current_iterator == m_backing_store.begin() && !m_sentinel_consumed; }
 
 		constexpr bool at_end() const
 		{ return m_current_iterator == m_backing_store.end(); }
 
 		constexpr auto& pop_active_elements(size_t count)
 		{
+			if(m_backing_store.empty())
+			{
+				m_sentinel_consumed = true;
+				return *this;
+			}
+
 			using diff_t = std::ranges::range_difference_t<Container>;
 			auto const num_elems_to_pop = std::min(
 				static_cast<diff_t>(count),
@@ -168,6 +177,7 @@ namespace jopp2
 
 	private:
 		iterator m_current_iterator;
+		bool m_sentinel_consumed{false};
 		container_wrapper<Container> m_backing_store;
 	};
 
