@@ -135,6 +135,9 @@ namespace jopp2
 		constexpr auto total_size() const
 		{ return m_backing_store.size(); }
 
+		constexpr bool empty() const
+		{ return m_backing_store.empty(); }
+
 		constexpr auto& pop_active_element()
 		{ return pop_active_elements(1); }
 

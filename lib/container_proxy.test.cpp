@@ -1,6 +1,7 @@
 //@	{"target":{"name":"./container_proxy.test"}}
 
 #include "./container_proxy.hpp"
+#include "testfwk/validation.hpp"
 
 #include <list>
 #include <deque>
@@ -338,4 +339,20 @@ TESTCASE(jopp2_container_proxy_const_non_random_access_container)
 
 	EXPECT_EQ(backing_store.front(), 1);
 	EXPECT_EQ(backing_store.back(), 5);
+}
+
+TESTCASE(jopp2_container_proxy_pop_empty_consumes_sentinel)
+{
+	std::list<int> backing_store{};
+
+	jopp2::container_proxy proxy{std::cref(backing_store)};
+	EXPECT_EQ(proxy.empty(), true);
+	EXPECT_EQ(proxy.at_begin(), true);
+	EXPECT_EQ(proxy.at_end(),true);
+
+	proxy.pop_active_element();
+	EXPECT_EQ(proxy.empty(), true);
+	EXPECT_EQ(proxy.at_begin(), false);
+	EXPECT_EQ(proxy.at_end(), true);
+
 }
