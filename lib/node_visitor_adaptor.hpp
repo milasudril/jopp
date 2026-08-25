@@ -344,5 +344,22 @@ namespace jopp2
 	private:
 		NodeVisitor m_visitor;
 	};
+
+	template<class GenericValue, class NodeVisitorType, class ... Args>
+	auto make_node_visitor_adaptor(Args&&... args)
+	{
+		return node_visitor_adaptor<GenericValue, NodeVisitorType>(
+			std::in_place_type_t<NodeVisitorType>{},
+			std::forward<Args>(args)...
+		);
+	}
+
+	template<class GenericValue, class NodeVisitorType>
+	auto make_node_visitor_adaptor(NodeVisitorType&& node_visitor)
+	{
+		return node_visitor_adaptor<GenericValue, NodeVisitorType>(
+			std::forward<NodeVisitorType>(node_visitor)
+		);
+	}
 }
 #endif
