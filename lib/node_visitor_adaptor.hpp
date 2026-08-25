@@ -180,6 +180,7 @@ namespace jopp2
 		};
 
 		template<class NodeVisitorType>
+		requires(!std::is_same_v<std::remove_cvref_t<NodeVisitorType>, node_visitor_adaptor>)
 		explicit node_visitor_adaptor(NodeVisitorType&& visitor):
 			m_visitor{std::forward<NodeVisitorType>(visitor)}
 		{ }
