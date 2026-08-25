@@ -35,9 +35,13 @@ namespace jopp2
 		constexpr size_t parent_container_size() const
 		{ return m_parent_container_size; }
 
-		constexpr value_visitation_context enter_next_level(size_t parent_container_size) const
+		constexpr value_visitation_context enter_next_level(
+			size_t node_index,
+			size_t parent_container_size
+		) const
 		{
 			return value_visitation_context{
+				node_index,
 				parent_container_size,
 				m_depth + 1
 			};
@@ -52,8 +56,8 @@ namespace jopp2
 	private:
 		constexpr explicit
 		// NOLINTNEXTLINE
-		value_visitation_context(size_t parent_container_size, size_t depth):
-			m_node_index{0},
+		value_visitation_context(size_t node_index, size_t parent_container_size, size_t depth):
+			m_node_index{node_index},
 			m_parent_container_size{parent_container_size},
 			m_depth{depth}
 		{}
@@ -127,6 +131,8 @@ namespace jopp2
 	class node_visitor_adaptor
 	{
 	public:
+		static_assert(std::is_reference_v<GenericValue>);
+
 		using generic_value_t = std::remove_cvref_t<GenericValue>;
 		static constexpr auto src_is_const = std::is_const_v<std::remove_reference_t<GenericValue>>;
 		using value_type = typename generic_value_t::value_type;
@@ -233,7 +239,7 @@ namespace jopp2
 
 		visit_node_result dispatch(
 			container_proxy<sequence_container_type<generic_value_t>>& obj,
-			value_visitation_context& current_context,
+			value_visitation_context const& current_context,
 			std::vector<node>& nodes
 		)
 		{
@@ -251,13 +257,13 @@ namespace jopp2
 			}
 
 			auto& next_item = obj.active_range().begin()->get_value();
+			auto const offset = obj.cursor_offest();
 			obj.pop_active_element();
-			current_context.step_node_index();
 
 			nodes.push_back(
 				node{
 					.value = make_node_value(next_item),
-					.context = current_context.enter_next_level(obj.total_size())
+					.context = current_context.enter_next_level(offset, obj.total_size())
 				}
 			);
 
@@ -269,7 +275,7 @@ namespace jopp2
 		&& std::ranges::range<typename std::remove_cvref_t<T>::value_type>
 		visit_node_result dispatch(
 			T& obj,
-			value_visitation_context& current_context,
+			value_visitation_context const& current_context,
 			std::vector<node>& nodes
 		)
 		{
@@ -287,13 +293,13 @@ namespace jopp2
 			}
 
 			auto& next_item = *obj.active_range().begin();
+			auto const offset = obj.current_offset();
 			obj.pop_active_element();
-			current_context.step_node_index();
 
 			nodes.push_back(
 				node{
 					.value = make_node_value(next_item),
-					.context = current_context.enter_next_level(obj.total_size())
+					.context = current_context.enter_next_level(offset, obj.total_size())
 				}
 			);
 
@@ -302,7 +308,7 @@ namespace jopp2
 
 		visit_node_result dispatch(
 			container_proxy<objcontainer>& obj,
-			value_visitation_context& current_context,
+			value_visitation_context const& current_context,
 			std::vector<node>& nodes
 		)
 		{
@@ -326,7 +332,6 @@ namespace jopp2
 
 			auto& next_item = obj.active_range().begin()->second.get_value();
 			obj.pop_active_element();
-			current_context.step_node_index();
 
 			nodes.push_back(
 				node{

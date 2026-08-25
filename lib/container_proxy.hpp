@@ -147,6 +147,14 @@ namespace jopp2
 		constexpr bool at_end() const
 		{ return m_current_iterator == m_backing_store.end(); }
 
+		constexpr auto cursor_offest() const
+		{
+			if constexpr(std::random_access_iterator<iterator>)
+			{ return static_cast<size_t>(std::distance(m_backing_store.begin(), m_current_iterator)); }
+			else
+			{ return m_offest; }
+		}
+
 		constexpr auto& pop_active_elements(size_t count)
 		{
 			if(m_backing_store.empty())
@@ -161,6 +169,10 @@ namespace jopp2
 				std::ranges::distance(m_current_iterator, m_backing_store.end())
 			);
 			std::ranges::advance(m_current_iterator, num_elems_to_pop);
+
+			if constexpr(!std::random_access_iterator<iterator>)
+			{ m_offest += static_cast<size_t>(num_elems_to_pop); }
+
 			return *this;
 		}
 
@@ -168,6 +180,9 @@ namespace jopp2
 		{
 			m_backing_store.clear();
 			m_current_iterator = m_backing_store.begin();
+
+			if constexpr(!std::random_access_iterator<iterator>)
+			{ m_offest = 0; }
 		}
 
 		template<class Other>
@@ -176,10 +191,19 @@ namespace jopp2
 		{
 			m_backing_store.replace_with(std::forward<Other>(container));
 			m_current_iterator = m_backing_store.begin();
+
+			if constexpr(!std::random_access_iterator<iterator>)
+			{ m_offest = 0; }
 		}
 
 	private:
 		iterator m_current_iterator;
+		struct empty_placeholder{};
+		[[no_unique_address]] std::conditional_t<
+			std::random_access_iterator<iterator>,
+			empty_placeholder,
+			size_t
+		> m_offest{};
 		bool m_sentinel_consumed{false};
 		container_wrapper<Container> m_backing_store;
 	};
