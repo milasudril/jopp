@@ -486,41 +486,16 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_generic_value_array)
 		}
 	);
 
+	for(size_t k = 0; k != std::size(vals); ++k)
 	{
 		auto const result = adaptor.dispatch(vals_proxy, visitation_ctxt, nodes);
 		EXPECT_EQ(result, jopp2::visit_node_result::node_visitor_ready);
-		REQUIRE_EQ(nodes.size(), 1);
-		EXPECT_EQ(nodes.back().context.node_index(), 0);
+		REQUIRE_EQ(nodes.size(), k + 1);
+		EXPECT_EQ(nodes.back().context.node_index(), k);
 		EXPECT_EQ(nodes.back().context.parent_container_size(), 3);
 		EXPECT_EQ(nodes.back().context.depth(), 2);
-		EXPECT_EQ(std::get<int>(nodes.back().value), 1);
-		EXPECT_EQ(vals_proxy.active_range().size(), 2);
-		EXPECT_EQ(visitation_ctxt.depth(), 1);
-		EXPECT_EQ(visitation_ctxt.node_index(), 0);
-	}
-
-	{
-		auto const result = adaptor.dispatch(vals_proxy, visitation_ctxt, nodes);
-		EXPECT_EQ(result, jopp2::visit_node_result::node_visitor_ready);
-		EXPECT_EQ(nodes.size(), 2);
-		EXPECT_EQ(nodes.back().context.node_index(), 1);
-		EXPECT_EQ(nodes.back().context.parent_container_size(), 3);
-		EXPECT_EQ(nodes.back().context.depth(), 2);
-		EXPECT_EQ(std::get<int>(nodes.back().value), 2);
-		EXPECT_EQ(vals_proxy.active_range().size(), 1);
-		EXPECT_EQ(visitation_ctxt.depth(), 1);
-		EXPECT_EQ(visitation_ctxt.node_index(), 0);
-	}
-
-	{
-		auto const result = adaptor.dispatch(vals_proxy, visitation_ctxt, nodes);
-		EXPECT_EQ(result, jopp2::visit_node_result::node_visitor_ready);
-		EXPECT_EQ(nodes.size(), 3);
-		EXPECT_EQ(nodes.back().context.node_index(), 2);
-		EXPECT_EQ(nodes.back().context.parent_container_size(), 3);
-		EXPECT_EQ(nodes.back().context.depth(), 2);
-		EXPECT_EQ(std::get<int>(nodes.back().value), 3);
-		EXPECT_EQ(vals_proxy.active_range().size(), 0);
+		EXPECT_EQ(std::get<int>(nodes.back().value), static_cast<int>(k) + 1);
+		EXPECT_EQ(vals_proxy.active_range().size(), (std::size(vals) - 1) - k);
 		EXPECT_EQ(visitation_ctxt.depth(), 1);
 		EXPECT_EQ(visitation_ctxt.node_index(), 0);
 	}
