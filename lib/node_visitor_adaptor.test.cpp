@@ -63,12 +63,10 @@ namespace
 		}
 
 		TestFwk::mock_entry_overload_set<
-			TestFwk::mock_entry<
-				jopp2::node_visitor_status(
-					jopp2::container_proxy<std::vector<test_generic_value> const>&,
-					jopp2::value_visitation_context const& ctxt
-				)
-			>
+			jopp2::node_visitor_status(
+				jopp2::container_proxy<std::vector<test_generic_value> const>&,
+				jopp2::value_visitation_context const& ctxt
+			)
 		> handle_end_of_container_generic_value;
 
 		jopp2::node_visitor_status handle_end_of_container(
