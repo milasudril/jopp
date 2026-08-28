@@ -62,11 +62,13 @@ namespace
 			return handle_begin_of_container_generic_value(val, ctxt);
 		}
 
-		TestFwk::mock_entry<
-			jopp2::node_visitor_status(
-				jopp2::container_proxy<std::vector<test_generic_value> const>&,
-				jopp2::value_visitation_context const& ctxt
-			)
+		TestFwk::mock_entry_overload_set<
+			TestFwk::mock_entry<
+				jopp2::node_visitor_status(
+					jopp2::container_proxy<std::vector<test_generic_value> const>&,
+					jopp2::value_visitation_context const& ctxt
+				)
+			>
 		> handle_end_of_container_generic_value;
 
 		jopp2::node_visitor_status handle_end_of_container(
@@ -557,7 +559,6 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_generic_value_array_empty_first_at_
 	EXPECT_EQ(std::size(nodes), 0);
 
 	{
-		visitor.handle_end_of_container_generic_value = {};
 		visitor.handle_end_of_container_generic_value.expect_call_with_action(
 			[] (
 				jopp2::container_proxy<std::vector<test_generic_value> const>&,
