@@ -47,35 +47,19 @@ namespace
 			)
 		> handle_leaf_value_array;
 
-		TestFwk::mock_entry<
+		TestFwk::mock_entry_overload_set<
 			jopp2::node_visitor_status(
 				jopp2::container_proxy<std::vector<test_generic_value> const>&,
 				jopp2::value_visitation_context const& ctxt
 			)
-		> handle_begin_of_container_generic_value;
-
-		jopp2::node_visitor_status handle_begin_of_container(
-			jopp2::container_proxy<std::vector<test_generic_value> const>& val,
-			jopp2::value_visitation_context const& ctxt
-		)
-		{
-			return handle_begin_of_container_generic_value(val, ctxt);
-		}
+		> handle_begin_of_container;
 
 		TestFwk::mock_entry_overload_set<
 			jopp2::node_visitor_status(
 				jopp2::container_proxy<std::vector<test_generic_value> const>&,
 				jopp2::value_visitation_context const& ctxt
 			)
-		> handle_end_of_container_generic_value;
-
-		jopp2::node_visitor_status handle_end_of_container(
-			jopp2::container_proxy<std::vector<test_generic_value> const>& val,
-			jopp2::value_visitation_context const& ctxt
-		)
-		{
-			return handle_end_of_container_generic_value(val, ctxt);
-		}
+		> handle_end_of_container;
 	};
 }
 
@@ -313,7 +297,7 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_generic_value_array_cursor_at_begin
 		.depth = 3
 	};
 
-	visitor.handle_begin_of_container_generic_value.expect_call_with_action(
+	visitor.handle_begin_of_container.expect_call_with_action(
 		[&vals] (
 			jopp2::container_proxy<std::vector<test_generic_value> const>& obj,
 			jopp2::value_visitation_context const& ctxt
@@ -349,7 +333,7 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_generic_value_array_cursor_at_end_v
 		.depth = 3
 	};
 
-	visitor.handle_end_of_container_generic_value.expect_call_with_action(
+	visitor.handle_end_of_container.expect_call_with_action(
 		[&vals] (
 			jopp2::container_proxy<std::vector<test_generic_value> const>& obj,
 			jopp2::value_visitation_context const& ctxt
@@ -385,7 +369,7 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_generic_value_array_cursor_at_end_v
 		.depth = 3
 	};
 
-	visitor.handle_end_of_container_generic_value.expect_call_with_action(
+	visitor.handle_end_of_container.expect_call_with_action(
 		[&vals] (
 			jopp2::container_proxy<std::vector<test_generic_value> const>& obj,
 			jopp2::value_visitation_context const& ctxt
@@ -418,7 +402,7 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_generic_value_array_cursor_empty_ca
 	EXPECT_EQ(vals_proxy.at_end(), true);
 
 	bool called = false;
-	visitor.handle_begin_of_container_generic_value.expect_call_with_action(
+	visitor.handle_begin_of_container.expect_call_with_action(
 		[&vals, &called] (
 			jopp2::container_proxy<std::vector<test_generic_value> const>& obj,
 			jopp2::value_visitation_context const& ctxt
@@ -433,7 +417,7 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_generic_value_array_cursor_empty_ca
 		}
 	);
 
-	visitor.handle_end_of_container_generic_value.expect_call_with_action(
+	visitor.handle_end_of_container.expect_call_with_action(
 		[&vals, &called] (
 			jopp2::container_proxy<std::vector<test_generic_value> const>& obj,
 			jopp2::value_visitation_context const& ctxt
@@ -470,7 +454,7 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_generic_value_array)
 	};
 	std::vector<decltype(adaptor)::node> nodes;
 
-	visitor.handle_begin_of_container_generic_value.expect_call_with_action(
+	visitor.handle_begin_of_container.expect_call_with_action(
 		[] (
 			jopp2::container_proxy<std::vector<test_generic_value> const>&,
 			jopp2::value_visitation_context const& ctxt
@@ -493,7 +477,7 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_generic_value_array)
 		EXPECT_EQ(vals_proxy.active_range().size(), (std::size(vals) - 1) - k);
 	}
 
-	visitor.handle_end_of_container_generic_value.expect_call_with_action(
+	visitor.handle_end_of_container.expect_call_with_action(
 		[] (
 			jopp2::container_proxy<std::vector<test_generic_value> const>&,
 			jopp2::value_visitation_context const& ctxt
@@ -529,7 +513,7 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_generic_value_array_empty_first_at_
 	};
 	std::vector<decltype(adaptor)::node> nodes;
 	{
-		visitor.handle_begin_of_container_generic_value.expect_call_with_action(
+		visitor.handle_begin_of_container.expect_call_with_action(
 			[] (
 				jopp2::container_proxy<std::vector<test_generic_value> const>&,
 				jopp2::value_visitation_context const& ctxt
@@ -540,7 +524,7 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_generic_value_array_empty_first_at_
 			}
 		);
 
-		visitor.handle_end_of_container_generic_value.expect_call_with_action(
+		visitor.handle_end_of_container.expect_call_with_action(
 			[] (
 				jopp2::container_proxy<std::vector<test_generic_value> const>&,
 				jopp2::value_visitation_context const& ctxt
@@ -557,7 +541,7 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_generic_value_array_empty_first_at_
 	EXPECT_EQ(std::size(nodes), 0);
 
 	{
-		visitor.handle_end_of_container_generic_value.expect_call_with_action(
+		visitor.handle_end_of_container.expect_call_with_action(
 			[] (
 				jopp2::container_proxy<std::vector<test_generic_value> const>&,
 				jopp2::value_visitation_context const& ctxt
