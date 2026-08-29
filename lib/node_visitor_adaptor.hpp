@@ -165,13 +165,21 @@ namespace jopp2
 			);
 		};
 
-		template<std::ranges::range Range>
-		[[gnu::always_inline]] static auto wrap_value(Range& item)
-		{ return node_value{node_item<std::remove_cvref_t<Range>, src_is_const>::create(item)}; }
+		template<class Value>
+		[[gnu::always_inline]] static auto wrap_value(Value&& item)
+		{
+			return node_value{
+					node_item<std::remove_cvref_t<Value>, src_is_const>::create(std::forward<Value>(item))
+			};
+		}
 
-		template<std::ranges::range Range>
-		[[gnu::always_inline]] static auto wrap_key(Range& item)
-		{ return node_value{key_wrapper<std::remove_cvref_t<Range>>::create(item)}; }
+		template<class Value>
+		[[gnu::always_inline]] static auto wrap_key(Value&& item)
+		{
+			return node_value{
+				key_wrapper<std::remove_cvref_t<Value>>::create(std::forward<Value>(item))
+			};
+		}
 
 		template<class NodeVisitorType>
 		requires(!std::is_same_v<std::remove_cvref_t<NodeVisitorType>, node_visitor_adaptor>)
