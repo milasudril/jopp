@@ -474,7 +474,11 @@ namespace
 	}
 
 	template<class ContainerType, class ValCheck>
-	void jopp2_node_visitor_adaptor_dispatch_array(ContainerType const& vals, ValCheck valcheck)
+	void jopp2_node_visitor_adaptor_dispatch_array(
+		ContainerType const& vals,
+		ValCheck valcheck,
+		size_t nodes_per_item = 1
+	)
 	{
 		jopp2::container_proxy vals_proxy{std::cref(vals)};
 		test_node_visitor visitor{};
@@ -501,7 +505,7 @@ namespace
 		{
 			auto const result = adaptor.dispatch(vals_proxy, expected_context, nodes);
 			EXPECT_EQ(result, jopp2::visit_node_result::node_visitor_ready);
-			REQUIRE_EQ(nodes.size(), k + 1);
+			REQUIRE_EQ(nodes.size(), nodes_per_item*(k + 1));
 			EXPECT_EQ(nodes.back().context.node_index, k);
 			EXPECT_EQ(nodes.back().context.parent_container_size, 3);
 			EXPECT_EQ(nodes.back().context.depth, expected_context.depth + 1);
@@ -522,7 +526,7 @@ namespace
 		{
 			auto const result = adaptor.dispatch(vals_proxy, expected_context, nodes);
 			EXPECT_EQ(result, jopp2::visit_node_result::completed);
-			EXPECT_EQ(nodes.size(), 3);
+			EXPECT_EQ(nodes.size(), nodes_per_item*3);
 			EXPECT_EQ(nodes.back().context.node_index, 2);
 			EXPECT_EQ(nodes.back().context.parent_container_size, 3);
 			EXPECT_EQ(nodes.back().context.depth, expected_context.depth + 1);
@@ -770,6 +774,68 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_array_array)
 				EXPECT_EQ(std::get<int>(item.get_value()), 1 + 3*index + static_cast<int>(k));
 			}
 		}
+	);
+}
+
+TESTCASE(jopp2_node_visitor_adaptor_dispatch_object)
+{
+	jopp2_node_visitor_adaptor_dispatch_array(
+		std::map{
+			std::pair{std::string{"Foo"}, test_generic_value{42}},
+			std::pair{
+				std::string{"Bar"},
+				test_generic_value{
+					std::map<std::string, test_generic_value>{}
+				}
+			},
+			std::pair{
+				std::string{"Values"},
+				test_generic_value{std::vector{1, 2, 3}}
+			}
+		},
+		[](auto const& nodes, size_t k) {
+			switch(k)
+			{
+				case 0:
+				{
+					REQUIRE_EQ(std::size(nodes), 2);
+					auto const& key = std::get<jopp2::key_wrapper<std::string>>((std::end(nodes) - 1)->value);
+					EXPECT_EQ(std::ranges::equal(key.value.active_range(), std::string_view{"Bar"}), true);
+					auto const& val = std::get<
+						jopp2::container_proxy<std::map<std::string, test_generic_value> const>>(
+							(std::end(nodes) - 2)->value
+						);
+					EXPECT_EQ(val.empty(), true);
+					break;
+				}
+				case 1:
+				{
+					EXPECT_EQ(std::size(nodes), 4);
+					REQUIRE_GE(std::size(nodes), 2);
+					auto const& key = std::get<jopp2::key_wrapper<std::string>>((std::end(nodes) - 1)->value);
+					EXPECT_EQ(std::ranges::equal(key.value.active_range(), std::string_view{"Foo"}), true);
+					auto const val = std::get<int>((std::end(nodes) - 2)->value);
+					EXPECT_EQ(val, 42);
+					break;
+				}
+				case 2:
+				{
+					EXPECT_EQ(std::size(nodes), 6);
+					REQUIRE_GE(std::size(nodes), 2);
+					auto const& key = std::get<jopp2::key_wrapper<std::string>>((std::end(nodes) - 1)->value);
+					EXPECT_EQ(std::ranges::equal(key.value.active_range(), std::string_view{"Values"}), true);
+					auto const& val = std::get<
+					jopp2::container_proxy<std::vector<int> const>>((std::end(nodes) - 2)->value);
+					EXPECT_EQ(val.active_range().size(), 3);
+					for(auto const& [index, item] : std::ranges::enumerate_view{val.active_range()})
+					{ EXPECT_EQ(item, index + 1); }
+					break;
+				}
+				default:
+					throw std::runtime_error{"Too many calls"};
+			}
+		},
+		2
 	);
 }
 

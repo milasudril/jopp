@@ -115,7 +115,11 @@ namespace jopp2
 	{
 	public:
 		using iterator = selected_iterator<Container>::type;
-		using active_range_type = std::ranges::subrange<iterator, iterator>;
+		using active_range_type = std::ranges::subrange<
+			iterator,
+			iterator,
+			std::ranges::subrange_kind::sized
+		>;
 		using value_type = typename Container::value_type;
 
 		container_proxy(container_proxy const&) = delete;
@@ -130,7 +134,18 @@ namespace jopp2
 		{}
 
 		constexpr auto active_range() const
-		{ return active_range_type{m_current_iterator, m_backing_store.end()}; }
+		{
+			if constexpr(std::random_access_iterator<iterator>)
+			{ return active_range_type{m_current_iterator, m_backing_store.end()};  }
+			else
+			{
+				return active_range_type{
+					m_current_iterator,
+					m_backing_store.end(),
+					m_backing_store.size() - m_offset
+				};
+			}
+		}
 
 		constexpr auto total_size() const
 		{ return m_backing_store.size(); }
@@ -152,7 +167,7 @@ namespace jopp2
 			if constexpr(std::random_access_iterator<iterator>)
 			{ return static_cast<size_t>(std::distance(m_backing_store.begin(), m_current_iterator)); }
 			else
-			{ return m_offest; }
+			{ return m_offset; }
 		}
 
 		constexpr auto& pop_active_elements(size_t count)
@@ -171,7 +186,7 @@ namespace jopp2
 			std::ranges::advance(m_current_iterator, num_elems_to_pop);
 
 			if constexpr(!std::random_access_iterator<iterator>)
-			{ m_offest += static_cast<size_t>(num_elems_to_pop); }
+			{ m_offset += static_cast<size_t>(num_elems_to_pop); }
 
 			return *this;
 		}
@@ -182,7 +197,7 @@ namespace jopp2
 			m_current_iterator = m_backing_store.begin();
 
 			if constexpr(!std::random_access_iterator<iterator>)
-			{ m_offest = 0; }
+			{ m_offset = 0; }
 		}
 
 		template<class Other>
@@ -193,7 +208,7 @@ namespace jopp2
 			m_current_iterator = m_backing_store.begin();
 
 			if constexpr(!std::random_access_iterator<iterator>)
-			{ m_offest = 0; }
+			{ m_offset = 0; }
 		}
 
 	private:
@@ -203,7 +218,7 @@ namespace jopp2
 			std::random_access_iterator<iterator>,
 			empty_placeholder,
 			size_t
-		> m_offest{};
+		> m_offset{};
 		bool m_sentinel_consumed{false};
 		container_wrapper<Container> m_backing_store;
 	};
