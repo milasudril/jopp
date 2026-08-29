@@ -85,6 +85,20 @@ namespace jopp2
 		{ return type{val}; }
 	};
 
+	template<class T>
+	struct key_wrapper
+	{
+		typename node_item<std::remove_const_t<T>, true>::type value;
+
+		template<class U>
+		static constexpr auto create(U&& val)
+		{
+			return key_wrapper{
+				.value = node_item<std::remove_const_t<T>, true>::create(std::forward<U>(val))
+			};
+		}
+	};
+
 	template<class GenericValue, class NodeVisitor>
 	class node_visitor_adaptor
 	{
@@ -94,10 +108,7 @@ namespace jopp2
 		using generic_value_t = std::remove_cvref_t<GenericValue>;
 		static constexpr auto src_is_const = std::is_const_v<std::remove_reference_t<GenericValue>>;
 		using object = typename generic_value_t::object;
-		using value_type = concatenate_variants_t<
-			typename generic_value_t::value_type,
-			wrap_in_variant_t<typename object::key_type const>
-		>;
+		using value_type = typename generic_value_t::value_type;
 		using objcontainer = std::conditional_t<
 			src_is_const,
 			object const,
@@ -118,13 +129,19 @@ namespace jopp2
 		template<class T>
 		using node_item_t = typename node_item<T, src_is_const>::type;
 
-		using node_value = wrap_variant_element_t<
-			std::conditional_t<
-				src_is_const,
-				wrap_variant_element_t<value_type, std::add_const_t>,
-				value_type
+		using node_value = concatenate_variants_t<
+			wrap_variant_element_t<
+				std::conditional_t<
+					src_is_const,
+					wrap_variant_element_t<value_type, std::add_const_t>,
+					value_type
+				>,
+				node_item_t
 			>,
-			node_item_t
+			wrap_variant_element_t<
+				wrap_in_variant_t<typename object::key_type>,
+				key_wrapper
+			>
 		>;
 
 		struct node
@@ -136,22 +153,8 @@ namespace jopp2
 		template<class Other, class... Args>
 		node_visitor_adaptor(Other&&, Args&&...) = delete;
 
-		[[gnu::always_inline]] static auto make_node_value(auto& item)
-		{
-			return std::visit(
-				[]<class T>(T& item){
-					return node_value{node_item<T, src_is_const>::create(item)};
-				},
-				item
-			);
-		};
-
-		[[gnu::always_inline]] static auto make_node_value(
-			std::conditional_t<
-				src_is_const,
-				generic_value_t const&,
-				generic_value_t&
-			> item
+		[[gnu::always_inline]] static auto wrap_value(
+			std::conditional_t<src_is_const, generic_value_t const&, generic_value_t&> item
 		)
 		{
 			return std::visit(
@@ -163,8 +166,12 @@ namespace jopp2
 		};
 
 		template<std::ranges::range Range>
-		[[gnu::always_inline]] static auto make_node_value(Range& item)
+		[[gnu::always_inline]] static auto wrap_value(Range& item)
 		{ return node_value{node_item<std::remove_cvref_t<Range>, src_is_const>::create(item)}; }
+
+		template<std::ranges::range Range>
+		[[gnu::always_inline]] static auto wrap_key(Range& item)
+		{ return node_value{key_wrapper<std::remove_cvref_t<Range>>::create(item)}; }
 
 		template<class NodeVisitorType>
 		requires(!std::is_same_v<std::remove_cvref_t<NodeVisitorType>, node_visitor_adaptor>)
@@ -252,7 +259,7 @@ namespace jopp2
 
 			nodes.push_back(
 				node{
-					.value = make_node_value(next_item),
+					.value = wrap_value(next_item),
 					.context = next_context
 				}
 			);
@@ -293,14 +300,13 @@ namespace jopp2
 
 			nodes.push_back(
 				node{
-					.value = make_node_value(value),
+					.value = wrap_value(value),
 					.context = next_context
 				}
 			);
-
 			nodes.push_back(
 				node{
-					.value = make_node_value(key),
+					.value = wrap_key(key),
 					.context = next_context
 				}
 			);
