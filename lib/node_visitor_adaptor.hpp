@@ -249,6 +249,9 @@ namespace jopp2
 			{
 				if(m_visitor.handle_begin_of_container(obj, std::as_const(current_context)) == node_visitor_status::suspended)
 				{ return visit_node_result::node_visitor_suspended; }
+
+				if(obj.empty())
+				{ obj.pop_active_element(); }
 			}
 
 			if(obj.at_end())
