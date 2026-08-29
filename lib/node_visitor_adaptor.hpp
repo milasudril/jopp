@@ -215,49 +215,8 @@ namespace jopp2
 			}
 		}
 
-		visit_node_result dispatch(
-			container_proxy<sequence_container_type<generic_value_t>>& obj,
-			value_visitation_context const& current_context,
-			std::vector<node>& nodes
-		)
-		{
-			if(obj.at_begin())
-			{
-				if(m_visitor.handle_begin_of_container(obj, std::as_const(current_context)) == node_visitor_status::suspended)
-				{ return visit_node_result::node_visitor_suspended; }
-
-				if(obj.empty())
-				{ obj.pop_active_element(); }
-			}
-
-			if(obj.at_end())
-			{
-				if(m_visitor.handle_end_of_container(obj, std::as_const(current_context)) == node_visitor_status::suspended)
-				{ return visit_node_result::node_visitor_suspended; }
-				return visit_node_result::completed;
-			}
-
-			auto& next_item = *obj.active_range().begin();
-			value_visitation_context const next_context{
-				.node_index = obj.cursor_offest(),
-				.parent_container_size = obj.total_size(),
-				.depth = current_context.depth + 1
-			};
-			obj.pop_active_element();
-
-			nodes.push_back(
-				node{
-					.value = make_node_value(next_item),
-					.context = next_context
-				}
-			);
-
-			return visit_node_result::node_visitor_ready;
-		}
-
 		template<class T>
 		requires instance_of<std::remove_cvref_t<T>, container_proxy>
-		&& std::ranges::range<typename std::remove_cvref_t<T>::value_type>
 		visit_node_result dispatch(
 			T& obj,
 			value_visitation_context const& current_context,
