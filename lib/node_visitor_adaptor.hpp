@@ -150,9 +150,6 @@ namespace jopp2
 			value_visitation_context context;
 		};
 
-		template<class Other, class... Args>
-		node_visitor_adaptor(Other&&, Args&&...) = delete;
-
 		[[gnu::always_inline]] static auto wrap_value(
 			std::conditional_t<src_is_const, generic_value_t const&, generic_value_t&> item
 		)
