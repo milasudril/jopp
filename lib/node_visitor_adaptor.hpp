@@ -93,8 +93,11 @@ namespace jopp2
 
 		using generic_value_t = std::remove_cvref_t<GenericValue>;
 		static constexpr auto src_is_const = std::is_const_v<std::remove_reference_t<GenericValue>>;
-		using value_type = typename generic_value_t::value_type;
 		using object = typename generic_value_t::object;
+		using value_type = concatenate_variants_t<
+			typename generic_value_t::value_type,
+			wrap_in_variant_t<typename object::key_type const>
+		>;
 		using objcontainer = std::conditional_t<
 			src_is_const,
 			object const,
@@ -278,13 +281,9 @@ namespace jopp2
 				{ return visit_node_result::node_visitor_suspended; }
 				return visit_node_result::completed;
 			}
-/*
-			TODO: Need to push key as well...
-			if(m_visitor.handle_key(obj.active_range().begin()->first, std::as_const(current_context)) == node_visitor_status::suspended)
-			{ return visit_node_result::node_visitor_suspended; }
-*/
 
-			auto& next_item = obj.active_range().begin()->second.get_value();
+			auto& key = obj.active_range().begin()->first;
+			auto& value = obj.active_range().begin()->second;
 			value_visitation_context const next_context{
 				.node_index = obj.cursor_offest(),
 				.parent_container_size = obj.total_size(),
@@ -294,7 +293,14 @@ namespace jopp2
 
 			nodes.push_back(
 				node{
-					.value = make_node_value(next_item),
+					.value = make_node_value(value),
+					.context = next_context
+				}
+			);
+
+			nodes.push_back(
+				node{
+					.value = make_node_value(key),
 					.context = next_context
 				}
 			);
