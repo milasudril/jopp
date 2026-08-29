@@ -2,21 +2,25 @@
 
 #include "./node_visitor_adaptor.hpp"
 #include "lib/container_proxy.hpp"
+
 #include <ranges>
 #include <testfwk/death_test.hpp>
 #include <testfwk/mock_util.hpp>
-
 #include <testfwk/testfwk.hpp>
+#include <map>
 
 namespace
 {
 	struct test_generic_value
 	{
+		using object = std::map<std::string, test_generic_value>;
+
 		using value_type = std::variant<
 			int,
-			std::vector<test_generic_value>
+			std::vector<int>,
+			std::vector<test_generic_value>,
+			object
 		>;
-		using object = int;
 
 		template<class T>
 		using sequence_container_type = std::vector<T>;
@@ -59,6 +63,10 @@ namespace
 			jopp2::node_visitor_status(
 				jopp2::container_proxy<std::vector<std::vector<test_generic_value>> const>&,
 				jopp2::value_visitation_context const& ctxt
+			),
+			jopp2::node_visitor_status(
+				jopp2::container_proxy<std::map<std::string, test_generic_value> const>&,
+				jopp2::value_visitation_context const& ctxt
 			)
 		> handle_begin_of_container;
 
@@ -69,6 +77,10 @@ namespace
 			),
 			jopp2::node_visitor_status(
 				jopp2::container_proxy<std::vector<std::vector<test_generic_value>> const>&,
+				jopp2::value_visitation_context const& ctxt
+			),
+			jopp2::node_visitor_status(
+				jopp2::container_proxy<std::map<std::string, test_generic_value> const>&,
 				jopp2::value_visitation_context const& ctxt
 			)
 		> handle_end_of_container;
@@ -317,7 +329,10 @@ namespace
 		)
 		{
 			EXPECT_EQ(obj.at_begin(), true);
-			EXPECT_EQ(obj.active_range().begin(), std::data(vals));
+			if constexpr(std::ranges::contiguous_range<ContainerType>)
+			{ EXPECT_EQ(obj.active_range().begin(), std::data(vals)); }
+			else
+			{ EXPECT_EQ(obj.active_range().begin(), std::begin(vals)); }
 			EXPECT_EQ(ctxt, expected_context);
 			return jopp2::node_visitor_status::suspended;
 		}
@@ -351,7 +366,10 @@ namespace
 			)
 			{
 				EXPECT_EQ(obj.at_end(), true);
-				EXPECT_EQ(obj.active_range().begin(), std::data(vals) + std::size(vals));
+				if constexpr(std::ranges::contiguous_range<ContainerType>)
+				{ EXPECT_EQ(obj.active_range().begin(), std::data(vals)  + std::size(vals)); }
+				else
+				{ EXPECT_EQ(obj.active_range().begin(), std::end(vals)); }
 				EXPECT_EQ(ctxt, expected_context);
 				return jopp2::node_visitor_status::suspended;
 			}
@@ -385,7 +403,10 @@ namespace
 			)
 			{
 				EXPECT_EQ(obj.at_end(), true);
-				EXPECT_EQ(obj.active_range().begin(), std::data(vals) + std::size(vals));
+				if constexpr(std::ranges::contiguous_range<ContainerType>)
+				{ EXPECT_EQ(obj.active_range().begin(), std::data(vals)  + std::size(vals)); }
+				else
+				{ EXPECT_EQ(obj.active_range().begin(), std::end(vals)); }
 				EXPECT_EQ(ctxt, expected_context);
 				return jopp2::node_visitor_status::ready;
 			}
@@ -421,7 +442,10 @@ namespace
 				called = true;
 				EXPECT_EQ(obj.at_begin(), true);
 				EXPECT_EQ(obj.at_end(), true);
-				EXPECT_EQ(obj.active_range().begin(), std::data(vals) + std::size(vals));
+				if constexpr(std::ranges::contiguous_range<ContainerType>)
+				{ EXPECT_EQ(obj.active_range().begin(), std::data(vals)  + std::size(vals)); }
+				else
+				{ EXPECT_EQ(obj.active_range().begin(), std::end(vals)); }
 				EXPECT_EQ(ctxt, expected_context);
 				return jopp2::node_visitor_status::ready;
 			}
@@ -436,7 +460,10 @@ namespace
 				EXPECT_EQ(called, true);
 				EXPECT_EQ(obj.at_begin(), false);
 				EXPECT_EQ(obj.at_end(), true);
-				EXPECT_EQ(obj.active_range().begin(), std::data(vals) + std::size(vals));
+				if constexpr(std::ranges::contiguous_range<ContainerType>)
+				{ EXPECT_EQ(obj.active_range().begin(), std::data(vals)  + std::size(vals)); }
+				else
+				{ EXPECT_EQ(obj.active_range().begin(), std::end(vals)); }
 				EXPECT_EQ(ctxt, expected_context);
 				return jopp2::node_visitor_status::ready;
 			}
@@ -587,6 +614,25 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_array_array_cursor_at_begin_visitor
 	);
 }
 
+TESTCASE(jopp2_node_visitor_adaptor_dispatch_object_cursor_at_begin_visitor_suspended)
+{
+	jopp2_node_visitor_adaptor_dispatch_array_cursor_at_begin_visitor_suspended(
+		std::map{
+			std::pair{std::string{"Foo"}, test_generic_value{42}},
+			std::pair{
+				std::string{"Bar"},
+				test_generic_value{
+					std::map<std::string, test_generic_value>{}
+				}
+			},
+			std::pair{
+				std::string{"Values"},
+				test_generic_value{std::vector{1, 2, 3}}
+			}
+		}
+	);
+}
+
 TESTCASE(jopp2_node_visitor_adaptor_dispatch_generic_value_array_cursor_at_end_visitor_suspended)
 {
 	jopp2_node_visitor_adaptor_dispatch_array_cursor_at_end_visitor_suspended(
@@ -605,6 +651,25 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_array_array_cursor_at_end_visitor_s
 			std::vector{test_generic_value{1}, test_generic_value{4}, test_generic_value{7}},
 			std::vector{test_generic_value{2}, test_generic_value{5}, test_generic_value{8}},
 			std::vector{test_generic_value{3}, test_generic_value{6}, test_generic_value{9}}
+		}
+	);
+}
+
+TESTCASE(jopp2_node_visitor_adaptor_dispatch_object_cursor_at_end_visitor_suspended)
+{
+	jopp2_node_visitor_adaptor_dispatch_array_cursor_at_end_visitor_suspended(
+		std::map{
+			std::pair{std::string{"Foo"}, test_generic_value{42}},
+			std::pair{
+				std::string{"Bar"},
+				test_generic_value{
+					std::map<std::string, test_generic_value>{}
+				}
+			},
+			std::pair{
+				std::string{"Values"},
+				test_generic_value{std::vector{1, 2, 3}}
+			}
 		}
 	);
 }
@@ -631,6 +696,25 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_array_array_cursor_at_end_visitor_r
 	);
 }
 
+TESTCASE(jopp2_node_visitor_adaptor_dispatch_object_cursor_at_end_visitor_ready)
+{
+	jopp2_node_visitor_adaptor_dispatch_array_cursor_at_end_visitor_ready(
+		std::map{
+			std::pair{std::string{"Foo"}, test_generic_value{42}},
+			std::pair{
+				std::string{"Bar"},
+				test_generic_value{
+					std::map<std::string, test_generic_value>{}
+				}
+			},
+			std::pair{
+				std::string{"Values"},
+				test_generic_value{std::vector{1, 2, 3}}
+			}
+		}
+	);
+}
+
 TESTCASE(jopp2_node_visitor_adaptor_dispatch_generic_value_array_empty_calls_begin_first)
 {
 	jopp2_node_visitor_adaptor_dispatch_array_empty_calls_begin_first<
@@ -638,10 +722,17 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_generic_value_array_empty_calls_beg
 	>();
 }
 
-TESTCASE(jopp2_node_visitor_adaptor_dispatch_array_array_cursor_empty_calls_begin_first)
+TESTCASE(jopp2_node_visitor_adaptor_dispatch_array_array_empty_calls_begin_first)
 {
 	jopp2_node_visitor_adaptor_dispatch_array_empty_calls_begin_first<
 		std::vector<std::vector<test_generic_value>>
+	>();
+}
+
+TESTCASE(jopp2_node_visitor_adaptor_dispatch_object_empty_calls_begin_first)
+{
+	jopp2_node_visitor_adaptor_dispatch_array_empty_calls_begin_first<
+		std::map<std::string, test_generic_value>
 	>();
 }
 
@@ -693,5 +784,12 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_array_array_empty_first_at_end_susp
 {
 	jopp2_node_visitor_adaptor_dispatch_array_empty_first_at_end_suspends<
 		std::vector<std::vector<test_generic_value>>
+	>();
+}
+
+TESTCASE(jopp2_node_visitor_adaptor_dispatch_object_empty_first_at_end_suspends)
+{
+	jopp2_node_visitor_adaptor_dispatch_array_empty_first_at_end_suspends<
+		std::map<std::string, test_generic_value>
 	>();
 }
