@@ -162,7 +162,7 @@ namespace jopp2
 		constexpr bool at_end() const
 		{ return m_current_iterator == m_backing_store.end(); }
 
-		constexpr auto cursor_offest() const
+		constexpr auto cursor_offset() const
 		{
 			if constexpr(std::random_access_iterator<iterator>)
 			{ return static_cast<size_t>(std::distance(m_backing_store.begin(), m_current_iterator)); }

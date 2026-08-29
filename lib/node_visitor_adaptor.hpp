@@ -259,7 +259,7 @@ namespace jopp2
 
 			auto& next_item = *obj.active_range().begin();
 			value_visitation_context const next_context{
-				.node_index = obj.cursor_offest(),
+				.node_index = obj.cursor_offset(),
 				.parent_container_size = obj.total_size(),
 				.depth = current_context.depth + 1
 			};
@@ -300,7 +300,7 @@ namespace jopp2
 			auto& key = obj.active_range().begin()->first;
 			auto& value = obj.active_range().begin()->second;
 			value_visitation_context const next_context{
-				.node_index = obj.cursor_offest(),
+				.node_index = obj.cursor_offset(),
 				.parent_container_size = obj.total_size(),
 				.depth = current_context.depth + 1
 			};

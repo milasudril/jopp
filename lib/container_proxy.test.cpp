@@ -271,7 +271,7 @@ TESTCASE(jopp2_container_proxy_mutable_non_random_access_container)
 		EXPECT_EQ(active_range.front(), 1);
 		EXPECT_EQ(active_range.back(), 5);
 		EXPECT_EQ(proxy.total_size(), 4);
-		EXPECT_EQ(proxy.cursor_offest(), 0);
+		EXPECT_EQ(proxy.cursor_offset(), 0);
 	}
 
 	{
@@ -280,7 +280,7 @@ TESTCASE(jopp2_container_proxy_mutable_non_random_access_container)
 		EXPECT_EQ(active_range.front(), 2);
 		EXPECT_EQ(active_range.back(), 5);
 		EXPECT_EQ(proxy.total_size(), 4);
-		EXPECT_EQ(proxy.cursor_offest(), 1);
+		EXPECT_EQ(proxy.cursor_offset(), 1);
 	}
 
 	{
@@ -289,7 +289,7 @@ TESTCASE(jopp2_container_proxy_mutable_non_random_access_container)
 		EXPECT_EQ(active_range.front(), 5);
 		EXPECT_EQ(active_range.back(), 5);
 		EXPECT_EQ(proxy.total_size(), 4);
-		EXPECT_EQ(proxy.cursor_offest(), 3);
+		EXPECT_EQ(proxy.cursor_offset(), 3);
 	}
 
 	EXPECT_EQ(backing_store.front(), 1);
@@ -298,13 +298,13 @@ TESTCASE(jopp2_container_proxy_mutable_non_random_access_container)
 	proxy.replace_backing_store(std::list<int>{3, 6, 7, 1, 8});
 	EXPECT_EQ(proxy.total_size(), 5);
 	EXPECT_EQ(std::size(backing_store), 5);
-	EXPECT_EQ(proxy.cursor_offest(), 0);
+	EXPECT_EQ(proxy.cursor_offset(), 0);
 
 	{
 		auto const active_range = proxy.active_range();
 		EXPECT_EQ(active_range.front(), 3);
 		EXPECT_EQ(active_range.back(), 8);
-		EXPECT_EQ(proxy.cursor_offest(), 0);
+		EXPECT_EQ(proxy.cursor_offset(), 0);
 	}
 
 	EXPECT_EQ(std::size(backing_store), 5);
@@ -316,7 +316,7 @@ TESTCASE(jopp2_container_proxy_mutable_non_random_access_container)
 	proxy.clear_backing_store();
 	EXPECT_EQ(std::size(backing_store), 0);
 	EXPECT_EQ(proxy.total_size(), 0);
-	EXPECT_EQ(proxy.cursor_offest(), 0);
+	EXPECT_EQ(proxy.cursor_offset(), 0);
 }
 
 TESTCASE(jopp2_container_proxy_const_non_random_access_container)
@@ -329,7 +329,7 @@ TESTCASE(jopp2_container_proxy_const_non_random_access_container)
 		auto const active_range = proxy.active_range();
 		EXPECT_EQ(active_range.front(), 1);
 		EXPECT_EQ(active_range.back(), 5);
-		EXPECT_EQ(proxy.cursor_offest(), 0);
+		EXPECT_EQ(proxy.cursor_offset(), 0);
 	}
 
 	{
@@ -337,7 +337,7 @@ TESTCASE(jopp2_container_proxy_const_non_random_access_container)
 		auto const active_range = proxy.active_range();
 		EXPECT_EQ(active_range.front(), 2);
 		EXPECT_EQ(active_range.back(), 5);
-		EXPECT_EQ(proxy.cursor_offest(), 1);
+		EXPECT_EQ(proxy.cursor_offset(), 1);
 	}
 
 	{
@@ -345,7 +345,7 @@ TESTCASE(jopp2_container_proxy_const_non_random_access_container)
 		auto const active_range = proxy.active_range();
 		EXPECT_EQ(active_range.front(), 5);
 		EXPECT_EQ(active_range.back(), 5);
-		EXPECT_EQ(proxy.cursor_offest(), 3);
+		EXPECT_EQ(proxy.cursor_offset(), 3);
 	}
 
 	EXPECT_EQ(backing_store.front(), 1);
