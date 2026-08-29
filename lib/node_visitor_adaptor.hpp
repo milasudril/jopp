@@ -192,32 +192,22 @@ namespace jopp2
 			m_visitor{std::forward<NodeVisitorArgs>(args)...}
 		{ }
 
-		template<class T>
-		requires(generic_value_t::template is_leaf_value<std::remove_cvref_t<T>>)
-		visit_node_result dispatch(
-			callback_param_t<std::remove_cvref_t<T>> item,
-			value_visitation_context const& current_context
+		struct always_true
+		{
+			static constexpr bool operator()() noexcept
+			{ return true; }
+		};
+
+		template<class CompletionCond = always_true>
+		static constexpr auto to_visit_node_result(
+			node_visitor_status result,
+			CompletionCond&& completed = always_true{}
 		)
 		{
-			switch(m_visitor.handle_leaf_value(item, current_context))
+			switch(result)
 			{
 				case node_visitor_status::ready:
-					return visit_node_result::completed;
-				case node_visitor_status::suspended:
-					return visit_node_result::node_visitor_suspended;
-				default:
-					raise_internal_error("Invalid return value from node visitor");
-			}
-		}
-
-		template<class T>
-		requires instance_of<std::remove_cvref_t<T>, container_proxy>
-		visit_node_result dispatch(T& item, value_visitation_context const& current_context)
-		{
-			switch(m_visitor.handle_leaf_value_array(item, current_context))
-			{
-				case node_visitor_status::ready:
-					if(item.at_end())
+					if(std::forward<CompletionCond>(completed)()) [[unlikely]]
 					{ return visit_node_result::completed; }
 					else
 					{ return visit_node_result::node_visitor_ready; }
@@ -229,6 +219,50 @@ namespace jopp2
 					raise_internal_error("Invalid return value from node visitor");
 			}
 		}
+
+		template<class T>
+		requires(generic_value_t::template is_leaf_value<std::remove_cvref_t<T>>)
+		visit_node_result dispatch(
+			callback_param_t<std::remove_cvref_t<T>> item,
+			value_visitation_context const& current_context
+		)
+		{ return to_visit_node_result(m_visitor.handle_leaf_value(item, current_context)); }
+
+		template<class T>
+		requires instance_of<std::remove_cvref_t<T>, container_proxy>
+		visit_node_result dispatch(T& item, value_visitation_context const& current_context)
+		{
+			return to_visit_node_result(
+				m_visitor.handle_leaf_value_array(item, current_context),
+				[&item](){
+					return item.at_end();
+				}
+			);
+		}
+
+		template<class T>
+		visit_node_result dispatch_key(
+			callback_param_t<std::remove_cvref_t<T>> item,
+			value_visitation_context const& current_context
+		)
+		{ return to_visit_node_result(m_visitor.handle_key(item, current_context)); }
+
+		template<class T>
+		requires instance_of<std::remove_cvref_t<T>, container_proxy>
+		visit_node_result dispatch_key(T& item, value_visitation_context const& current_context)
+		{
+			return to_visit_node_result(
+				m_visitor.handle_key(item, current_context),
+				[&item](){
+					return item.at_end();
+				}
+			);
+		}
+
+		template<class T>
+		requires instance_of<std::remove_cvref<T>, key_wrapper>
+		[[gnu::always_inline]] visit_node_result dispatch(T&& item, value_visitation_context const& current_context)
+		{ return dispatch_key(std::forward_like<T>(item.value), current_context); }
 
 		template<class T>
 		requires instance_of<std::remove_cvref_t<T>, container_proxy>
