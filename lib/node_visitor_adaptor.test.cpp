@@ -395,10 +395,9 @@ namespace
 	}
 
 	template<class ContainerType>
-	void jopp2_node_visitor_adaptor_dispatch_array_empty_calls_begin_first(
-		ContainerType const& vals
-	)
+	void jopp2_node_visitor_adaptor_dispatch_array_empty_calls_begin_first()
 	{
+		ContainerType vals{};
 		jopp2::container_proxy vals_proxy{std::cref(vals)};
 		test_node_visitor visitor{};
 		auto adaptor = jopp2::make_node_visitor_adaptor<test_generic_value const&>(visitor);
@@ -573,16 +572,16 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_array_array_cursor_at_end_visitor_r
 
 TESTCASE(jopp2_node_visitor_adaptor_dispatch_generic_value_array_empty_calls_begin_first)
 {
-	jopp2_node_visitor_adaptor_dispatch_array_empty_calls_begin_first(
-		std::vector<test_generic_value>{}
-	);
+	jopp2_node_visitor_adaptor_dispatch_array_empty_calls_begin_first<
+		std::vector<test_generic_value>
+	>();
 }
 
 TESTCASE(jopp2_node_visitor_adaptor_dispatch_array_array_cursor_empty_calls_begin_first)
 {
-	jopp2_node_visitor_adaptor_dispatch_array_empty_calls_begin_first(
-		std::vector<std::vector<test_generic_value>>{}
-	);
+	jopp2_node_visitor_adaptor_dispatch_array_empty_calls_begin_first<
+		std::vector<std::vector<test_generic_value>>
+	>();
 }
 
 TESTCASE(jopp2_node_visitor_adaptor_dispatch_generic_value_array)
