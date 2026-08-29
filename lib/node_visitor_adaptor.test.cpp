@@ -2,6 +2,7 @@
 
 #include "./node_visitor_adaptor.hpp"
 #include "lib/container_proxy.hpp"
+#include <ranges>
 #include <testfwk/death_test.hpp>
 #include <testfwk/mock_util.hpp>
 
@@ -444,6 +445,64 @@ namespace
 		auto const result = adaptor.dispatch(vals_proxy, expected_context, nodes);
 		EXPECT_EQ(result, jopp2::visit_node_result::completed);
 	}
+
+	template<class ContainerType, class ValCheck>
+	void jopp2_node_visitor_adaptor_dispatch_array(ContainerType const& vals, ValCheck valcheck)
+	{
+		jopp2::container_proxy vals_proxy{std::cref(vals)};
+		test_node_visitor visitor{};
+		auto adaptor = jopp2::make_node_visitor_adaptor<test_generic_value const&>(visitor);
+		static constexpr jopp2::value_visitation_context expected_context{
+			.node_index = 1,
+			.parent_container_size = 2,
+			.depth = 3
+		};
+		std::vector<decltype(adaptor)::node> nodes;
+
+		visitor.handle_begin_of_container.expect_call_with_action(
+			[] (
+				jopp2::container_proxy<ContainerType const>&,
+				jopp2::value_visitation_context const& ctxt
+			)
+			{
+				EXPECT_EQ(ctxt, expected_context);
+				return jopp2::node_visitor_status::ready;
+			}
+		);
+
+		for(size_t k = 0; k != std::size(vals); ++k)
+		{
+			auto const result = adaptor.dispatch(vals_proxy, expected_context, nodes);
+			EXPECT_EQ(result, jopp2::visit_node_result::node_visitor_ready);
+			REQUIRE_EQ(nodes.size(), k + 1);
+			EXPECT_EQ(nodes.back().context.node_index, k);
+			EXPECT_EQ(nodes.back().context.parent_container_size, 3);
+			EXPECT_EQ(nodes.back().context.depth, expected_context.depth + 1);
+			valcheck(nodes, k);
+			EXPECT_EQ(vals_proxy.active_range().size(), (std::size(vals) - 1) - k);
+		}
+
+		visitor.handle_end_of_container.expect_call_with_action(
+			[] (
+				jopp2::container_proxy<ContainerType const>&,
+				jopp2::value_visitation_context const& ctxt
+			)
+			{
+				EXPECT_EQ(ctxt, expected_context);
+				return jopp2::node_visitor_status::ready;
+			}
+		);
+		{
+			auto const result = adaptor.dispatch(vals_proxy, expected_context, nodes);
+			EXPECT_EQ(result, jopp2::visit_node_result::completed);
+			EXPECT_EQ(nodes.size(), 3);
+			EXPECT_EQ(nodes.back().context.node_index, 2);
+			EXPECT_EQ(nodes.back().context.parent_container_size, 3);
+			EXPECT_EQ(nodes.back().context.depth, expected_context.depth + 1);
+			valcheck(nodes, std::size(vals) - 1);
+			EXPECT_EQ(vals_proxy.active_range().size(), 0);
+		}
+	}
 }
 
 TESTCASE(jopp2_node_visitor_adaptor_dispatch_generic_value_array_cursor_at_begin_visitor_suspended)
@@ -528,65 +587,39 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_array_array_cursor_empty_calls_begi
 
 TESTCASE(jopp2_node_visitor_adaptor_dispatch_generic_value_array)
 {
-	std::vector vals{
-		test_generic_value{1},
-		test_generic_value{2},
-		test_generic_value{3}
-	};
-	jopp2::container_proxy vals_proxy{std::cref(vals)};
-
-	test_node_visitor visitor{};
-	auto adaptor = jopp2::make_node_visitor_adaptor<test_generic_value const&>(visitor);
-	static constexpr jopp2::value_visitation_context expected_context{
-		.node_index = 1,
-		.parent_container_size = 2,
-		.depth = 3
-	};
-	std::vector<decltype(adaptor)::node> nodes;
-
-	visitor.handle_begin_of_container.expect_call_with_action(
-		[] (
-			jopp2::container_proxy<std::vector<test_generic_value> const>&,
-			jopp2::value_visitation_context const& ctxt
-		)
-		{
-			EXPECT_EQ(ctxt, expected_context);
-			return jopp2::node_visitor_status::ready;
+	jopp2_node_visitor_adaptor_dispatch_array(
+		std::vector{
+			test_generic_value{1},
+			test_generic_value{2},
+			test_generic_value{3}
+		},
+		[](auto const& nodes, size_t k) {
+			EXPECT_EQ(std::get<int>(nodes.back().value), static_cast<int>(k) + 1);
 		}
 	);
+}
 
-	for(size_t k = 0; k != std::size(vals); ++k)
-	{
-		auto const result = adaptor.dispatch(vals_proxy, expected_context, nodes);
-		EXPECT_EQ(result, jopp2::visit_node_result::node_visitor_ready);
-		REQUIRE_EQ(nodes.size(), k + 1);
-		EXPECT_EQ(nodes.back().context.node_index, k);
-		EXPECT_EQ(nodes.back().context.parent_container_size, 3);
-		EXPECT_EQ(nodes.back().context.depth, expected_context.depth + 1);
-		EXPECT_EQ(std::get<int>(nodes.back().value), static_cast<int>(k) + 1);
-		EXPECT_EQ(vals_proxy.active_range().size(), (std::size(vals) - 1) - k);
-	}
+TESTCASE(jopp2_node_visitor_adaptor_dispatch_array_array)
+{
+	jopp2_node_visitor_adaptor_dispatch_array(
+		std::vector{
+			std::vector{test_generic_value{1}, test_generic_value{4}, test_generic_value{7}},
+			std::vector{test_generic_value{2}, test_generic_value{5}, test_generic_value{8}},
+			std::vector{test_generic_value{3}, test_generic_value{6}, test_generic_value{9}}
+		},
+		[](auto const& nodes, size_t k) {
+			auto& val = std::get<
+				jopp2::container_proxy<
+					std::vector<test_generic_value> const
+				>
+			>(nodes.back().value);
 
-	visitor.handle_end_of_container.expect_call_with_action(
-		[] (
-			jopp2::container_proxy<std::vector<test_generic_value> const>&,
-			jopp2::value_visitation_context const& ctxt
-		)
-		{
-			EXPECT_EQ(ctxt, expected_context);
-			return jopp2::node_visitor_status::ready;
+			for(auto const& [index, item] : std::ranges::enumerate_view{val.active_range()})
+			{
+				EXPECT_EQ(std::get<int>(item.get_value()), 1 + 3*index + static_cast<int>(k));
+			}
 		}
 	);
-	{
-		auto const result = adaptor.dispatch(vals_proxy, expected_context, nodes);
-		EXPECT_EQ(result, jopp2::visit_node_result::completed);
-		EXPECT_EQ(nodes.size(), 3);
-		EXPECT_EQ(nodes.back().context.node_index, 2);
-		EXPECT_EQ(nodes.back().context.parent_container_size, 3);
-		EXPECT_EQ(nodes.back().context.depth, expected_context.depth + 1);
-		EXPECT_EQ(std::get<int>(nodes.back().value), 3);
-		EXPECT_EQ(vals_proxy.active_range().size(), 0);
-	}
 }
 
 TESTCASE(jopp2_node_visitor_adaptor_dispatch_generic_value_array_empty_first_at_end_suspends)
