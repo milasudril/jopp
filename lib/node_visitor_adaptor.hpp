@@ -143,6 +143,26 @@ namespace jopp2
 			);
 		};
 
+		[[gnu::always_inline]] static auto make_node_value(
+			std::conditional_t<
+				src_is_const,
+				generic_value_t const&,
+				generic_value_t&
+			> item
+		)
+		{
+			return std::visit(
+				[]<class T>(T& item){
+					return node_value{node_item<T, src_is_const>::create(item)};
+				},
+				item.get_value()
+			);
+		};
+
+		template<std::ranges::range Range>
+		[[gnu::always_inline]] static auto make_node_value(Range& item)
+		{ return node_value{node_item<std::remove_cvref_t<Range>, src_is_const>::create(item)}; }
+
 		template<class NodeVisitorType>
 		requires(!std::is_same_v<std::remove_cvref_t<NodeVisitorType>, node_visitor_adaptor>)
 		explicit node_visitor_adaptor(NodeVisitorType&& visitor):
@@ -217,7 +237,7 @@ namespace jopp2
 				return visit_node_result::completed;
 			}
 
-			auto& next_item = obj.active_range().begin()->get_value();
+			auto& next_item = *obj.active_range().begin();
 			value_visitation_context const next_context{
 				.node_index = obj.cursor_offest(),
 				.parent_container_size = obj.total_size(),
@@ -244,7 +264,6 @@ namespace jopp2
 			std::vector<node>& nodes
 		)
 		{
-			using next_level = typename std::remove_cvref_t<T>::value_type;
 			if(obj.at_begin())
 			{
 				if(m_visitor.handle_begin_of_container(obj, std::as_const(current_context)) == node_visitor_status::suspended)
@@ -271,7 +290,7 @@ namespace jopp2
 
 			nodes.push_back(
 				node{
-					.value = node_value{node_item<next_level, src_is_const>::create(next_item)},
+					.value = make_node_value(next_item),
 					.context = next_context
 				}
 			);

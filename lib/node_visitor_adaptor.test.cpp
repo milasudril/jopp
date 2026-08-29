@@ -182,7 +182,7 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_leaf_value_return_junk)
 		[&adaptor](){
 			std::ignore = adaptor.dispatch<int>(123, expected_context);
 		},
-		"jopp internal error: lib/./node_visitor_adaptor.hpp:174: Invalid return value from node visitor\n",
+		"jopp internal error: lib/./node_visitor_adaptor.hpp:194: Invalid return value from node visitor\n",
 		SIGABRT
 	);
 }
@@ -289,7 +289,7 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_leaf_value_array_return_junk)
 				expected_context
 			);
 		},
-		"jopp internal error: lib/./node_visitor_adaptor.hpp:194: Invalid return value from node visitor\n",
+		"jopp internal error: lib/./node_visitor_adaptor.hpp:214: Invalid return value from node visitor\n",
 		SIGABRT
 	);
 }
