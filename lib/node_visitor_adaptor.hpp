@@ -244,6 +244,7 @@ namespace jopp2
 			std::vector<node>& nodes
 		)
 		{
+			using next_level = typename std::remove_cvref_t<T>::value_type;
 			if(obj.at_begin())
 			{
 				if(m_visitor.handle_begin_of_container(obj, std::as_const(current_context)) == node_visitor_status::suspended)
@@ -267,7 +268,7 @@ namespace jopp2
 
 			nodes.push_back(
 				node{
-					.value = make_node_value(next_item),
+					.value = node_value{node_item<next_level, src_is_const>::create(next_item)},
 					.context = next_context
 				}
 			);
