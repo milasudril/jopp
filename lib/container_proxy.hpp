@@ -121,7 +121,7 @@ namespace jopp2
 			std::ranges::subrange_kind::sized
 		>;
 		using value_type = typename Container::value_type;
-
+		using container_type = Container;
 		container_proxy(container_proxy const&) = delete;
 		container_proxy(container_proxy&&) = default;
 		container_proxy& operator=(container_proxy const&) = delete;

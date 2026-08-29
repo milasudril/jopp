@@ -294,61 +294,34 @@ namespace jopp2
 				.parent_container_size = obj.total_size(),
 				.depth = current_context.depth + 1
 			};
-			obj.pop_active_element();
 
-			nodes.push_back(
-				node{
-					.value = wrap_value(next_item),
-					.context = next_context
-				}
-			);
-
-			return visit_node_result::node_visitor_ready;
-		}
-
-		visit_node_result dispatch(
-			container_proxy<objcontainer>& obj,
-			value_visitation_context const& current_context,
-			std::vector<node>& nodes
-		)
-		{
-			if(obj.at_begin())
+			if constexpr(std::is_same_v<typename std::remove_cvref_t<T>::container_type, objcontainer>)
 			{
-				if(m_visitor.handle_begin_of_container(obj, std::as_const(current_context)) == node_visitor_status::suspended)
-				{ return visit_node_result::node_visitor_suspended; }
-
-				if(obj.empty())
-				{ obj.pop_active_element(); }
+				auto& key = obj.active_range().begin()->first;
+				auto& value = obj.active_range().begin()->second;
+				nodes.push_back(
+					node{
+						.value = wrap_value(value),
+						.context = next_context
+					}
+				);
+				nodes.push_back(
+					node{
+						.value = wrap_key(key),
+						.context = next_context
+					}
+				);
 			}
-
-			if(obj.at_end())
+			else
 			{
-				if(m_visitor.handle_end_of_container(obj, std::as_const(current_context)) == node_visitor_status::suspended)
-				{ return visit_node_result::node_visitor_suspended; }
-				return visit_node_result::completed;
+				nodes.push_back(
+					node{
+						.value = wrap_value(next_item),
+						.context = next_context
+					}
+				);
 			}
-
-			auto& key = obj.active_range().begin()->first;
-			auto& value = obj.active_range().begin()->second;
-			value_visitation_context const next_context{
-				.node_index = obj.cursor_offset(),
-				.parent_container_size = obj.total_size(),
-				.depth = current_context.depth + 1
-			};
 			obj.pop_active_element();
-
-			nodes.push_back(
-				node{
-					.value = wrap_value(value),
-					.context = next_context
-				}
-			);
-			nodes.push_back(
-				node{
-					.value = wrap_key(key),
-					.context = next_context
-				}
-			);
 
 			return visit_node_result::node_visitor_ready;
 		}
