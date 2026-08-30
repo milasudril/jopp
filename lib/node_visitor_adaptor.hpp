@@ -162,9 +162,6 @@ namespace jopp2
 				typename generic_value_t::template sequence_container_type<T>
 			>;
 
-		template <class T>
-		using callback_param_t = typename node_item<T, src_is_const>::param_type;
-
 		template<class T>
 		using node_item_t = typename node_item<T, src_is_const>::type;
 
