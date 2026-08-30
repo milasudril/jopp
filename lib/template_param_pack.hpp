@@ -1,8 +1,6 @@
 #ifndef JOPP2_TEMPLATE_PARAM_PACK_HPP
 #define JOPP2_TEMPLATE_PARAM_PACK_HPP
 
-#include "./exception.hpp"
-
 #include <type_traits>
 #include <cstddef>
 #include <utility>

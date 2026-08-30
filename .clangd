@@ -1,6 +1,6 @@
 CompileFlags:
 	Add:
-		- "-resource-dir=/usr/local/clang/lib/clang/23"
+		- "-std=c++23"
 Diagnostics:
 	ClangTidy:
 		Remove: ["*"]
