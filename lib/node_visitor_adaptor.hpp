@@ -117,7 +117,8 @@ namespace jopp2
 	template<class T>
 	struct key_wrapper
 	{
-		typename node_item<std::remove_const_t<T>, true>::type value;
+		using value_type= typename node_item<std::remove_const_t<T>, true>::type;
+		value_type value;
 
 		template<class U>
 		static constexpr auto create(U&& val)
@@ -243,7 +244,7 @@ namespace jopp2
 
 		template<class T>
 		visit_node_result dispatch_key(
-			callback_param_t<std::remove_cvref_t<T>> item,
+			typename key_wrapper<T>::value_type item,
 			value_visitation_context const& current_context
 		)
 		{ return to_visit_node_result(m_visitor.handle_key(item, current_context)); }
@@ -260,10 +261,19 @@ namespace jopp2
 			);
 		}
 
-		template<class T>
-		requires instance_of<std::remove_cvref<T>, key_wrapper>
-		[[gnu::always_inline]] visit_node_result dispatch(T&& item, value_visitation_context const& current_context)
-		{ return dispatch_key(std::forward_like<T>(item.value), current_context); }
+		template <class KeyWrapper>
+		requires std::same_as<
+			std::remove_cvref_t<KeyWrapper>,
+			key_wrapper<typename std::remove_cvref_t<KeyWrapper>::value_type>
+		>
+		[[gnu::always_inline]] visit_node_result dispatch(
+			KeyWrapper&& item,
+			value_visitation_context const& current_context
+		)
+		{
+			using val_type = typename std::remove_cvref_t<KeyWrapper>::value_type;
+			return dispatch_key<val_type>(std::forward<KeyWrapper>(item).value, current_context);
+		}
 
 		template<class T>
 		requires instance_of<std::remove_cvref_t<T>, container_proxy>
