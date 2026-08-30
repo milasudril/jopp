@@ -233,11 +233,11 @@ namespace jopp2
 
 		template<class T>
 		requires(generic_value_t::template is_leaf_value<std::remove_cvref_t<T>>)
-		visit_node_result dispatch(
-			callback_param_t<std::remove_cvref_t<T>> item,
-			value_visitation_context const& current_context
-		)
-		{ return to_visit_node_result(m_visitor.handle_leaf_value(item, current_context)); }
+		visit_node_result dispatch(T&& value, value_visitation_context const& current_context)
+		{
+			return to_visit_node_result(
+				m_visitor.handle_leaf_value(std::forward<T>(value), current_context));
+		}
 
 		template<class T>
 		requires instance_of<std::remove_cvref_t<T>, container_proxy>

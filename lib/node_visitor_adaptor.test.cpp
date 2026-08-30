@@ -200,7 +200,7 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_leaf_value_return_ready)
 			return jopp2::node_visitor_status::ready;
 		}
 	);
-	auto const res = adaptor.dispatch<int>(123, expected_context);
+	auto const res = adaptor.dispatch(123, expected_context);
 	EXPECT_EQ(res, jopp2::visit_node_result::completed);
 }
 
@@ -222,7 +222,7 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_leaf_value_return_suspended)
 		}
 	);
 
-	auto const res = adaptor.dispatch<int>(123, expected_context);
+	auto const res = adaptor.dispatch(123, expected_context);
 	EXPECT_EQ(res, jopp2::visit_node_result::node_visitor_suspended);
 }
 
