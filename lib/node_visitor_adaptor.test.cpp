@@ -50,40 +50,44 @@ namespace
 		TestFwk::mock_entry<jopp2::node_visitor_status(int, jopp2::value_visitation_context)>
 			handle_leaf_value;
 
-		TestFwk::mock_entry<
+		TestFwk::mock_entry_overload_set<
 			jopp2::node_visitor_status(
 				jopp2::container_proxy<std::vector<int>>&,
-				jopp2::value_visitation_context const& ctxt
+				jopp2::value_visitation_context const&
+			),
+			jopp2::node_visitor_status(
+				jopp2::container_proxy<std::string>&,
+				jopp2::value_visitation_context const&
 			)
 		> handle_leaf_value_array;
 
 		TestFwk::mock_entry_overload_set<
 			jopp2::node_visitor_status(
 				jopp2::container_proxy<std::vector<test_generic_value> const>&,
-				jopp2::value_visitation_context const& ctxt
+				jopp2::value_visitation_context const&
 			),
 			jopp2::node_visitor_status(
 				jopp2::container_proxy<std::vector<std::vector<test_generic_value>> const>&,
-				jopp2::value_visitation_context const& ctxt
+				jopp2::value_visitation_context const&
 			),
 			jopp2::node_visitor_status(
 				jopp2::container_proxy<std::map<std::string, test_generic_value> const>&,
-				jopp2::value_visitation_context const& ctxt
+				jopp2::value_visitation_context const&
 			)
 		> handle_begin_of_container;
 
 		TestFwk::mock_entry_overload_set<
 			jopp2::node_visitor_status(
 				jopp2::container_proxy<std::vector<test_generic_value> const>&,
-				jopp2::value_visitation_context const& ctxt
+				jopp2::value_visitation_context const&
 			),
 			jopp2::node_visitor_status(
 				jopp2::container_proxy<std::vector<std::vector<test_generic_value>> const>&,
-				jopp2::value_visitation_context const& ctxt
+				jopp2::value_visitation_context const&
 			),
 			jopp2::node_visitor_status(
 				jopp2::container_proxy<std::map<std::string, test_generic_value> const>&,
-				jopp2::value_visitation_context const& ctxt
+				jopp2::value_visitation_context const&
 			)
 		> handle_end_of_container;
 
@@ -288,6 +292,32 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_leaf_value_array_return_suspended)
 		}
 	);
 	auto const res = adaptor.dispatch(vals_proxy, expected_context);
+	EXPECT_EQ(res, jopp2::visit_node_result::node_visitor_suspended);
+}
+
+TESTCASE(jopp2_node_visitor_adaptor_dispatch_leaf_value_array_also_leaf_value)
+{
+	std::string my_string{"Foobar"};
+	jopp2::container_proxy string_proxy{std::ref(my_string)};
+	test_node_visitor visitor{};
+	auto adaptor = jopp2::make_node_visitor_adaptor<test_generic_value&>(visitor);
+	static constexpr jopp2::value_visitation_context expected_context{
+		.node_index = 1,
+		.parent_container_size = 2,
+		.depth = 3
+	};
+
+	visitor.handle_leaf_value_array.expect_call_with_action(
+		[&my_string](
+			jopp2::container_proxy<std::string>& str,
+			jopp2::value_visitation_context const& ctxt
+		) {
+			EXPECT_EQ(str.active_range().begin(), my_string.data());
+			EXPECT_EQ(ctxt, expected_context);
+			return jopp2::node_visitor_status::suspended;
+		}
+	);
+	auto const res = adaptor.dispatch(string_proxy, expected_context);
 	EXPECT_EQ(res, jopp2::visit_node_result::node_visitor_suspended);
 }
 
