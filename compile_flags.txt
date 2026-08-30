@@ -2,4 +2,5 @@
 -iquote.
 -std=c++23
 -mavx2
+-stdlib=libc++
 -Wno-invalid-constexpr

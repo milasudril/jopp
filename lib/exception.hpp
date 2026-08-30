@@ -1,7 +1,6 @@
 #ifndef JOPP_EXCEPTION_HPP
 #define JOPP_EXCEPTION_HPP
 
-#include <stdexcept>
 #include <format>
 #include <print>
 #include <source_location>
