@@ -32,7 +32,7 @@ namespace
 
 		template<class Self>
 		auto&& get_value(this Self&& self)
-		{ return std::forward_like<Self>(self.value); }
+		{ return std::forward_like<Self>(std::forward<Self>(self).value); }
 
 		value_type value;
 	};
@@ -109,13 +109,13 @@ TESTCASE(jopp2_to_visit_node_result_completed_defaults_to_always_true)
 TESTCASE(jopp2_to_visit_node_result_result_of_ready_depends_on_result_of_completed)
 {
 	TestFwk::mock_entry<bool()> completed_mock;
-	completed_mock.expect_call_with_action([](){return true;});
+	completed_mock.expect_call_with_action([]{return true;});
 	{
 		auto const result = to_visit_node_result(jopp2::node_visitor_status::ready, completed_mock);
 		EXPECT_EQ(result, jopp2::visit_node_result::completed);
 	}
 
-	completed_mock.expect_call_with_action([](){return false;});
+	completed_mock.expect_call_with_action([]{return false;});
 	{
 		auto const result = to_visit_node_result(jopp2::node_visitor_status::ready, completed_mock);
 		EXPECT_EQ(result, jopp2::visit_node_result::node_visitor_ready);
@@ -133,8 +133,9 @@ TESTCASE(jopp2_to_visit_node_result_junk_leads_to_sigabrt)
 {
 	TestFwk::mock_entry<bool()> completed_mock;
 	TestFwk::expect_death(
-		[&completed_mock](){
+		[&completed_mock]{
 			std::ignore = to_visit_node_result(
+				// NOLINTNEXTLINE
 				static_cast<jopp2::node_visitor_status>(35),
 				completed_mock
 			);
@@ -247,6 +248,7 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_leaf_value_array_return_ready)
 			EXPECT_EQ(ctxt, expected_context);
 			REQUIRE_LT(callcount, std::size(vals));
 			EXPECT_EQ(obj.total_size(), std::size(vals));
+			// NOLINTNEXTLINE
 			EXPECT_EQ(*obj.active_range().begin(), vals[callcount]);
 			obj.pop_active_element();
 			++callcount;

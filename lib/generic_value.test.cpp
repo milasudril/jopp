@@ -147,6 +147,7 @@ namespace
 				](test_node_visitor& visitor) mutable{
 					while(index != size)
 					{
+						// NOLINTNEXTLINE
 						auto const& item = range[index];
 						if(
 							visitor.print_without_tag(item, index, size) ==
@@ -282,7 +283,7 @@ namespace
 			return jopp2::visitor_status::keep_going;
 		}
 
-		auto handle_begin_of_object(size_t)
+		auto handle_begin_of_object(size_t /*unused*/)
 		{
 			do_indent();
 			output.get() += std::format("{{\n");
@@ -364,7 +365,7 @@ TESTCASE(jopp2_explain_lookup_error_code)
 	);
 
 	TestFwk::expect_death(
-		[](){
+		[]{
 			// NOLINTNEXTLINE
 			explain(static_cast<jopp2::lookup_error_code>(234));
 		},
@@ -377,7 +378,7 @@ TESTCASE(jopp2_lookup_result_from_error_code)
 {
 	jopp2::lookup_result<int> foo{jopp2::lookup_error_code::key_not_found};
 	EXPECT_EQ(foo.error_code(), jopp2::lookup_error_code::key_not_found);
-	TestFwk::expect_death([foo](){*foo = 123;},"" , SIGSEGV);
+	TestFwk::expect_death([foo]{*foo = 123;},"" , SIGSEGV);
 	try
 	{
 		foo.value("Foobar");
@@ -401,7 +402,7 @@ TESTCASE(jopp2_lookup_result_from_pointer)
 	EXPECT_EQ(result->second, 35);
 	EXPECT_EQ(result.value("Foobar"), res_value);
 	TestFwk::expect_death(
-		[result](){
+		[result]{
 			std::ignore = result.error_code();
 		},
 		"jopp internal error: lib/./generic_value.hpp:96: Error code not set in a non-error condition\n",

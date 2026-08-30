@@ -17,6 +17,8 @@ TESTCASE(jopp_utils_iterator_enumerator_default_valref)
 		auto const ptr = rangeproc.pop_element();
 		if(ptr == nullptr)
 		{ break; }
+
+		// NOLINTNEXTLINE
 		EXPECT_EQ(*ptr, vals[count]);
 		++count;
 	}
@@ -46,6 +48,8 @@ TESTCASE(jopp_utils_iterator_enumerator_custom_valref)
 		auto const ref = rangeproc.pop_element();
 		if(ref.ptr == nullptr)
 		{ break; }
+
+		// NOLINTNEXTLINE
 		EXPECT_EQ(*ref.ptr, vals[count]);
 		++count;
 	}
@@ -65,6 +69,8 @@ TESTCASE(jopp_utils_range_processor_custom_valref)
 		auto const ref = rangeproc.pop_element();
 		if(ref.ptr == nullptr)
 		{ break; }
+
+		// NOLINTNEXTLINE
 		EXPECT_EQ(*ref.ptr, vals[count]);
 		++count;
 	}

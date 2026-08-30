@@ -22,7 +22,7 @@ namespace
 
 		template<class Self>
 		auto&& get_value(this Self&& self)
-		{ return std::forward_like<Self>(self.value); }
+		{ return std::forward_like<Self>(std::forward<Self>(self).value); }
 
 		value_type value;
 	};
@@ -237,6 +237,8 @@ TESTCASE(jopp2_tree_walker_dispatch_leaf_value_return_junk)
 		[](int value, jopp2::value_visitation_context const& ctxt){
 			EXPECT_EQ(value, 123);
 			EXPECT_EQ(ctxt, jopp2::value_visitation_context{}.enter_next_level(42));
+
+			// NOLINTNEXTLINE
 			return static_cast<jopp2::node_visitor_status>(34);
 		},
 		TestFwk::expectation_options{
@@ -245,7 +247,7 @@ TESTCASE(jopp2_tree_walker_dispatch_leaf_value_return_junk)
 		}
 	);
 	TestFwk::expect_death(
-		[&walker](){
+		[&walker]{
 			std::ignore = walker.dispatch<int>(123,jopp2::value_visitation_context{}.enter_next_level(42));
 		},
 		"jopp internal error: lib/./tree_walker.hpp:244: Invalid return value from node visitor\n",
@@ -269,6 +271,8 @@ TESTCASE(jopp2_tree_walker_dispatch_leaf_value_array_return_ready)
 			EXPECT_EQ(ctxt, jopp2::value_visitation_context{}.enter_next_level(42));
 			REQUIRE_LT(callcount, std::size(vals));
 			EXPECT_EQ(obj.total_size(), std::size(vals));
+
+			// NOLINTNEXTLINE
 			EXPECT_EQ(*obj.active_range().begin(), vals[callcount]);
 			obj.pop_active_element();
 			++callcount;
@@ -333,6 +337,8 @@ TESTCASE(jopp2_tree_walker_dispatch_leaf_value_array_return_junk)
 			jopp2::value_visitation_context const& ctxt
 		){
 			EXPECT_EQ(ctxt, jopp2::value_visitation_context{}.enter_next_level(42));
+
+			// NOLINTNEXTLINE
 			return static_cast<jopp2::node_visitor_status>(34);
 		},
 		TestFwk::expectation_options{
@@ -342,7 +348,7 @@ TESTCASE(jopp2_tree_walker_dispatch_leaf_value_array_return_junk)
 	);
 
 	TestFwk::expect_death(
-		[&walker, &vals_proxy](){
+		[&walker, &vals_proxy]{
 			std::ignore = walker.dispatch(
 				vals_proxy,
 				jopp2::value_visitation_context{}.enter_next_level(42)

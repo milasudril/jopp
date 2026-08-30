@@ -16,7 +16,7 @@ TESTCASE(jopp2_exception_what)
 TESTCASE(jopp2_raise_internal_error)
 {
 	TestFwk::expect_death(
-		[](){
+		[]{
 			jopp2::raise_internal_error("Something went wrong {} {}", jopp2::make_fmt_args(1, "Foobar"));
 		},
 		"jopp internal error: lib/exception.test.cpp:20: Something went wrong 1 Foobar\n",

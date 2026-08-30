@@ -101,7 +101,7 @@ TESTCASE(jopp2_value_storage_update_value)
 	EXPECT_EQ(yet_another_l_value, "Kaka 12");
 
 	auto const res7 = value_storage.update_with(long_array{'X'});
+	// NOLINTNEXTLINE
 	EXPECT_EQ(std::get<long_array>(value)[0], 'X');
 	EXPECT_EQ(std::get_if<long_array>(&value), res7);
-
 }
