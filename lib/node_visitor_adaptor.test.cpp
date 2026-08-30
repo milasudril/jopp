@@ -17,7 +17,9 @@ namespace
 
 		using value_type = std::variant<
 			int,
+			std::string,
 			std::vector<int>,
+			std::vector<std::string>,
 			std::vector<test_generic_value>,
 			object
 		>;
@@ -26,7 +28,7 @@ namespace
 		using sequence_container_type = std::vector<T>;
 
 		template<class T>
-		static constexpr auto is_leaf_value = std::is_same_v<T, int>;
+		static constexpr auto is_leaf_value = std::is_same_v<T, int> || std::is_same_v<T, std::string>;
 
 		template<class Self>
 		auto&& get_value(this Self&& self)
