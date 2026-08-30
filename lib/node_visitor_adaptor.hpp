@@ -129,6 +129,15 @@ namespace jopp2
 		}
 	};
 
+	template <class T>
+	struct is_key_wrapper : std::false_type {};
+
+	template <class T>
+	struct is_key_wrapper<key_wrapper<T>> : std::true_type {};
+
+	template <class T>
+	inline constexpr bool is_key_wrapper_v = is_key_wrapper<T>::value;
+
 	template<class GenericValue, class NodeVisitor>
 	class node_visitor_adaptor
 	{
@@ -262,10 +271,7 @@ namespace jopp2
 		}
 
 		template <class KeyWrapper>
-		requires std::same_as<
-			std::remove_cvref_t<KeyWrapper>,
-			key_wrapper<typename std::remove_cvref_t<KeyWrapper>::value_type>
-		>
+		requires is_key_wrapper_v<std::remove_cvref_t<KeyWrapper>>
 		[[gnu::always_inline]] visit_node_result dispatch(
 			KeyWrapper&& item,
 			value_visitation_context const& current_context

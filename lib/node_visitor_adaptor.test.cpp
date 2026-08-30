@@ -86,7 +86,11 @@ namespace
 		> handle_end_of_container;
 
 		TestFwk::mock_entry_overload_set<
-			jopp2::node_visitor_status(int, jopp2::value_visitation_context const& ctxt)
+			jopp2::node_visitor_status(int, jopp2::value_visitation_context const&),
+			jopp2::node_visitor_status(
+				jopp2::container_proxy<std::string const>&,
+				jopp2::value_visitation_context const&
+			)
 		> handle_key;
 	};
 }
@@ -287,8 +291,6 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_leaf_value_array_return_suspended)
 
 TESTCASE(jopp2_node_visitor_adaptor_dispatch_scalar_key)
 {
-	static_assert(jopp2::instance_of<jopp2::key_wrapper<int>, jopp2::key_wrapper>);
-
 	test_node_visitor visitor{};
 	auto adaptor = jopp2::make_node_visitor_adaptor<test_generic_value&>(visitor);
 	static constexpr jopp2::value_visitation_context expected_context{
@@ -321,6 +323,63 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_scalar_key)
 	{
 		auto const res = adaptor.dispatch(jopp2::key_wrapper<int>{23}, expected_context);
 		EXPECT_EQ(res, jopp2::visit_node_result::node_visitor_suspended);
+	}
+}
+
+TESTCASE(jopp2_node_visitor_adaptor_dispatch_sequence_key)
+{
+	test_node_visitor visitor{};
+	auto adaptor = jopp2::make_node_visitor_adaptor<test_generic_value&>(visitor);
+	static constexpr jopp2::value_visitation_context expected_context{
+		.node_index = 1,
+		.parent_container_size = 2,
+		.depth = 3
+	};
+
+	std::string the_key{"foobar"};
+	jopp2::key_wrapper<std::string> key{
+		.value = jopp2::container_proxy<std::string const>{the_key}
+	};
+
+	visitor.handle_key.expect_call_with_action([&key](
+		jopp2::container_proxy<std::string const>& value,
+		jopp2::value_visitation_context const& ctxt
+	){
+		EXPECT_EQ(&key.value, &value);
+		EXPECT_EQ(ctxt, expected_context);
+		return jopp2::node_visitor_status::suspended;
+	});
+	{
+		auto const res = adaptor.dispatch(key, expected_context);
+		EXPECT_EQ(res, jopp2::visit_node_result::node_visitor_suspended);
+	}
+
+	visitor.handle_key.expect_call_with_action([&key](
+		jopp2::container_proxy<std::string const>& value,
+		jopp2::value_visitation_context const& ctxt
+	){
+		EXPECT_EQ(&key.value, &value);
+		EXPECT_EQ(ctxt, expected_context);
+		return jopp2::node_visitor_status::ready;
+	});
+	{
+		auto const res = adaptor.dispatch(key, expected_context);
+		EXPECT_EQ(res, jopp2::visit_node_result::node_visitor_ready);
+	}
+
+	visitor.handle_key.expect_call_with_action([&key](
+		jopp2::container_proxy<std::string const>& value,
+		jopp2::value_visitation_context const& ctxt
+	){
+		EXPECT_EQ(&key.value, &value);
+		key.value.pop_active_elements(6);
+		EXPECT_EQ(key.value.at_end(), true);
+		EXPECT_EQ(ctxt, expected_context);
+		return jopp2::node_visitor_status::ready;
+	});
+	{
+		auto const res = adaptor.dispatch(key, expected_context);
+		EXPECT_EQ(res, jopp2::visit_node_result::completed);
 	}
 }
 
