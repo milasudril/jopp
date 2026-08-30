@@ -87,6 +87,49 @@ namespace
 	};
 }
 
+TESTCASE(jopp2_to_visit_node_result_completed_defaults_to_always_true)
+{
+	EXPECT_EQ(&jopp2::to_visit_node_result<>, &jopp2::to_visit_node_result<jopp2::always_true>);
+}
+
+TESTCASE(jopp2_to_visit_node_result_result_of_ready_depends_on_result_of_completed)
+{
+	TestFwk::mock_entry<bool()> completed_mock;
+	completed_mock.expect_call_with_action([](){return true;});
+	{
+		auto const result = to_visit_node_result(jopp2::node_visitor_status::ready, completed_mock);
+		EXPECT_EQ(result, jopp2::visit_node_result::completed);
+	}
+
+	completed_mock.expect_call_with_action([](){return false;});
+	{
+		auto const result = to_visit_node_result(jopp2::node_visitor_status::ready, completed_mock);
+		EXPECT_EQ(result, jopp2::visit_node_result::node_visitor_ready);
+	}
+}
+
+TESTCASE(jopp2_to_visit_node_result_suspended_maps_to_suspended)
+{
+	TestFwk::mock_entry<bool()> completed_mock;
+	auto const result = to_visit_node_result(jopp2::node_visitor_status::suspended, completed_mock);
+	EXPECT_EQ(result, jopp2::visit_node_result::node_visitor_suspended);
+}
+
+TESTCASE(jopp2_to_visit_node_result_junk_leads_to_sigabrt)
+{
+	TestFwk::mock_entry<bool()> completed_mock;
+	TestFwk::expect_death(
+		[&completed_mock](){
+			std::ignore = to_visit_node_result(
+				static_cast<jopp2::node_visitor_status>(35),
+				completed_mock
+			);
+		},
+		"jopp internal error: lib/./node_visitor_adaptor.hpp:63: Invalid return value from node visitor\n",
+		SIGABRT
+	);
+}
+
 TESTCASE(jopp2_node_visitor_adaptor_create_with_ref_to_visitor)
 {
 	test_node_visitor visitor{};
@@ -169,36 +212,6 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_leaf_value_return_suspended)
 	EXPECT_EQ(res, jopp2::visit_node_result::node_visitor_suspended);
 }
 
-TESTCASE(jopp2_node_visitor_adaptor_dispatch_leaf_value_return_junk)
-{
-	test_node_visitor visitor{};
-	auto adaptor = jopp2::make_node_visitor_adaptor<test_generic_value const&>(visitor);
-	static constexpr jopp2::value_visitation_context expected_context{
-		.node_index = 1,
-		.parent_container_size = 2,
-		.depth = 3
-	};
-
-	visitor.handle_leaf_value.expect_call_with_action(
-		[](int value, jopp2::value_visitation_context const& ctxt){
-			EXPECT_EQ(value, 123);
-			EXPECT_EQ(ctxt, expected_context);
-			return static_cast<jopp2::node_visitor_status>(34);
-		},
-		TestFwk::expectation_options{
-			.cardinality = TestFwk::cardinality_constraint::exactly(1),
-			.count_with_fd = true
-		}
-	);
-	TestFwk::expect_death(
-		[&adaptor](){
-			std::ignore = adaptor.dispatch<int>(123, expected_context);
-		},
-		"jopp internal error: lib/./node_visitor_adaptor.hpp:219: Invalid return value from node visitor\n",
-		SIGABRT
-	);
-}
-
 TESTCASE(jopp2_node_visitor_adaptor_dispatch_leaf_value_array_return_ready)
 {
 
@@ -266,44 +279,6 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_leaf_value_array_return_suspended)
 	);
 	auto const res = adaptor.dispatch(vals_proxy, expected_context);
 	EXPECT_EQ(res, jopp2::visit_node_result::node_visitor_suspended);
-}
-
-TESTCASE(jopp2_node_visitor_adaptor_dispatch_leaf_value_array_return_junk)
-{
-	std::vector<int> vals{1, 2, 3};
-	jopp2::container_proxy vals_proxy{std::ref(vals)};
-	test_node_visitor visitor{};
-	auto adaptor = jopp2::make_node_visitor_adaptor<test_generic_value&>(visitor);
-	static constexpr jopp2::value_visitation_context expected_context{
-		.node_index = 1,
-		.parent_container_size = 2,
-		.depth = 3
-	};
-
-	visitor.handle_leaf_value_array.expect_call_with_action(
-		[](
-			jopp2::container_proxy<std::vector<int>>& ,
-			jopp2::value_visitation_context const& ctxt
-		){
-			EXPECT_EQ(ctxt, expected_context);
-			return static_cast<jopp2::node_visitor_status>(34);
-		},
-		TestFwk::expectation_options{
-			.cardinality = TestFwk::cardinality_constraint::exactly(1),
-			.count_with_fd = true
-		}
-	);
-
-	TestFwk::expect_death(
-		[&adaptor, &vals_proxy](){
-			std::ignore = adaptor.dispatch(
-				vals_proxy,
-				expected_context
-			);
-		},
-		"jopp internal error: lib/./node_visitor_adaptor.hpp:219: Invalid return value from node visitor\n",
-		SIGABRT
-	);
 }
 
 namespace

@@ -36,6 +36,35 @@ namespace jopp2
 		completed
 	};
 
+	struct always_true
+	{
+		static constexpr bool operator()() noexcept
+		{ return true; }
+	};
+
+	template<class CompletionCond = always_true>
+	inline constexpr auto to_visit_node_result(
+		node_visitor_status result,
+		CompletionCond&& completed = always_true{}
+	) noexcept
+	{
+		switch(result)
+		{
+			case node_visitor_status::ready:
+				if(std::forward<CompletionCond>(completed)()) [[unlikely]]
+				{ return visit_node_result::completed; }
+				else
+				{ return visit_node_result::node_visitor_ready; }
+
+			case node_visitor_status::suspended:
+				return visit_node_result::node_visitor_suspended;
+
+			default:
+				raise_internal_error("Invalid return value from node visitor");
+		}
+	}
+
+
 	using jopp::instance_of;
 
 	template<class Type, bool IsConst>
@@ -191,34 +220,6 @@ namespace jopp2
 		):
 			m_visitor{std::forward<NodeVisitorArgs>(args)...}
 		{ }
-
-		struct always_true
-		{
-			static constexpr bool operator()() noexcept
-			{ return true; }
-		};
-
-		template<class CompletionCond = always_true>
-		static constexpr auto to_visit_node_result(
-			node_visitor_status result,
-			CompletionCond&& completed = always_true{}
-		)
-		{
-			switch(result)
-			{
-				case node_visitor_status::ready:
-					if(std::forward<CompletionCond>(completed)()) [[unlikely]]
-					{ return visit_node_result::completed; }
-					else
-					{ return visit_node_result::node_visitor_ready; }
-
-				case node_visitor_status::suspended:
-					return visit_node_result::node_visitor_suspended;
-
-				default:
-					raise_internal_error("Invalid return value from node visitor");
-			}
-		}
 
 		template<class T>
 		requires(generic_value_t::template is_leaf_value<std::remove_cvref_t<T>>)
