@@ -24,7 +24,7 @@ namespace jopp2
 		size_t depth{};
 	};
 
-	enum class node_visitor_status {
+	enum class node_visitor_status{
 		ready,
 		suspended
 	};
@@ -32,7 +32,7 @@ namespace jopp2
 	enum class visit_node_result{
 		node_visitor_ready = static_cast<int>(node_visitor_status::ready),
 		node_visitor_suspended = static_cast<int>(node_visitor_status::suspended),
-		completed
+		completed = static_cast<int>(node_visitor_status::suspended) + 1
 	};
 
 	struct always_true
@@ -42,7 +42,7 @@ namespace jopp2
 	};
 
 	template<class CompletionCond = always_true>
-	inline constexpr auto to_visit_node_result(
+	constexpr auto to_visit_node_result(
 		node_visitor_status result,
 		CompletionCond&& completed = always_true{}
 	) noexcept
@@ -52,8 +52,7 @@ namespace jopp2
 			case node_visitor_status::ready:
 				if(std::forward<CompletionCond>(completed)()) [[unlikely]]
 				{ return visit_node_result::completed; }
-				else
-				{ return visit_node_result::node_visitor_ready; }
+				return visit_node_result::node_visitor_ready;
 
 			case node_visitor_status::suspended:
 				return visit_node_result::node_visitor_suspended;
@@ -116,7 +115,7 @@ namespace jopp2
 	template<class T>
 	struct key_wrapper
 	{
-		using value_type= typename node_item<std::remove_const_t<T>, true>::type;
+		using value_type = node_item<std::remove_const_t<T>, true>::type;
 		value_type value;
 
 		template<class U>
@@ -145,8 +144,8 @@ namespace jopp2
 
 		using generic_value_t = std::remove_cvref_t<GenericValue>;
 		static constexpr auto src_is_const = std::is_const_v<std::remove_reference_t<GenericValue>>;
-		using object = typename generic_value_t::object;
-		using value_type = typename generic_value_t::value_type;
+		using object = generic_value_t::object;
+		using value_type = generic_value_t::value_type;
 		using objcontainer = std::conditional_t<
 			src_is_const,
 			object const,
@@ -162,7 +161,7 @@ namespace jopp2
 			>;
 
 		template<class T>
-		using node_item_t = typename node_item<T, src_is_const>::type;
+		using node_item_t = node_item<T, src_is_const>::type;
 
 		using node_value = concatenate_variants_t<
 			wrap_variant_element_t<
@@ -249,7 +248,7 @@ namespace jopp2
 
 		template<class T>
 		visit_node_result dispatch_key(
-			typename key_wrapper<T>::value_type item,
+			key_wrapper<T>::value_type item,
 			value_visitation_context const& current_context
 		)
 		{ return to_visit_node_result(m_visitor.handle_key(item, current_context)); }
@@ -273,7 +272,7 @@ namespace jopp2
 			value_visitation_context const& current_context
 		)
 		{
-			using val_type = typename std::remove_cvref_t<KeyWrapper>::value_type;
+			using val_type = std::remove_cvref_t<KeyWrapper>::value_type;
 			return dispatch_key<val_type>(std::forward<KeyWrapper>(item).value, current_context);
 		}
 
