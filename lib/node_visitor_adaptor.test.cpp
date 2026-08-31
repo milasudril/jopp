@@ -201,7 +201,7 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_leaf_value_return_ready)
 			return jopp2::node_visitor_status::ready;
 		}
 	);
-	auto const res = adaptor.dispatch(123, expected_context);
+	auto const res = adaptor(123, expected_context);
 	EXPECT_EQ(res, jopp2::visit_node_result::completed);
 }
 
@@ -223,7 +223,7 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_leaf_value_return_suspended)
 		}
 	);
 
-	auto const res = adaptor.dispatch(123, expected_context);
+	auto const res = adaptor(123, expected_context);
 	EXPECT_EQ(res, jopp2::visit_node_result::node_visitor_suspended);
 }
 
@@ -261,14 +261,14 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_leaf_value_array_return_ready)
 
 	for(size_t k = 0; k != std::size(vals) - 1; ++k)
 	{
-		auto const res = adaptor.dispatch(
+		auto const res = adaptor(
 			vals_proxy,
 			expected_context
 		);
 		EXPECT_EQ(res, jopp2::visit_node_result::node_visitor_ready);
 	}
 
-	auto const res = adaptor.dispatch(vals_proxy, expected_context);
+	auto const res = adaptor(vals_proxy, expected_context);
 	EXPECT_EQ(res, jopp2::visit_node_result::completed);
 }
 
@@ -293,7 +293,7 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_leaf_value_array_return_suspended)
 			return jopp2::node_visitor_status::suspended;
 		}
 	);
-	auto const res = adaptor.dispatch(vals_proxy, expected_context);
+	auto const res = adaptor(vals_proxy, expected_context);
 	EXPECT_EQ(res, jopp2::visit_node_result::node_visitor_suspended);
 }
 
@@ -319,7 +319,7 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_leaf_value_array_also_leaf_value)
 			return jopp2::node_visitor_status::suspended;
 		}
 	);
-	auto const res = adaptor.dispatch(string_proxy, expected_context);
+	auto const res = adaptor(string_proxy, expected_context);
 	EXPECT_EQ(res, jopp2::visit_node_result::node_visitor_suspended);
 }
 
@@ -342,7 +342,7 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_scalar_key)
 		return jopp2::node_visitor_status::ready;
 	});
 	{
-		auto const res = adaptor.dispatch(jopp2::key_wrapper<int>{23}, expected_context);
+		auto const res = adaptor(jopp2::key_wrapper<int>{23}, expected_context);
 		EXPECT_EQ(res, jopp2::visit_node_result::completed);
 	}
 
@@ -355,7 +355,7 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_scalar_key)
 		return jopp2::node_visitor_status::suspended;
 	});
 	{
-		auto const res = adaptor.dispatch(jopp2::key_wrapper<int>{23}, expected_context);
+		auto const res = adaptor(jopp2::key_wrapper<int>{23}, expected_context);
 		EXPECT_EQ(res, jopp2::visit_node_result::node_visitor_suspended);
 	}
 }
@@ -384,7 +384,7 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_sequence_key)
 		return jopp2::node_visitor_status::suspended;
 	});
 	{
-		auto const res = adaptor.dispatch(key, expected_context);
+		auto const res = adaptor(key, expected_context);
 		EXPECT_EQ(res, jopp2::visit_node_result::node_visitor_suspended);
 	}
 
@@ -397,7 +397,7 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_sequence_key)
 		return jopp2::node_visitor_status::ready;
 	});
 	{
-		auto const res = adaptor.dispatch(key, expected_context);
+		auto const res = adaptor(key, expected_context);
 		EXPECT_EQ(res, jopp2::visit_node_result::node_visitor_ready);
 	}
 
@@ -412,7 +412,7 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_sequence_key)
 		return jopp2::node_visitor_status::ready;
 	});
 	{
-		auto const res = adaptor.dispatch(key, expected_context);
+		auto const res = adaptor(key, expected_context);
 		EXPECT_EQ(res, jopp2::visit_node_result::completed);
 	}
 }
@@ -450,7 +450,7 @@ namespace
 	);
 
 	std::vector<decltype(adaptor)::node> nodes;
-	auto const result = adaptor.dispatch(vals_proxy, expected_context, nodes);
+	auto const result = adaptor(vals_proxy, expected_context, nodes);
 	EXPECT_EQ(std::size(nodes), 0);
 	EXPECT_EQ(result, jopp2::visit_node_result::node_visitor_suspended);
 	}
@@ -487,7 +487,7 @@ namespace
 		);
 
 		std::vector<decltype(adaptor)::node> nodes;
-		auto const result = adaptor.dispatch(vals_proxy, expected_context, nodes);
+		auto const result = adaptor(vals_proxy, expected_context, nodes);
 		EXPECT_EQ(std::size(nodes), 0);
 		EXPECT_EQ(result, jopp2::visit_node_result::node_visitor_suspended);
 	}
@@ -523,7 +523,7 @@ namespace
 			}
 		);
 		std::vector<decltype(adaptor)::node> nodes;
-		auto const result = adaptor.dispatch(vals_proxy, expected_context, nodes);
+		auto const result = adaptor(vals_proxy, expected_context, nodes);
 		EXPECT_EQ(result, jopp2::visit_node_result::completed);
 	}
 
@@ -580,7 +580,7 @@ namespace
 			}
 		);
 		std::vector<decltype(adaptor)::node> nodes;
-		auto const result = adaptor.dispatch(vals_proxy, expected_context, nodes);
+		auto const result = adaptor(vals_proxy, expected_context, nodes);
 		EXPECT_EQ(result, jopp2::visit_node_result::completed);
 	}
 
@@ -614,7 +614,7 @@ namespace
 
 		for(size_t k = 0; k != std::size(vals); ++k)
 		{
-			auto const result = adaptor.dispatch(vals_proxy, expected_context, nodes);
+			auto const result = adaptor(vals_proxy, expected_context, nodes);
 			EXPECT_EQ(result, jopp2::visit_node_result::node_visitor_ready);
 			REQUIRE_EQ(nodes.size(), nodes_per_item*(k + 1));
 			EXPECT_EQ(nodes.back().context.node_index, k);
@@ -635,7 +635,7 @@ namespace
 			}
 		);
 		{
-			auto const result = adaptor.dispatch(vals_proxy, expected_context, nodes);
+			auto const result = adaptor(vals_proxy, expected_context, nodes);
 			EXPECT_EQ(result, jopp2::visit_node_result::completed);
 			EXPECT_EQ(nodes.size(), nodes_per_item*3);
 			EXPECT_EQ(nodes.back().context.node_index, 2);
@@ -684,7 +684,7 @@ namespace
 			}
 		);
 
-		auto const result = adaptor.dispatch(vals_proxy, expected_context, nodes);
+		auto const result = adaptor(vals_proxy, expected_context, nodes);
 		EXPECT_EQ(result, jopp2::visit_node_result::node_visitor_suspended);
 	}
 	EXPECT_EQ(std::size(nodes), 0);
@@ -700,7 +700,7 @@ namespace
 				return jopp2::node_visitor_status::ready;
 			}
 		);
-		auto const result = adaptor.dispatch(vals_proxy, expected_context, nodes);
+		auto const result = adaptor(vals_proxy, expected_context, nodes);
 		EXPECT_EQ(result, jopp2::visit_node_result::completed);
 	}
 	EXPECT_EQ(std::size(nodes), 0);

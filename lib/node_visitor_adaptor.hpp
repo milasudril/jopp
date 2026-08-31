@@ -228,7 +228,7 @@ namespace jopp2
 
 		template<class T>
 		requires(generic_value_t::template is_leaf_value<std::remove_cvref_t<T>>)
-		visit_node_result dispatch(T&& value, value_visitation_context const& current_context)
+		visit_node_result operator()(T&& value, value_visitation_context const& current_context)
 		{
 			return to_visit_node_result(
 				m_visitor.handle_leaf_value(std::forward<T>(value), current_context));
@@ -236,7 +236,7 @@ namespace jopp2
 
 		template<class T>
 		requires instance_of<std::remove_cvref_t<T>, container_proxy>
-		visit_node_result dispatch(T& item, value_visitation_context const& current_context)
+		visit_node_result operator()(T& item, value_visitation_context const& current_context)
 		{
 			return to_visit_node_result(
 				m_visitor.handle_leaf_value_array(item, current_context),
@@ -267,7 +267,7 @@ namespace jopp2
 
 		template <class KeyWrapper>
 		requires is_key_wrapper_v<std::remove_cvref_t<KeyWrapper>>
-		[[gnu::always_inline]] visit_node_result dispatch(
+		[[gnu::always_inline]] visit_node_result operator()(
 			KeyWrapper&& item,
 			value_visitation_context const& current_context
 		)
@@ -278,7 +278,7 @@ namespace jopp2
 
 		template<class T>
 		requires instance_of<std::remove_cvref_t<T>, container_proxy>
-		visit_node_result dispatch(
+		visit_node_result operator()(
 			T& obj,
 			value_visitation_context const& current_context,
 			std::vector<node>& nodes
