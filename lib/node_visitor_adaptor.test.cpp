@@ -1000,18 +1000,80 @@ TESTCASE(jopp2_node_visitor_adaptor_accepts_its_node_value)
 	};
 
 	using adaptor_type = decltype(adaptor);
-
 	using node_value = adaptor_type::node_value;
-	node_value val{123};
-	adaptor_type::node_stack nodes;
-	visitor.handle_leaf_value.expect_call_with_action(
-		[](int val, jopp2::value_visitation_context const& context){
-			EXPECT_EQ(val, 123);
-			EXPECT_EQ(context, expected_context);
-			return jopp2::node_visitor_status::ready;
-		}
-	);
-	auto const res = jopp2::visit_with_args(val, adaptor, expected_context, nodes);
-	EXPECT_EQ(res, jopp2::visit_node_result::completed);
-	EXPECT_EQ(nodes.empty(), true);
+
+	{
+		node_value val{123};
+		adaptor_type::node_stack nodes;
+		visitor.handle_leaf_value.expect_call_with_action(
+			[](int val, jopp2::value_visitation_context const& context){
+				EXPECT_EQ(val, 123);
+				EXPECT_EQ(context, expected_context);
+				return jopp2::node_visitor_status::ready;
+			}
+		);
+		auto const res = jopp2::visit_with_args(val, adaptor, expected_context, nodes);
+		EXPECT_EQ(res, jopp2::visit_node_result::completed);
+		EXPECT_EQ(nodes.empty(), true);
+	}
+
+	{
+		std::vector vals{1, 2, 3};
+		node_value val{
+			jopp2::container_proxy{std::cref(vals)}
+		};
+		adaptor_type::node_stack nodes;
+		visitor.handle_leaf_value_array.expect_call_with_action(
+			[&vals](jopp2::container_proxy<std::vector<int> const>& val, jopp2::value_visitation_context const& context){
+				EXPECT_EQ(val.active_range().begin(), vals.data());
+				EXPECT_EQ(context, expected_context);
+				return jopp2::node_visitor_status::ready;
+			}
+		);
+		auto const res = jopp2::visit_with_args(val, adaptor, expected_context, nodes);
+		EXPECT_EQ(res, jopp2::visit_node_result::node_visitor_ready);
+		EXPECT_EQ(nodes.empty(), true);
+	}
+
+	{
+		std::string key{"Foobar"};
+		node_value val{
+			jopp2::key_wrapper<std::string>{
+				.value = jopp2::container_proxy{std::cref(key)}
+			}
+		};
+		adaptor_type::node_stack nodes;
+		visitor.handle_key.expect_call_with_action(
+			[&key](jopp2::container_proxy<std::string const>& val, jopp2::value_visitation_context const& context){
+				EXPECT_EQ(val.active_range().begin(), key.data());
+				EXPECT_EQ(context, expected_context);
+				return jopp2::node_visitor_status::ready;
+			}
+		);
+		auto const res = jopp2::visit_with_args(val, adaptor, expected_context, nodes);
+		EXPECT_EQ(res, jopp2::visit_node_result::node_visitor_ready);
+		EXPECT_EQ(nodes.empty(), true);
+	}
+
+	{
+		std::vector strings{
+			std::string{"Foo"},
+			std::string{"Bar"},
+			std::string{"Baz"},
+		};
+		node_value val{
+			jopp2::container_proxy{std::cref(strings)}
+		};
+		adaptor_type::node_stack nodes;
+		visitor.handle_begin_of_container.expect_call_with_action(
+			[&strings](jopp2::container_proxy<std::vector<std::string> const>& val, jopp2::value_visitation_context const& context){
+				EXPECT_EQ(val.active_range().begin(), strings.data());
+				EXPECT_EQ(context, expected_context);
+				return jopp2::node_visitor_status::ready;
+			}
+		);
+		auto const res = jopp2::visit_with_args(val, adaptor, expected_context, nodes);
+		EXPECT_EQ(res, jopp2::visit_node_result::node_visitor_ready);
+		EXPECT_EQ(nodes.size(), 1);
+	}
 }
