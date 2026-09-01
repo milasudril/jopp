@@ -196,6 +196,8 @@ namespace jopp2
 			value_visitation_context context;
 		};
 
+		using node_stack = std::vector<node>;
+
 		[[gnu::always_inline]] static auto wrap_value(
 			std::conditional_t<src_is_const, generic_value_t const&, generic_value_t&> item
 		)
@@ -303,10 +305,11 @@ namespace jopp2
 
 		template<class T>
 		requires instance_of<std::remove_cvref_t<T>, container_proxy>
+		&& (!is_atom_v<typename std::remove_cvref_t<T>::value_type>)
 		visit_node_result operator()(
 			T& obj,
 			value_visitation_context const& current_context,
-			std::vector<node>& nodes
+			node_stack& nodes
 		)
 		{
 			if(obj.at_begin())

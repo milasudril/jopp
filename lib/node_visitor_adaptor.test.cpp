@@ -2,6 +2,7 @@
 
 #include "./node_visitor_adaptor.hpp"
 #include "./container_proxy.hpp"
+#include "./variant_utils.hpp"
 
 #include <ranges>
 #include <testfwk/death_test.hpp>
@@ -81,6 +82,10 @@ namespace
 			jopp2::node_visitor_status(
 				jopp2::container_proxy<std::map<std::string, test_generic_value> const>&,
 				jopp2::value_visitation_context const&
+			),
+			jopp2::node_visitor_status(
+				jopp2::container_proxy<std::vector<std::string> const>&,
+				jopp2::value_visitation_context const&
 			)
 		> handle_begin_of_container;
 
@@ -95,6 +100,10 @@ namespace
 			),
 			jopp2::node_visitor_status(
 				jopp2::container_proxy<std::map<std::string, test_generic_value> const>&,
+				jopp2::value_visitation_context const&
+			),
+			jopp2::node_visitor_status(
+				jopp2::container_proxy<std::vector<std::string> const>&,
 				jopp2::value_visitation_context const&
 			)
 		> handle_end_of_container;
@@ -979,10 +988,8 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_object_empty_first_at_end_suspends)
 	>();
 }
 
-#if TODO
 TESTCASE(jopp2_node_visitor_adaptor_accepts_its_node_value)
 {
-
 	test_node_visitor visitor{};
 	auto adaptor = jopp2::make_node_visitor_adaptor<test_generic_value const&>(visitor);
 
@@ -992,8 +999,19 @@ TESTCASE(jopp2_node_visitor_adaptor_accepts_its_node_value)
 		.depth = 3
 	};
 
-	using node_value = decltype(adaptor)::node_value;
-	node_value val{};
-	jopp2::visit_with_args(val, adaptor, expected_context);
+	using adaptor_type = decltype(adaptor);
+
+	using node_value = adaptor_type::node_value;
+	node_value val{123};
+	adaptor_type::node_stack nodes;
+	visitor.handle_leaf_value.expect_call_with_action(
+		[](int val, jopp2::value_visitation_context const& context){
+			EXPECT_EQ(val, 123);
+			EXPECT_EQ(context, expected_context);
+			return jopp2::node_visitor_status::ready;
+		}
+	);
+	auto const res = jopp2::visit_with_args(val, adaptor, expected_context, nodes);
+	EXPECT_EQ(res, jopp2::visit_node_result::completed);
+	EXPECT_EQ(nodes.empty(), true);
 }
-#endif
