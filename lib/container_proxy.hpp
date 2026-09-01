@@ -120,7 +120,7 @@ namespace jopp2
 			iterator,
 			std::ranges::subrange_kind::sized
 		>;
-		using value_type = typename Container::value_type;
+		using value_type = Container::value_type;
 		using container_type = Container;
 		container_proxy(container_proxy const&) = delete;
 		container_proxy(container_proxy&&) = default;

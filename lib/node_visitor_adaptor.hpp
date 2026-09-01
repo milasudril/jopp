@@ -136,6 +136,18 @@ namespace jopp2
 	template <class T>
 	inline constexpr bool is_key_wrapper_v = is_key_wrapper<T>::value;
 
+	template<class T>
+	struct is_atom : std::false_type
+	{};
+
+	template<class T>
+	requires(std::is_arithmetic_v<T>)
+	struct is_atom<T> : std::true_type
+	{};
+
+	template<class T>
+	inline constexpr bool is_atom_v = is_atom<T>::value;
+
 	template<class GenericValue, class NodeVisitor>
 	class node_visitor_adaptor
 	{
@@ -226,17 +238,26 @@ namespace jopp2
 			m_visitor{std::forward<NodeVisitorArgs>(args)...}
 		{ }
 
-		template<class T>
+		template<class T, class Unused = int>
 		requires(generic_value_t::template is_leaf_value<std::remove_cvref_t<T>>)
-		visit_node_result operator()(T&& value, value_visitation_context const& current_context)
+		visit_node_result operator()(
+			T&& value,
+			value_visitation_context const& current_context,
+			Unused&& /*unused*/ = Unused{}
+		)
 		{
 			return to_visit_node_result(
 				m_visitor.handle_leaf_value(std::forward<T>(value), current_context));
 		}
 
-		template<class T>
+		template<class T, class Unused = int>
 		requires instance_of<std::remove_cvref_t<T>, container_proxy>
-		visit_node_result operator()(T& item, value_visitation_context const& current_context)
+		&& (is_atom_v<typename T::value_type>)
+		visit_node_result operator()(
+			T& item,
+			value_visitation_context const& current_context,
+			Unused&& /*unused*/ = Unused{}
+		)
 		{
 			return to_visit_node_result(
 				m_visitor.handle_leaf_value_array(item, current_context),
@@ -255,7 +276,10 @@ namespace jopp2
 
 		template<class T>
 		requires instance_of<std::remove_cvref_t<T>, container_proxy>
-		visit_node_result dispatch_key(T& item, value_visitation_context const& current_context)
+		visit_node_result dispatch_key(
+			T& item,
+			value_visitation_context const& current_context
+		)
 		{
 			return to_visit_node_result(
 				m_visitor.handle_key(item, current_context),
@@ -265,11 +289,12 @@ namespace jopp2
 			);
 		}
 
-		template <class KeyWrapper>
+		template <class KeyWrapper, class Unused = int>
 		requires is_key_wrapper_v<std::remove_cvref_t<KeyWrapper>>
 		[[gnu::always_inline]] visit_node_result operator()(
 			KeyWrapper&& item,
-			value_visitation_context const& current_context
+			value_visitation_context const& current_context,
+			Unused&& /*unused*/ = Unused{}
 		)
 		{
 			using val_type = std::remove_cvref_t<KeyWrapper>::value_type;
