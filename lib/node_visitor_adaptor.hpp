@@ -62,7 +62,6 @@ namespace jopp2
 		}
 	}
 
-
 	using jopp::instance_of;
 
 	template<class Type, bool IsConst>
