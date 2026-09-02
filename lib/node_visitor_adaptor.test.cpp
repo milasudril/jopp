@@ -12,12 +12,10 @@
 
 namespace
 {
+	template<class KeyType = std::string>
 	struct test_generic_value
 	{
-		using object = std::map<
-			std::variant<std::string, int>,
-			test_generic_value
-		>;
+		using object = std::map<KeyType, test_generic_value>;
 
 		using value_type = std::variant<
 			int,
@@ -41,6 +39,7 @@ namespace
 		value_type value;
 	};
 
+	template<class KeyType = std::string>
 	struct test_node_visitor
 	{
 		int test_value{};
@@ -75,15 +74,15 @@ namespace
 
 		TestFwk::mock_entry_overload_set<
 			jopp2::node_visitor_status(
-				jopp2::container_proxy<std::vector<test_generic_value> const>&,
+				jopp2::container_proxy<std::vector<test_generic_value<KeyType>> const>&,
 				jopp2::value_visitation_context const&
 			),
 			jopp2::node_visitor_status(
-				jopp2::container_proxy<std::vector<std::vector<test_generic_value>> const>&,
+				jopp2::container_proxy<std::vector<std::vector<test_generic_value<KeyType>>> const>&,
 				jopp2::value_visitation_context const&
 			),
 			jopp2::node_visitor_status(
-				jopp2::container_proxy<test_generic_value::object const>&,
+				jopp2::container_proxy<typename test_generic_value<KeyType>::object const>&,
 				jopp2::value_visitation_context const&
 			),
 			jopp2::node_visitor_status(
@@ -94,15 +93,15 @@ namespace
 
 		TestFwk::mock_entry_overload_set<
 			jopp2::node_visitor_status(
-				jopp2::container_proxy<std::vector<test_generic_value> const>&,
+				jopp2::container_proxy<std::vector<test_generic_value<KeyType>> const>&,
 				jopp2::value_visitation_context const&
 			),
 			jopp2::node_visitor_status(
-				jopp2::container_proxy<std::vector<std::vector<test_generic_value>> const>&,
+				jopp2::container_proxy<std::vector<std::vector<test_generic_value<KeyType>>> const>&,
 				jopp2::value_visitation_context const&
 			),
 			jopp2::node_visitor_status(
-				jopp2::container_proxy<test_generic_value::object const>&,
+				jopp2::container_proxy<typename test_generic_value<KeyType>::object const>&,
 				jopp2::value_visitation_context const&
 			),
 			jopp2::node_visitor_status(
@@ -168,38 +167,38 @@ TESTCASE(jopp2_to_visit_node_result_junk_leads_to_sigabrt)
 TESTCASE(jopp2_node_visitor_adaptor_create_with_ref_to_visitor)
 {
 	test_node_visitor visitor{};
-	auto adaptor = jopp2::make_node_visitor_adaptor<test_generic_value const&>(visitor);
+	auto adaptor = jopp2::make_node_visitor_adaptor<test_generic_value<> const&>(visitor);
 	EXPECT_EQ(&adaptor.visitor(), &visitor);
 	static_assert(
 		std::is_same_v<
 			decltype(adaptor),
-			jopp2::node_visitor_adaptor<test_generic_value const&, test_node_visitor&>
+			jopp2::node_visitor_adaptor<test_generic_value<> const&, test_node_visitor<>&>
 		>
 	);
 }
 
 TESTCASE(jopp2_node_visitor_adaptor_create_with_visitor_by_value)
 {
-	auto adaptor = jopp2::make_node_visitor_adaptor<test_generic_value&>(test_node_visitor{123});
+	auto adaptor = jopp2::make_node_visitor_adaptor<test_generic_value<>&>(test_node_visitor{123});
 	EXPECT_EQ(adaptor.visitor().test_value, 123);
 	static_assert(
 		std::is_same_v<
 			decltype(adaptor),
-			jopp2::node_visitor_adaptor<test_generic_value&, test_node_visitor>
+			jopp2::node_visitor_adaptor<test_generic_value<>&, test_node_visitor<>>
 		>
 	);
 }
 
 TESTCASE(jopp2_node_visitor_adaptor_create_with_visitor_by_value_in_place)
 {
-	auto adaptor = jopp2::make_node_visitor_adaptor<test_generic_value&, test_node_visitor>(
+	auto adaptor = jopp2::make_node_visitor_adaptor<test_generic_value<>&, test_node_visitor<>>(
 		56
 	);
 	EXPECT_EQ(adaptor.visitor().test_value, 56);
 	static_assert(
 		std::is_same_v<
 			decltype(adaptor),
-			jopp2::node_visitor_adaptor<test_generic_value&, test_node_visitor>
+			jopp2::node_visitor_adaptor<test_generic_value<>&, test_node_visitor<>>
 		>
 	);
 }
@@ -207,7 +206,7 @@ TESTCASE(jopp2_node_visitor_adaptor_create_with_visitor_by_value_in_place)
 TESTCASE(jopp2_node_visitor_adaptor_dispatch_leaf_value_return_ready)
 {
 	test_node_visitor visitor{};
-	auto adaptor = jopp2::make_node_visitor_adaptor<test_generic_value const&>(visitor);
+	auto adaptor = jopp2::make_node_visitor_adaptor<test_generic_value<> const&>(visitor);
 	static constexpr jopp2::value_visitation_context expected_context{
 		.node_index = 1,
 		.parent_container_size = 2,
@@ -228,7 +227,7 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_leaf_value_return_ready)
 TESTCASE(jopp2_node_visitor_adaptor_dispatch_leaf_value_return_suspended)
 {
 	test_node_visitor visitor{};
-	auto adaptor = jopp2::make_node_visitor_adaptor<test_generic_value const&>(visitor);
+	auto adaptor = jopp2::make_node_visitor_adaptor<test_generic_value<> const&>(visitor);
 	static constexpr jopp2::value_visitation_context expected_context{
 		.node_index = 1,
 		.parent_container_size = 2,
@@ -253,7 +252,7 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_leaf_value_array_return_ready)
 	std::vector<int> vals{1, 2, 3};
 	jopp2::container_proxy vals_proxy{std::ref(vals)};
 	test_node_visitor visitor{};
-	auto adaptor = jopp2::make_node_visitor_adaptor<test_generic_value&>(visitor);
+	auto adaptor = jopp2::make_node_visitor_adaptor<test_generic_value<>&>(visitor);
 	static constexpr jopp2::value_visitation_context expected_context{
 		.node_index = 1,
 		.parent_container_size = 2,
@@ -297,7 +296,7 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_leaf_value_array_return_suspended)
 	std::vector<int> vals{1, 2, 3};
 	jopp2::container_proxy vals_proxy{std::ref(vals)};
 	test_node_visitor visitor{};
-	auto adaptor = jopp2::make_node_visitor_adaptor<test_generic_value&>(visitor);
+	auto adaptor = jopp2::make_node_visitor_adaptor<test_generic_value<>&>(visitor);
 	static constexpr jopp2::value_visitation_context expected_context{
 		.node_index = 1,
 		.parent_container_size = 2,
@@ -322,7 +321,7 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_leaf_value_array_also_leaf_value)
 	std::string my_string{"Foobar"};
 	jopp2::container_proxy string_proxy{std::ref(my_string)};
 	test_node_visitor visitor{};
-	auto adaptor = jopp2::make_node_visitor_adaptor<test_generic_value&>(visitor);
+	auto adaptor = jopp2::make_node_visitor_adaptor<test_generic_value<>&>(visitor);
 	static constexpr jopp2::value_visitation_context expected_context{
 		.node_index = 1,
 		.parent_container_size = 2,
@@ -346,7 +345,7 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_leaf_value_array_also_leaf_value)
 TESTCASE(jopp2_node_visitor_adaptor_dispatch_scalar_key)
 {
 	test_node_visitor visitor{};
-	auto adaptor = jopp2::make_node_visitor_adaptor<test_generic_value&>(visitor);
+	auto adaptor = jopp2::make_node_visitor_adaptor<test_generic_value<>&>(visitor);
 	static constexpr jopp2::value_visitation_context expected_context{
 		.node_index = 1,
 		.parent_container_size = 2,
@@ -383,7 +382,7 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_scalar_key)
 TESTCASE(jopp2_node_visitor_adaptor_dispatch_sequence_key)
 {
 	test_node_visitor visitor{};
-	auto adaptor = jopp2::make_node_visitor_adaptor<test_generic_value&>(visitor);
+	auto adaptor = jopp2::make_node_visitor_adaptor<test_generic_value<>&>(visitor);
 	static constexpr jopp2::value_visitation_context expected_context{
 		.node_index = 1,
 		.parent_container_size = 2,
@@ -439,14 +438,14 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_sequence_key)
 
 namespace
 {
-	template<class ContainerType>
+	template<class KeyType = std::string, class ContainerType>
 	void jopp2_node_visitor_adaptor_dispatch_array_cursor_at_begin_visitor_suspended(
 		ContainerType const& vals
 	)
 	{
 	jopp2::container_proxy vals_proxy{std::cref(vals)};
-	test_node_visitor visitor{};
-	auto adaptor = jopp2::make_node_visitor_adaptor<test_generic_value const&>(visitor);
+	test_node_visitor<KeyType> visitor{};
+	auto adaptor = jopp2::make_node_visitor_adaptor<test_generic_value<KeyType> const&>(visitor);
 	static constexpr jopp2::value_visitation_context expected_context{
 		.node_index = 1,
 		.parent_container_size = 2,
@@ -469,21 +468,21 @@ namespace
 		}
 	);
 
-	std::vector<decltype(adaptor)::node> nodes;
+	std::vector<typename decltype(adaptor)::node> nodes;
 	auto const result = adaptor(vals_proxy, expected_context, nodes);
 	EXPECT_EQ(std::size(nodes), 0);
 	EXPECT_EQ(result, jopp2::visit_node_result::node_visitor_suspended);
 	}
 
-	template<class ContainerType>
+	template<class KeyType = std::string, class ContainerType>
 	void jopp2_node_visitor_adaptor_dispatch_array_cursor_at_end_visitor_suspended(
 		ContainerType const& vals
 	)
 	{
 		jopp2::container_proxy vals_proxy{std::cref(vals)};
 		vals_proxy.pop_active_elements(std::size(vals));
-		test_node_visitor visitor{};
-		auto adaptor = jopp2::make_node_visitor_adaptor<test_generic_value const&>(visitor);
+		test_node_visitor<KeyType> visitor{};
+		auto adaptor = jopp2::make_node_visitor_adaptor<test_generic_value<KeyType> const&>(visitor);
 		static constexpr jopp2::value_visitation_context expected_context{
 			.node_index = 1,
 			.parent_container_size = 2,
@@ -506,21 +505,21 @@ namespace
 			}
 		);
 
-		std::vector<decltype(adaptor)::node> nodes;
+		std::vector<typename decltype(adaptor)::node> nodes;
 		auto const result = adaptor(vals_proxy, expected_context, nodes);
 		EXPECT_EQ(std::size(nodes), 0);
 		EXPECT_EQ(result, jopp2::visit_node_result::node_visitor_suspended);
 	}
 
-	template<class ContainerType>
+	template<class KeyType = std::string, class ContainerType>
 	void jopp2_node_visitor_adaptor_dispatch_array_cursor_at_end_visitor_ready(
 		ContainerType const& vals
 	)
 	{
 		jopp2::container_proxy vals_proxy{std::cref(vals)};
 		vals_proxy.pop_active_elements(std::size(vals));
-		test_node_visitor visitor{};
-		auto adaptor = jopp2::make_node_visitor_adaptor<test_generic_value const&>(visitor);
+		test_node_visitor<KeyType> visitor{};
+		auto adaptor = jopp2::make_node_visitor_adaptor<test_generic_value<KeyType> const&>(visitor);
 		static constexpr jopp2::value_visitation_context expected_context{
 			.node_index = 1,
 			.parent_container_size = 2,
@@ -542,18 +541,18 @@ namespace
 				return jopp2::node_visitor_status::ready;
 			}
 		);
-		std::vector<decltype(adaptor)::node> nodes;
+		std::vector<typename decltype(adaptor)::node> nodes;
 		auto const result = adaptor(vals_proxy, expected_context, nodes);
 		EXPECT_EQ(result, jopp2::visit_node_result::completed);
 	}
 
-	template<class ContainerType>
+	template<class ContainerType, class KeyType = std::string>
 	void jopp2_node_visitor_adaptor_dispatch_array_empty_calls_begin_first()
 	{
 		ContainerType vals{};
 		jopp2::container_proxy vals_proxy{std::cref(vals)};
-		test_node_visitor visitor{};
-		auto adaptor = jopp2::make_node_visitor_adaptor<test_generic_value const&>(visitor);
+		test_node_visitor<KeyType> visitor{};
+		auto adaptor = jopp2::make_node_visitor_adaptor<test_generic_value<KeyType> const&>(visitor);
 		static constexpr jopp2::value_visitation_context expected_context{
 			.node_index = 1,
 			.parent_container_size = 2,
@@ -599,12 +598,12 @@ namespace
 				return jopp2::node_visitor_status::ready;
 			}
 		);
-		std::vector<decltype(adaptor)::node> nodes;
+		std::vector<typename decltype(adaptor)::node> nodes;
 		auto const result = adaptor(vals_proxy, expected_context, nodes);
 		EXPECT_EQ(result, jopp2::visit_node_result::completed);
 	}
 
-	template<class ContainerType, class ValCheck>
+	template<class KeyType = std::string, class ContainerType, class ValCheck>
 	void jopp2_node_visitor_adaptor_dispatch_array(
 		ContainerType const& vals,
 		ValCheck valcheck,
@@ -612,14 +611,14 @@ namespace
 	)
 	{
 		jopp2::container_proxy vals_proxy{std::cref(vals)};
-		test_node_visitor visitor{};
-		auto adaptor = jopp2::make_node_visitor_adaptor<test_generic_value const&>(visitor);
+		test_node_visitor<KeyType> visitor{};
+		auto adaptor = jopp2::make_node_visitor_adaptor<test_generic_value<KeyType> const&>(visitor);
 		static constexpr jopp2::value_visitation_context expected_context{
 			.node_index = 1,
 			.parent_container_size = 2,
 			.depth = 3
 		};
-		std::vector<decltype(adaptor)::node> nodes;
+		std::vector<typename decltype(adaptor)::node> nodes;
 
 		visitor.handle_begin_of_container.expect_call_with_action(
 			[] (
@@ -666,64 +665,64 @@ namespace
 		}
 	}
 
-	template<class ContainerType>
+	template<class ContainerType, class KeyType = std::string>
 	void jopp2_node_visitor_adaptor_dispatch_array_empty_first_at_end_suspends()
 	{
+		ContainerType vals{};
+		jopp2::container_proxy vals_proxy{std::cref(vals)};
 
-	ContainerType vals{};
-	jopp2::container_proxy vals_proxy{std::cref(vals)};
+		test_node_visitor<KeyType> visitor{};
+		auto adaptor = jopp2::make_node_visitor_adaptor<test_generic_value<KeyType> const&>(visitor);
+		static constexpr jopp2::value_visitation_context expected_context{
+			.node_index = 1,
+			.parent_container_size = 2,
+			.depth = 3
+		};
+		std::vector<typename decltype(adaptor)::node> nodes;
+		{
+			visitor.handle_begin_of_container.expect_call_with_action(
+				[] (
+					jopp2::container_proxy<ContainerType const>&,
+					jopp2::value_visitation_context const& ctxt
+				)
+				{
+					EXPECT_EQ(ctxt, expected_context);
+					return jopp2::node_visitor_status::ready;
+				}
+			);
 
-	test_node_visitor visitor{};
-	auto adaptor = jopp2::make_node_visitor_adaptor<test_generic_value const&>(visitor);
-	static constexpr jopp2::value_visitation_context expected_context{
-		.node_index = 1,
-		.parent_container_size = 2,
-		.depth = 3
-	};
-	std::vector<decltype(adaptor)::node> nodes;
-	{
-		visitor.handle_begin_of_container.expect_call_with_action(
-			[] (
-				jopp2::container_proxy<ContainerType const>&,
-				jopp2::value_visitation_context const& ctxt
-			)
-			{
-				EXPECT_EQ(ctxt, expected_context);
-				return jopp2::node_visitor_status::ready;
-			}
-		);
+			visitor.handle_end_of_container.expect_call_with_action(
+				[] (
+					jopp2::container_proxy<ContainerType const>&,
+					jopp2::value_visitation_context const& ctxt
+				)
+				{
+					EXPECT_EQ(ctxt, expected_context);
+					return jopp2::node_visitor_status::suspended;
+				}
+			);
 
-		visitor.handle_end_of_container.expect_call_with_action(
-			[] (
-				jopp2::container_proxy<ContainerType const>&,
-				jopp2::value_visitation_context const& ctxt
-			)
-			{
-				EXPECT_EQ(ctxt, expected_context);
-				return jopp2::node_visitor_status::suspended;
-			}
-		);
+			auto const result = adaptor(vals_proxy, expected_context, nodes);
+			EXPECT_EQ(result, jopp2::visit_node_result::node_visitor_suspended);
+		}
 
-		auto const result = adaptor(vals_proxy, expected_context, nodes);
-		EXPECT_EQ(result, jopp2::visit_node_result::node_visitor_suspended);
-	}
-	EXPECT_EQ(std::size(nodes), 0);
+		EXPECT_EQ(std::size(nodes), 0);
 
-	{
-		visitor.handle_end_of_container.expect_call_with_action(
-			[] (
-				jopp2::container_proxy<ContainerType const>&,
-				jopp2::value_visitation_context const& ctxt
-			)
-			{
-				EXPECT_EQ(ctxt, expected_context);
-				return jopp2::node_visitor_status::ready;
-			}
-		);
-		auto const result = adaptor(vals_proxy, expected_context, nodes);
-		EXPECT_EQ(result, jopp2::visit_node_result::completed);
-	}
-	EXPECT_EQ(std::size(nodes), 0);
+		{
+			visitor.handle_end_of_container.expect_call_with_action(
+				[] (
+					jopp2::container_proxy<ContainerType const>&,
+					jopp2::value_visitation_context const& ctxt
+				)
+				{
+					EXPECT_EQ(ctxt, expected_context);
+					return jopp2::node_visitor_status::ready;
+				}
+			);
+			auto const result = adaptor(vals_proxy, expected_context, nodes);
+			EXPECT_EQ(result, jopp2::visit_node_result::completed);
+		}
+		EXPECT_EQ(std::size(nodes), 0);
 	}
 }
 
@@ -731,9 +730,9 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_generic_value_array_cursor_at_begin
 {
 	jopp2_node_visitor_adaptor_dispatch_array_cursor_at_begin_visitor_suspended(
 		std::vector{
-			test_generic_value{1},
-			test_generic_value{2},
-			test_generic_value{3}
+			test_generic_value<>{1},
+			test_generic_value<>{2},
+			test_generic_value<>{3}
 		}
 	);
 }
@@ -742,9 +741,9 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_array_array_cursor_at_begin_visitor
 {
 	jopp2_node_visitor_adaptor_dispatch_array_cursor_at_begin_visitor_suspended(
 		std::vector{
-			std::vector{test_generic_value{1}, test_generic_value{4}, test_generic_value{7}},
-			std::vector{test_generic_value{2}, test_generic_value{5}, test_generic_value{8}},
-			std::vector{test_generic_value{3}, test_generic_value{6}, test_generic_value{9}}
+			std::vector{test_generic_value<>{1}, test_generic_value<>{4}, test_generic_value<>{7}},
+			std::vector{test_generic_value<>{2}, test_generic_value<>{5}, test_generic_value<>{8}},
+			std::vector{test_generic_value<>{3}, test_generic_value<>{6}, test_generic_value<>{9}}
 		}
 	);
 }
@@ -752,17 +751,17 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_array_array_cursor_at_begin_visitor
 TESTCASE(jopp2_node_visitor_adaptor_dispatch_object_cursor_at_begin_visitor_suspended)
 {
 	jopp2_node_visitor_adaptor_dispatch_array_cursor_at_begin_visitor_suspended(
-		test_generic_value::object{
-			std::pair{std::string{"Foo"}, test_generic_value{42}},
+		test_generic_value<>::object{
+			std::pair{std::string{"Foo"}, test_generic_value<>{42}},
 			std::pair{
 				std::string{"Bar"},
-				test_generic_value{
-					test_generic_value::object{}
+				test_generic_value<>{
+					test_generic_value<>::object{}
 				}
 			},
 			std::pair{
 				std::string{"Values"},
-				test_generic_value{std::vector{1, 2, 3}}
+				test_generic_value<>{std::vector{1, 2, 3}}
 			}
 		}
 	);
@@ -772,9 +771,9 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_generic_value_array_cursor_at_end_v
 {
 	jopp2_node_visitor_adaptor_dispatch_array_cursor_at_end_visitor_suspended(
 		std::vector{
-			test_generic_value{1},
-			test_generic_value{2},
-			test_generic_value{3}
+			test_generic_value<>{1},
+			test_generic_value<>{2},
+			test_generic_value<>{3}
 		}
 	);
 }
@@ -783,9 +782,9 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_array_array_cursor_at_end_visitor_s
 {
 	jopp2_node_visitor_adaptor_dispatch_array_cursor_at_end_visitor_suspended(
 		std::vector{
-			std::vector{test_generic_value{1}, test_generic_value{4}, test_generic_value{7}},
-			std::vector{test_generic_value{2}, test_generic_value{5}, test_generic_value{8}},
-			std::vector{test_generic_value{3}, test_generic_value{6}, test_generic_value{9}}
+			std::vector{test_generic_value<>{1}, test_generic_value<>{4}, test_generic_value<>{7}},
+			std::vector{test_generic_value<>{2}, test_generic_value<>{5}, test_generic_value<>{8}},
+			std::vector{test_generic_value<>{3}, test_generic_value<>{6}, test_generic_value<>{9}}
 		}
 	);
 }
@@ -793,17 +792,17 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_array_array_cursor_at_end_visitor_s
 TESTCASE(jopp2_node_visitor_adaptor_dispatch_object_cursor_at_end_visitor_suspended)
 {
 	jopp2_node_visitor_adaptor_dispatch_array_cursor_at_end_visitor_suspended(
-		test_generic_value::object{
-			std::pair{std::string{"Foo"}, test_generic_value{42}},
+		test_generic_value<>::object{
+			std::pair{std::string{"Foo"}, test_generic_value<>{42}},
 			std::pair{
 				std::string{"Bar"},
-				test_generic_value{
-					test_generic_value::object{}
+				test_generic_value<>{
+					test_generic_value<>::object{}
 				}
 			},
 			std::pair{
 				std::string{"Values"},
-				test_generic_value{std::vector{1, 2, 3}}
+				test_generic_value<>{std::vector{1, 2, 3}}
 			}
 		}
 	);
@@ -813,9 +812,9 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_generic_value_array_cursor_at_end_v
 {
 	jopp2_node_visitor_adaptor_dispatch_array_cursor_at_end_visitor_ready(
 		std::vector{
-			test_generic_value{1},
-			test_generic_value{2},
-			test_generic_value{3}
+			test_generic_value<>{1},
+			test_generic_value<>{2},
+			test_generic_value<>{3}
 		}
 	);
 }
@@ -824,9 +823,9 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_array_array_cursor_at_end_visitor_r
 {
 	jopp2_node_visitor_adaptor_dispatch_array_cursor_at_end_visitor_ready(
 		std::vector{
-			std::vector{test_generic_value{1}, test_generic_value{4}, test_generic_value{7}},
-			std::vector{test_generic_value{2}, test_generic_value{5}, test_generic_value{8}},
-			std::vector{test_generic_value{3}, test_generic_value{6}, test_generic_value{9}}
+			std::vector{test_generic_value<>{1}, test_generic_value<>{4}, test_generic_value<>{7}},
+			std::vector{test_generic_value<>{2}, test_generic_value<>{5}, test_generic_value<>{8}},
+			std::vector{test_generic_value<>{3}, test_generic_value<>{6}, test_generic_value<>{9}}
 		}
 	);
 }
@@ -834,17 +833,17 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_array_array_cursor_at_end_visitor_r
 TESTCASE(jopp2_node_visitor_adaptor_dispatch_object_cursor_at_end_visitor_ready)
 {
 	jopp2_node_visitor_adaptor_dispatch_array_cursor_at_end_visitor_ready(
-		test_generic_value::object{
-			std::pair{std::string{"Foo"}, test_generic_value{42}},
+		test_generic_value<>::object{
+			std::pair{std::string{"Foo"}, test_generic_value<>{42}},
 			std::pair{
 				std::string{"Bar"},
-				test_generic_value{
-					test_generic_value::object{}
+				test_generic_value<>{
+					test_generic_value<>::object{}
 				}
 			},
 			std::pair{
 				std::string{"Values"},
-				test_generic_value{std::vector{1, 2, 3}}
+				test_generic_value<>{std::vector{1, 2, 3}}
 			}
 		}
 	);
@@ -853,21 +852,21 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_object_cursor_at_end_visitor_ready)
 TESTCASE(jopp2_node_visitor_adaptor_dispatch_generic_value_array_empty_calls_begin_first)
 {
 	jopp2_node_visitor_adaptor_dispatch_array_empty_calls_begin_first<
-		std::vector<test_generic_value>
+		std::vector<test_generic_value<>>
 	>();
 }
 
 TESTCASE(jopp2_node_visitor_adaptor_dispatch_array_array_empty_calls_begin_first)
 {
 	jopp2_node_visitor_adaptor_dispatch_array_empty_calls_begin_first<
-		std::vector<std::vector<test_generic_value>>
+		std::vector<std::vector<test_generic_value<>>>
 	>();
 }
 
 TESTCASE(jopp2_node_visitor_adaptor_dispatch_object_empty_calls_begin_first)
 {
 	jopp2_node_visitor_adaptor_dispatch_array_empty_calls_begin_first<
-		test_generic_value::object
+		test_generic_value<>::object
 	>();
 }
 
@@ -875,9 +874,9 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_generic_value_array)
 {
 	jopp2_node_visitor_adaptor_dispatch_array(
 		std::vector{
-			test_generic_value{1},
-			test_generic_value{2},
-			test_generic_value{3}
+			test_generic_value<>{1},
+			test_generic_value<>{2},
+			test_generic_value<>{3}
 		},
 		[](auto const& nodes, size_t k) {
 			EXPECT_EQ(std::get<int>(nodes.back().value), static_cast<int>(k) + 1);
@@ -889,14 +888,14 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_array_array)
 {
 	jopp2_node_visitor_adaptor_dispatch_array(
 		std::vector{
-			std::vector{test_generic_value{1}, test_generic_value{4}, test_generic_value{7}},
-			std::vector{test_generic_value{2}, test_generic_value{5}, test_generic_value{8}},
-			std::vector{test_generic_value{3}, test_generic_value{6}, test_generic_value{9}}
+			std::vector{test_generic_value<>{1}, test_generic_value<>{4}, test_generic_value<>{7}},
+			std::vector{test_generic_value<>{2}, test_generic_value<>{5}, test_generic_value<>{8}},
+			std::vector{test_generic_value<>{3}, test_generic_value<>{6}, test_generic_value<>{9}}
 		},
 		[](auto const& nodes, size_t k) {
 			auto& val = std::get<
 				jopp2::container_proxy<
-					std::vector<test_generic_value> const
+					std::vector<test_generic_value<>> const
 				>
 			>(nodes.back().value);
 
@@ -911,17 +910,17 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_array_array)
 TESTCASE(jopp2_node_visitor_adaptor_dispatch_object)
 {
 	jopp2_node_visitor_adaptor_dispatch_array(
-		test_generic_value::object{
-			std::pair{std::string{"Foo"}, test_generic_value{42}},
+		test_generic_value<>::object{
+			std::pair{std::string{"Foo"}, test_generic_value<>{42}},
 			std::pair{
 				std::string{"Bar"},
-				test_generic_value{
-					test_generic_value::object{}
+				test_generic_value<>{
+					test_generic_value<>::object{}
 				}
 			},
 			std::pair{
 				std::string{"Values"},
-				test_generic_value{std::vector{1, 2, 3}}
+				test_generic_value<>{std::vector{1, 2, 3}}
 			}
 		},
 		[](auto const& nodes, size_t k) {
@@ -933,7 +932,7 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_object)
 					auto const& key = std::get<jopp2::key_wrapper<std::string>>((std::end(nodes) - 1)->value);
 					EXPECT_EQ(std::ranges::equal(key.value.active_range(), std::string_view{"Bar"}), true);
 					auto const& val = std::get<
-						jopp2::container_proxy<test_generic_value::object const>>(
+						jopp2::container_proxy<test_generic_value<>::object const>>(
 							(std::end(nodes) - 2)->value
 						);
 					EXPECT_EQ(val.empty(), true);
@@ -973,28 +972,28 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_object)
 TESTCASE(jopp2_node_visitor_adaptor_dispatch_generic_value_array_empty_first_at_end_suspends)
 {
 	jopp2_node_visitor_adaptor_dispatch_array_empty_first_at_end_suspends<
-		std::vector<test_generic_value>
+		std::vector<test_generic_value<>>
 	>();
 }
 
 TESTCASE(jopp2_node_visitor_adaptor_dispatch_array_array_empty_first_at_end_suspends)
 {
 	jopp2_node_visitor_adaptor_dispatch_array_empty_first_at_end_suspends<
-		std::vector<std::vector<test_generic_value>>
+		std::vector<std::vector<test_generic_value<>>>
 	>();
 }
 
 TESTCASE(jopp2_node_visitor_adaptor_dispatch_object_empty_first_at_end_suspends)
 {
 	jopp2_node_visitor_adaptor_dispatch_array_empty_first_at_end_suspends<
-		test_generic_value::object
+		test_generic_value<>::object
 	>();
 }
 
 TESTCASE(jopp2_node_visitor_adaptor_accepts_its_node_value)
 {
-	test_node_visitor visitor{};
-	auto adaptor = jopp2::make_node_visitor_adaptor<test_generic_value const&>(visitor);
+	test_node_visitor<> visitor{};
+	auto adaptor = jopp2::make_node_visitor_adaptor<test_generic_value<> const&>(visitor);
 
 	static constexpr jopp2::value_visitation_context expected_context{
 		.node_index = 1,
