@@ -14,7 +14,10 @@ namespace
 {
 	struct test_generic_value
 	{
-		using object = std::map<std::string, test_generic_value>;
+		using object = std::map<
+			std::variant<std::string, int>,
+			test_generic_value
+		>;
 
 		using value_type = std::variant<
 			int,
@@ -749,7 +752,7 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_array_array_cursor_at_begin_visitor
 TESTCASE(jopp2_node_visitor_adaptor_dispatch_object_cursor_at_begin_visitor_suspended)
 {
 	jopp2_node_visitor_adaptor_dispatch_array_cursor_at_begin_visitor_suspended(
-		std::map{
+		test_generic_value::object{
 			std::pair{std::string{"Foo"}, test_generic_value{42}},
 			std::pair{
 				std::string{"Bar"},
@@ -790,7 +793,7 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_array_array_cursor_at_end_visitor_s
 TESTCASE(jopp2_node_visitor_adaptor_dispatch_object_cursor_at_end_visitor_suspended)
 {
 	jopp2_node_visitor_adaptor_dispatch_array_cursor_at_end_visitor_suspended(
-		std::map{
+		test_generic_value::object{
 			std::pair{std::string{"Foo"}, test_generic_value{42}},
 			std::pair{
 				std::string{"Bar"},
@@ -831,7 +834,7 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_array_array_cursor_at_end_visitor_r
 TESTCASE(jopp2_node_visitor_adaptor_dispatch_object_cursor_at_end_visitor_ready)
 {
 	jopp2_node_visitor_adaptor_dispatch_array_cursor_at_end_visitor_ready(
-		std::map{
+		test_generic_value::object{
 			std::pair{std::string{"Foo"}, test_generic_value{42}},
 			std::pair{
 				std::string{"Bar"},
@@ -908,7 +911,7 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_array_array)
 TESTCASE(jopp2_node_visitor_adaptor_dispatch_object)
 {
 	jopp2_node_visitor_adaptor_dispatch_array(
-		std::map{
+		test_generic_value::object{
 			std::pair{std::string{"Foo"}, test_generic_value{42}},
 			std::pair{
 				std::string{"Bar"},

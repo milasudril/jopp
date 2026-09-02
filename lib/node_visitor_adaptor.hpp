@@ -135,22 +135,10 @@ namespace jopp2
 	template <class T>
 	inline constexpr bool is_key_wrapper_v = is_key_wrapper<T>::value;
 
-	template<class T>
-	struct is_atom : std::false_type
-	{};
-
-	template<class T>
-	requires(std::is_arithmetic_v<T>)
-	struct is_atom<T> : std::true_type
-	{};
-
 	template <typename T>
 	concept range_of_ranges =
 			 std::ranges::range<T>
 		&& std::ranges::range<std::ranges::range_value_t<T>>;
-
-	template<class T>
-	inline constexpr bool is_atom_v = is_atom<T>::value;
 
 	template<class GenericValue, class NodeVisitor>
 	class node_visitor_adaptor
@@ -230,11 +218,26 @@ namespace jopp2
 		}
 
 		template<class Value>
+		requires(!is_variant_v<std::remove_cvref_t<Value>>)
 		[[gnu::always_inline]] static auto wrap_key(Value&& item)
 		{
 			return node_value{
 				key_wrapper<std::remove_cvref_t<Value>>::create(std::forward<Value>(item))
 			};
+		}
+
+		template<class Key>
+		requires(is_variant_v<std::remove_cvref_t<Key>>)
+		[[gnu::always_inline]] static auto wrap_key(Key&& key)
+		{
+			return std::visit(
+				[]<class T>(T&& item){
+					return node_value{
+						key_wrapper<std::remove_cvref_t<T>>::create(std::forward<T>(item))
+					};
+				},
+				std::forward<Key>(key)
+			);
 		}
 
 		template<class NodeVisitorType>

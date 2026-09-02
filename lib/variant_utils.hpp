@@ -11,6 +11,17 @@ namespace jopp2
 	struct make_variant_type_tag
 	{ using type = T; };
 
+	template<class... T>
+	struct is_variant
+	{ static constexpr auto value = false; };
+
+	template<class... T>
+	struct is_variant<std::variant<T...>>
+	{ static constexpr auto value = true; };
+
+	template<class T>
+	inline constexpr auto is_variant_v = is_variant<T>::value;
+
 	template<size_t Index, class VariantType, class Factory>
 	consteval void fill_make_variant_vtable(
 		std::array<VariantType (*)(Factory&&), std::variant_size_v<VariantType>>& vtable
@@ -27,7 +38,7 @@ namespace jopp2
 				"Factory returns wrong type"
 			);
 			vtable[Index] = [](Factory&& f) {
-				return VariantType(std::forward<Factory>(f)(make_variant_type_tag<type>{}));
+				return VariantType(std::move(f)(make_variant_type_tag<type>{}));
 			};
 			return fill_make_variant_vtable<Index + 1>(vtable);
 		}
