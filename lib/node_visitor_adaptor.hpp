@@ -144,6 +144,11 @@ namespace jopp2
 	struct is_atom<T> : std::true_type
 	{};
 
+	template <typename T>
+	concept range_of_ranges =
+			 std::ranges::range<T>
+		&& std::ranges::range<std::ranges::range_value_t<T>>;
+
 	template<class T>
 	inline constexpr bool is_atom_v = is_atom<T>::value;
 
@@ -196,6 +201,13 @@ namespace jopp2
 		};
 
 		using node_stack = std::vector<node>;
+
+		template<class T>
+		static constexpr auto is_simple_array = !range_of_ranges<T>
+			&& (
+			   generic_value_t::template is_leaf_value<typename T::value_type>
+			|| std::is_integral_v<typename T::value_type>
+		);
 
 		[[gnu::always_inline]] static auto wrap_value(
 			std::conditional_t<src_is_const, generic_value_t const&, generic_value_t&> item
@@ -253,7 +265,7 @@ namespace jopp2
 
 		template<class T, class Unused = int>
 		requires instance_of<std::remove_cvref_t<T>, container_proxy>
-		&& (is_atom_v<typename T::value_type>)
+		&& (is_simple_array<std::remove_cvref_t<T>>)
 		visit_node_result operator()(
 			T& item,
 			value_visitation_context const& current_context,
@@ -304,7 +316,7 @@ namespace jopp2
 
 		template<class T>
 		requires instance_of<std::remove_cvref_t<T>, container_proxy>
-		&& (!is_atom_v<typename std::remove_cvref_t<T>::value_type>)
+		&& (!is_simple_array<typename std::remove_cvref_t<T>::container_type>)
 		visit_node_result operator()(
 			T& obj,
 			value_visitation_context const& current_context,
