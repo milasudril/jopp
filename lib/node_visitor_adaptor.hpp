@@ -273,7 +273,7 @@ namespace jopp2
 		)
 		{
 			return to_visit_node_result(
-				m_visitor.handle_leaf_value_array(item, current_context),
+				m_visitor.handle_simple_array(item, current_context),
 				[&item](){
 					return item.at_end();
 				}

@@ -68,7 +68,7 @@ namespace
 				jopp2::container_proxy<std::string const>&,
 				jopp2::value_visitation_context const&
 			)
-		> handle_leaf_value_array;
+		> handle_simple_array;
 
 		TestFwk::mock_entry_overload_set<
 			jopp2::node_visitor_status(
@@ -257,7 +257,7 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_leaf_value_array_return_ready)
 		.depth = 3
 	};
 
-	visitor.handle_leaf_value_array.expect_call_with_action(
+	visitor.handle_simple_array.expect_call_with_action(
 		[callcount = static_cast<size_t>(0), &vals](
 			jopp2::container_proxy<std::vector<int>>& obj,
 			jopp2::value_visitation_context const& ctxt
@@ -301,7 +301,7 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_leaf_value_array_return_suspended)
 		.depth = 3
 	};
 
-	visitor.handle_leaf_value_array.expect_call_with_action(
+	visitor.handle_simple_array.expect_call_with_action(
 		[](
 			jopp2::container_proxy<std::vector<int>>& ,
 			jopp2::value_visitation_context const& ctxt
@@ -326,7 +326,7 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_leaf_value_array_also_leaf_value)
 		.depth = 3
 	};
 
-	visitor.handle_leaf_value_array.expect_call_with_action(
+	visitor.handle_simple_array.expect_call_with_action(
 		[&my_string](
 			jopp2::container_proxy<std::string>& str,
 			jopp2::value_visitation_context const& ctxt
@@ -1023,7 +1023,7 @@ TESTCASE(jopp2_node_visitor_adaptor_accepts_its_node_value)
 			jopp2::container_proxy{std::cref(vals)}
 		};
 		adaptor_type::node_stack nodes;
-		visitor.handle_leaf_value_array.expect_call_with_action(
+		visitor.handle_simple_array.expect_call_with_action(
 			[&vals](jopp2::container_proxy<std::vector<int> const>& val, jopp2::value_visitation_context const& context){
 				EXPECT_EQ(val.active_range().begin(), vals.data());
 				EXPECT_EQ(context, expected_context);
