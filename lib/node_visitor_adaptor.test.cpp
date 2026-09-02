@@ -80,7 +80,7 @@ namespace
 				jopp2::value_visitation_context const&
 			),
 			jopp2::node_visitor_status(
-				jopp2::container_proxy<std::map<std::string, test_generic_value> const>&,
+				jopp2::container_proxy<test_generic_value::object const>&,
 				jopp2::value_visitation_context const&
 			),
 			jopp2::node_visitor_status(
@@ -99,7 +99,7 @@ namespace
 				jopp2::value_visitation_context const&
 			),
 			jopp2::node_visitor_status(
-				jopp2::container_proxy<std::map<std::string, test_generic_value> const>&,
+				jopp2::container_proxy<test_generic_value::object const>&,
 				jopp2::value_visitation_context const&
 			),
 			jopp2::node_visitor_status(
@@ -754,7 +754,7 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_object_cursor_at_begin_visitor_susp
 			std::pair{
 				std::string{"Bar"},
 				test_generic_value{
-					std::map<std::string, test_generic_value>{}
+					test_generic_value::object{}
 				}
 			},
 			std::pair{
@@ -795,7 +795,7 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_object_cursor_at_end_visitor_suspen
 			std::pair{
 				std::string{"Bar"},
 				test_generic_value{
-					std::map<std::string, test_generic_value>{}
+					test_generic_value::object{}
 				}
 			},
 			std::pair{
@@ -836,7 +836,7 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_object_cursor_at_end_visitor_ready)
 			std::pair{
 				std::string{"Bar"},
 				test_generic_value{
-					std::map<std::string, test_generic_value>{}
+					test_generic_value::object{}
 				}
 			},
 			std::pair{
@@ -864,7 +864,7 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_array_array_empty_calls_begin_first
 TESTCASE(jopp2_node_visitor_adaptor_dispatch_object_empty_calls_begin_first)
 {
 	jopp2_node_visitor_adaptor_dispatch_array_empty_calls_begin_first<
-		std::map<std::string, test_generic_value>
+		test_generic_value::object
 	>();
 }
 
@@ -913,7 +913,7 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_object)
 			std::pair{
 				std::string{"Bar"},
 				test_generic_value{
-					std::map<std::string, test_generic_value>{}
+					test_generic_value::object{}
 				}
 			},
 			std::pair{
@@ -930,7 +930,7 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_object)
 					auto const& key = std::get<jopp2::key_wrapper<std::string>>((std::end(nodes) - 1)->value);
 					EXPECT_EQ(std::ranges::equal(key.value.active_range(), std::string_view{"Bar"}), true);
 					auto const& val = std::get<
-						jopp2::container_proxy<std::map<std::string, test_generic_value> const>>(
+						jopp2::container_proxy<test_generic_value::object const>>(
 							(std::end(nodes) - 2)->value
 						);
 					EXPECT_EQ(val.empty(), true);
@@ -984,7 +984,7 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_array_array_empty_first_at_end_susp
 TESTCASE(jopp2_node_visitor_adaptor_dispatch_object_empty_first_at_end_suspends)
 {
 	jopp2_node_visitor_adaptor_dispatch_array_empty_first_at_end_suspends<
-		std::map<std::string, test_generic_value>
+		test_generic_value::object
 	>();
 }
 
