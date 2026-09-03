@@ -118,6 +118,19 @@ namespace
 			)
 		> handle_key;
 	};
+
+	struct test_context
+	{
+		int state;
+		constexpr bool operator==(test_context const&) const = default;
+		constexpr bool operator!=(test_context const&) const = default;
+	};
+
+	struct test_node
+	{
+		std::variant<int, std::string> value;
+		test_context context;
+	};
 }
 
 TESTCASE(jopp2_to_visit_node_result_completed_defaults_to_always_true)
@@ -159,9 +172,114 @@ TESTCASE(jopp2_to_visit_node_result_junk_leads_to_sigabrt)
 				completed_mock
 			);
 		},
-		"jopp internal error: lib/./node_visitor_adaptor.hpp:61: Invalid return value from node visitor\n",
+		"jopp internal error: lib/./node_visitor_adaptor.hpp:81: Invalid return value from node visitor\n",
 		SIGABRT
 	);
+}
+
+#if 0
+	template<class NodeSequence, class NodeVisitor>
+	[[nodiscard]] auto visit_nodes(NodeSequence& nodes, NodeVisitor&& nv)
+	{
+		auto&& visitor = std::forward<NodeVisitor>(nv);
+		while(!nodes.empty())
+		{
+			auto& current_node = nodes.back();
+			switch(visit_with_args(current_node.value, visitor, current_node.context))
+			{
+				case visit_node_result::node_visitor_ready:
+					break;
+				case visit_node_result::node_visitor_suspended:
+					return node_visitor_status::suspended;
+				case visit_node_result::completed:
+					nodes.pop_back();
+			}
+		}
+		return node_visitor_status::ready;
+	}
+#endif
+
+TESTCASE(jopp2_node_sequence_visit_nodes_with_empty_node_sequence)
+{
+	std::vector<test_node> nodes;
+	TestFwk::mock_entry_overload_set<
+		jopp2::visit_node_result(int, test_context),
+		jopp2::visit_node_result(std::string const&, test_context)
+	> visitor_mock;
+	auto const result = jopp2::visit_nodes(nodes, visitor_mock);
+	EXPECT_EQ(result, jopp2::node_visitor_status::ready);
+}
+
+TESTCASE(jopp2_node_sequence_visit_nodes_keeps_going_until_visitor_suspended)
+{
+	std::vector<test_node> nodes;
+	nodes.push_back(
+		test_node{
+			.value = std::string{"Foobar"},
+			.context = test_context{
+				.state = 1
+			}
+		}
+	);
+
+	size_t callcount = 0;
+	TestFwk::mock_entry_overload_set<
+		jopp2::visit_node_result(int, test_context),
+		jopp2::visit_node_result(std::string const&, test_context)
+	> visitor_mock;
+	visitor_mock.expect_call_with_action(
+		[&callcount](std::string const& str, test_context ctxt){
+			auto const retval = callcount < 3?
+				  jopp2::visit_node_result::node_visitor_ready
+				: jopp2::visit_node_result::node_visitor_suspended;
+				++callcount;
+				EXPECT_EQ(str, "Foobar");
+				EXPECT_EQ(ctxt, test_context{1});
+			return retval;
+		},
+		TestFwk::expectation_options{
+			.cardinality = TestFwk::cardinality_constraint::exactly(4)
+		}
+	);
+	auto const result = jopp2::visit_nodes(nodes, visitor_mock);
+	EXPECT_EQ(result, jopp2::node_visitor_status::suspended);
+	EXPECT_EQ(nodes.size(), 1);
+}
+
+TESTCASE(jopp2_node_sequence_visit_nodes_keeps_going_until_visitor_completed)
+{
+	std::vector<test_node> nodes;
+	nodes.push_back(
+		test_node{
+			.value = std::string{"Foobar"},
+			.context = test_context{
+				.state = 1
+			}
+		}
+	);
+
+	size_t callcount = 0;
+	TestFwk::mock_entry_overload_set<
+		jopp2::visit_node_result(int, test_context),
+		jopp2::visit_node_result(std::string const&, test_context)
+	> visitor_mock;
+	visitor_mock.expect_call_with_action(
+		[&callcount](std::string const& str, test_context ctxt){
+			auto const retval = callcount < 3?
+				  jopp2::visit_node_result::node_visitor_ready
+				: jopp2::visit_node_result::completed;
+				++callcount;
+				EXPECT_EQ(str, "Foobar");
+				EXPECT_EQ(ctxt, test_context{1});
+			return retval;
+		},
+		TestFwk::expectation_options{
+			.cardinality = TestFwk::cardinality_constraint::exactly(4)
+		}
+	);
+	auto const result = jopp2::visit_nodes(nodes, visitor_mock);
+	EXPECT_EQ(result, jopp2::node_visitor_status::ready);
+	EXPECT_EQ(nodes.size(), 0);
 }
 
 TESTCASE(jopp2_node_visitor_adaptor_create_with_ref_to_visitor)

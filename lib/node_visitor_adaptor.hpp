@@ -35,6 +35,26 @@ namespace jopp2
 		completed = static_cast<int>(node_visitor_status::suspended) + 1
 	};
 
+	template<class NodeSequence, class NodeVisitor>
+	[[nodiscard]] auto visit_nodes(NodeSequence& nodes, NodeVisitor&& nv)
+	{
+		auto&& visitor = std::forward<NodeVisitor>(nv);
+		while(!nodes.empty())
+		{
+			auto& current_node = nodes.back();
+			switch(visit_with_args(current_node.value, visitor, current_node.context))
+			{
+				case visit_node_result::node_visitor_ready:
+					break;
+				case visit_node_result::node_visitor_suspended:
+					return node_visitor_status::suspended;
+				case visit_node_result::completed:
+					nodes.pop_back();
+			}
+		}
+		return node_visitor_status::ready;
+	}
+
 	struct always_true
 	{
 		static constexpr bool operator()() noexcept
