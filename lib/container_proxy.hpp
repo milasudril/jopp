@@ -153,6 +153,14 @@ namespace jopp2
 		constexpr bool empty() const
 		{ return m_backing_store.empty(); }
 
+		constexpr auto& pop_active_elements()
+		{
+			if(m_backing_store.empty())
+			{ m_sentinel_consumed = true; }
+			m_current_iterator = m_backing_store.end();
+			return *this;
+		}
+
 		constexpr auto& pop_active_element()
 		{ return pop_active_elements(1); }
 
