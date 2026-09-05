@@ -54,3 +54,12 @@ TESTCASE(jopp2_clear_nodes_visitor_handle_end_of_container)
 		jopp2::node_visitor_status::ready
 	)
 }
+
+TESTCASE(jopp2_clear_nodes_visitor_handle_key)
+{
+	jopp2::clear_nodes_visitor visitor;
+	EXPECT_EQ(
+		visitor.handle_key(123, jopp2::value_visitation_context{}),
+		jopp2::node_visitor_status::ready
+	)
+}
