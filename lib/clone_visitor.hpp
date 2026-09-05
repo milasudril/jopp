@@ -14,7 +14,18 @@ namespace jopp2
 
 	template<class T>
 	struct key_to_clone
-	{ T value; };
+	{
+		using captured_type = T;
+		T value;
+	};
+
+	template<class T>
+	requires std::ranges::range<T>
+	struct key_to_clone<T>
+	{
+		using captured_type = T;
+		container_proxy<T const>::active_range_type value;
+	};
 
 	template<class GenericValueIn, class GenericValueOut>
 	class clone_visitor_2
@@ -54,11 +65,23 @@ namespace jopp2
 
 			template<class Rhs>
 			requires instance_of<std::remove_cvref_t<Rhs>, key_to_clone>
+			&& (!std::ranges::range<typename std::remove_cvref_t<Rhs>::captured_type>)
 			[[gnu::always_inline]] static GenericValueOut* update(GenericValueOut& lhs, Rhs&& rhs)
 			{
+				auto const result = lhs.emplace(std::forward<Rhs>(rhs).value, GenericValueOut{});
+				if(result.value == nullptr)
+				{ raise_internal_error("lhs is not an obejct"); }
+				return result.value;
+			}
+
+			template<class Rhs>
+			requires instance_of<std::remove_cvref_t<Rhs>, key_to_clone>
+			&& (std::ranges::range<typename std::remove_cvref_t<Rhs>::captured_type>)
+			[[gnu::always_inline]] static GenericValueOut* update(GenericValueOut& lhs, Rhs&& rhs)
+			{
+				using output_type = std::remove_cvref_t<Rhs>::captured_type;
 				auto const result = lhs.emplace(
-					std::forward<Rhs>(rhs).value,
-					GenericValueOut{}
+					output_type{std::from_range_t{}, std::forward<Rhs>(rhs).value}, GenericValueOut{}
 				);
 				if(result.value == nullptr)
 				{ raise_internal_error("lhs is not an obejct"); }
@@ -103,7 +126,9 @@ namespace jopp2
 			if(!old_out)
 			{ jopp2::raise_internal_error("No output object present"); }
 
-			m_value_after_key = old_out.update_with(key_to_clone{key.active_range()});
+			m_value_after_key = old_out.update_with(
+				key_to_clone<std::remove_const_t<T>>{key.active_range()}
+			);
 			return node_visitor_status::ready;
 		}
 

@@ -118,7 +118,7 @@ TESTCASE(jopp2_clone_visitor_handle_int_key_current_value_is_not_an_object)
 		[&visitor]{
 			std::ignore = visitor.handle_key(1234, jopp2::value_visitation_context{});
 		},
-		"jopp internal error: lib/./clone_visitor.hpp:64: lhs is not an obejct\n",
+		"jopp internal error: lib/./clone_visitor.hpp:73: lhs is not an obejct\n",
 		SIGABRT
 	);
 }
@@ -141,5 +141,46 @@ TESTCASE(jopp2_clone_visitor_handle_int_key_current_value_is_an_object)
 		auto const res = visitor.handle_leaf_value(66, jopp2::value_visitation_context{});
 		EXPECT_EQ(res, jopp2::node_visitor_status::ready);
 		EXPECT_EQ(*object.at(test_generic_value_out::object::key_type{1234}).get_if<int>(), 66);
+	}
+}
+
+TESTCASE(jopp2_clone_visitor_handle_string_key_current_value_is_not_an_object)
+{
+	test_generic_value_out output;
+	jopp2::clone_visitor_2<test_generic_value_in, test_generic_value_out> visitor{output};
+	TestFwk::expect_death(
+		[&visitor]{
+			std::string the_key{"Hello, world"};
+			jopp2::container_proxy key{std::cref(the_key)};
+			std::ignore = visitor.handle_key(key, jopp2::value_visitation_context{});
+		},
+		"jopp internal error: lib/./clone_visitor.hpp:87: lhs is not an obejct\n",
+		SIGABRT
+	);
+}
+
+TESTCASE(jopp2_clone_visitor_handle_string_key_current_value_is_an_object)
+{
+	test_generic_value_out output;
+	jopp2::clone_visitor_2<test_generic_value_in, test_generic_value_out> visitor{output};
+	output.value = test_generic_value_out::object{};
+
+	auto& object = *output.get_if<test_generic_value_out::object>();
+
+	{
+		std::string the_key{"Hello, world"};
+		jopp2::container_proxy key{std::cref(the_key)};
+		auto const res = visitor.handle_key(key, jopp2::value_visitation_context{});
+		EXPECT_EQ(res, jopp2::node_visitor_status::ready);
+		EXPECT_EQ(object.contains(the_key), true );
+	}
+
+	{
+		auto const res = visitor.handle_leaf_value(66, jopp2::value_visitation_context{});
+		EXPECT_EQ(res, jopp2::node_visitor_status::ready);
+		EXPECT_EQ(
+			*object.at(test_generic_value_out::object::key_type{"Hello, world"}).get_if<int>(),
+			66
+		);
 	}
 }
