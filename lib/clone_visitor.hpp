@@ -4,16 +4,17 @@
 #include "./node_visitor_adaptor.hpp"
 #include "./value_storage.hpp"
 #include "./template_param_pack.hpp"
+#include "lib/exception.hpp"
 
 namespace jopp2
 {
-	template<class T>
+	template<class GenericValueOut, class Other>
 	struct clone_visitor_update_result
-	{ using type = T*; };
-
-	template<class GenericValueOut>
-	struct clone_visitor_update_result<std::pair<typename GenericValueOut::key_type, GenericValueOut>>
 	{ using type = GenericValueOut*; };
+
+	template<class T>
+	struct key_to_clone
+	{ T value; };
 
 	template<class GenericValueIn, class GenericValueOut>
 	class clone_visitor_2
@@ -21,30 +22,46 @@ namespace jopp2
 	public:
 		using src_value_param_pack = GenericValueIn::leaf_value_template_param_pack;
 		using src_kv_item = GenericValueIn::object::value_type;
-		using complete_pack_with_kv_item = concatenate_template_param_packs_t<
+		using dest_kv_item = GenericValueOut::object::value_type;
+		using complete_pack= concatenate_template_param_packs_t<
 			src_value_param_pack,
-			wrap_in_template_param_pack_t<src_kv_item>
+			wrap_template_param_pack_elements_t<
+				make_template_param_pack_t<typename GenericValueIn::object::key_type>,
+				key_to_clone
+			>
 		>;
 
 		template<class T>
-		using update_result_t = clone_visitor_update_result<T>::type;
+		using update_result_t = clone_visitor_update_result<GenericValueOut, T>::type;
 
 		template<class ... Args>
 		using value_storage_with_result = value_storage<update_result_t, Args...>;
 
 		using value_storage_out = map_template_param_pack_to_type_t<
 			value_storage_with_result,
-			src_value_param_pack
+			complete_pack
 		>;
 
 		struct generic_value_traits
 		{
 			template<class Rhs>
-			requires(std::is_constructible_v<GenericValueOut, Rhs>)
+			requires(std::is_constructible_v<GenericValueOut, Rhs> && !instance_of<Rhs, key_to_clone>)
 			[[gnu::always_inline]] static auto update(GenericValueOut& lhs, Rhs&& rhs)
 			{
 				lhs = GenericValueOut(std::forward<Rhs>(rhs));
-				return lhs.template get_if<Rhs>();
+				return &lhs;
+			}
+
+			template<class Rhs>
+			requires instance_of<std::remove_cvref_t<Rhs>, key_to_clone>
+			[[gnu::always_inline]] static GenericValueOut* update(GenericValueOut& lhs, Rhs&& rhs)
+			{
+				auto const result = lhs.emplace(
+					std::forward<Rhs>(rhs).value,
+					GenericValueOut{}
+				);
+				raise_internal_error("lhs is not an obejct");
+				return result.value;
 			}
 		};
 
@@ -79,18 +96,25 @@ namespace jopp2
 		}
 
 		template<class T>
-		void handle_key(T&& prop_name, value_visitation_context const& /*unused*/)
+		node_visitor_status handle_key(jopp2::container_proxy<T>& key, value_visitation_context const& /*unused*/)
 		{
 			auto& old_out = m_contexts.back().output_value;
-			if(old_out)
-			{
-				m_value_after_key = old_out.update_with(
-					std::pair{
-						std::forward<T>(prop_name),
-						GenericValueOut{}
-					}
-				);
-			}
+			if(!old_out)
+			{ jopp2::raise_internal_error("No output object present"); }
+
+			m_value_after_key = old_out.update_with(key_to_clone{key.active_range()});
+			return node_visitor_status::ready;
+		}
+
+		template<class T>
+		node_visitor_status handle_key(T&& key, value_visitation_context const& /*unused*/)
+		{
+			auto& old_out = m_contexts.back().output_value;
+			if(!old_out)
+			{ jopp2::raise_internal_error("No output object present"); }
+
+			m_value_after_key = old_out.update_with(key_to_clone{std::forward<T>(key)});
+			return node_visitor_status::ready;
 		}
 
 #if TODO

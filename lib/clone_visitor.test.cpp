@@ -3,6 +3,7 @@
 #include "./clone_visitor.hpp"
 #include "lib/node_visitor_adaptor.hpp"
 #include "lib/template_param_pack.hpp"
+#include "testfwk/death_test.hpp"
 
 #include <map>
 #include <testfwk/testfwk.hpp>
@@ -16,7 +17,9 @@ namespace
 			std::string
 		>;
 
-		using object = std::map<std::variant<int, std::string>, test_generic_value_in>;
+		using key_type = std::variant<int, std::string>;
+
+		using object = std::map<key_type, test_generic_value_in>;
 
 #if 0
 		using value_type = std::variant<
@@ -44,7 +47,7 @@ namespace
 
 	struct test_generic_value_out
 	{
-		using object = std::map<std::variant<int, std::string>, test_generic_value_in>;
+		using object = std::map<std::variant<int, std::string>, test_generic_value_out>;
 		using value_type = std::variant<
 			int,
 			std::string,
@@ -76,6 +79,26 @@ namespace
 		template<class T, class Self>
 		auto get_if(this Self&& self)
 		{ return std::get_if<std::remove_cvref_t<T>>(&std::forward<Self>(self).value); }
+
+		struct emplace_ret_val
+		{
+			test_generic_value_out* value;
+		};
+
+		template<class Self, class T, class KeyLike>
+		auto emplace(this Self& self, KeyLike&& key, T&& value)
+		{
+			using ret_type = emplace_ret_val;
+
+			auto i = self.template get_if<object>();
+			if(i == nullptr)
+			{ return ret_type{}; }
+
+			auto const insert_result = i->emplace(std::forward<KeyLike>(key), std::forward<T>(value));
+			return ret_type{
+				.value = &insert_result.first->second
+			};
+		}
 	};
 }
 
@@ -86,4 +109,17 @@ TESTCASE(jopp2_clone_visitor_handle_leaf_value_currently_no_key)
 	jopp2::clone_visitor_2<test_generic_value_in, test_generic_value_out> visitor{output};
 	auto const res = visitor.handle_leaf_value(1234, jopp2::value_visitation_context{});
 	EXPECT_EQ(res, jopp2::node_visitor_status::ready);
+}
+
+TESTCASE(jopp2_clone_visitor_handle_int_key_with_output_value)
+{
+	test_generic_value_out output;
+	jopp2::clone_visitor_2<test_generic_value_in, test_generic_value_out> visitor{output};
+	TestFwk::expect_death(
+		[&visitor]{
+			std::ignore = visitor.handle_key(1234, jopp2::value_visitation_context{});
+		},
+		"jopp internal error: lib/./clone_visitor.hpp:63: lhs is not an obejct\n",
+		SIGABRT
+	);
 }

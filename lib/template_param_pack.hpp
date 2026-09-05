@@ -242,6 +242,22 @@ namespace jopp2
 	template<class PackType, template<class, class...> class Wrapper, class... OtherArgs>
 	using wrap_template_param_pack_elements_t =
 		wrap_template_param_pack_elements<PackType, Wrapper, OtherArgs...>::type;
+
+
+	template<class T>
+	struct make_template_param_pack
+	{
+		using type = wrap_in_template_param_pack_t<T>;
+	};
+
+	template<template<class> class SrcType, class ... Args>
+	struct make_template_param_pack<SrcType<Args...>>
+	{
+		using type = template_param_pack<Args...>;
+	};
+
+	template<class T>
+	using make_template_param_pack_t = make_template_param_pack<T>::type;
 }
 
 #endif

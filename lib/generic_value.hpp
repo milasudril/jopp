@@ -62,7 +62,6 @@ namespace jopp2
 	{
 	public:
 		constexpr explicit lookup_result(lookup_error_code err_code):
-			m_value{nullptr},
 			m_err_code{err_code}
 		{}
 
@@ -115,7 +114,7 @@ namespace jopp2
 			std::variant,
 			leaf_value_template_param_pack
 		>;
-		using key_type = typename ValueTraits::key_type;
+		using key_type = ValueTraits::key_type;
 		using object = AssociativeContainerType<key_type, generic_value>;
 		using map_value_type = object::value_type;
 		template<class T>
@@ -167,16 +166,16 @@ namespace jopp2
 
 		template<class Self>
 		auto&& get_value(this Self&& self)
-		{ return std::forward_like<Self>(self.m_value); }
+		{ return std::forward_like<Self>(std::forward<Self>(self).m_value); }
 
 		template<class T, class Self>
 		auto get_if(this Self&& self)
-		{ return std::get_if<std::remove_cvref_t<T>>(&self.m_value); }
+		{ return std::get_if<std::remove_cvref_t<T>>(&std::forward<Self>(self).m_value); }
 
 		template<class T, class Self>
 		auto&& get(this Self&& self)
 		{
-			auto retval = self.template get_if<T>();
+			auto retval = std::forward<Self>(self).template get_if<T>();
 			if(retval == nullptr)
 			{ throw exception{"Current value has an unexpected type"}; }
 			return std::forward_like<Self>(*retval);
@@ -190,7 +189,7 @@ namespace jopp2
 				lookup_result<std::remove_cvref_t<T> const>,
 				lookup_result<std::remove_cvref_t<T>>
 			>;
-			auto item = self.template get_if<object>();
+			auto item = std::forward<Self>(self).template get_if<object>();
 			if(item == nullptr)
 			{ return ret_type{lookup_error_code::value_not_an_object}; }
 
@@ -207,7 +206,7 @@ namespace jopp2
 
 		template<class T, class Self, class KeyLike>
 		auto&& get_by_name(this Self&& self, KeyLike const& key)
-		{ return std::forward_like<Self>(self.template get_if_by_name<T>(key).value(key)); }
+		{ return std::forward_like<Self>(std::forward<Self>(self).template get_if_by_name<T>(key).value(key)); }
 
 		template<class Value>
 		struct insert_result
@@ -228,6 +227,23 @@ namespace jopp2
 		}
 
 		template<class Self, class T, class KeyLike>
+		auto emplace(this Self& self, KeyLike&& key, T&& value)
+		{
+			using ret_type = insert_result<generic_value>;
+
+			auto i = self.template get_if<object>();
+			if(i == nullptr)
+			{ return ret_type{}; }
+
+			auto const insert_result = i->emplace(std::forward<KeyLike>(key), std::forward<T>(value));
+			return ret_type{
+				.key = &insert_result.first->first,
+				.value = &insert_result.first->second,
+				.was_inserted = insert_result.second
+			};
+		}
+
+		template<class Self, class T, class KeyLike>
 		auto try_store_value_as(this Self& self, T&& value, KeyLike&& key)
 		{
 			using ret_type = insert_result<std::remove_cvref_t<T>>;
@@ -240,7 +256,7 @@ namespace jopp2
 			return ret_type{
 				.key = &insert_result.first->first,
 				.value = get_value_pointer<std::remove_cvref_t<T>>(&insert_result.first->second),
-				.was_inserted=insert_result.second
+				.was_inserted = insert_result.second
 			};
 		}
 
@@ -299,14 +315,14 @@ namespace jopp2
 				self.m_value,
 				overload{
 					[](SequenceContainerType<std::remove_cvref_t<T>>& seq, T&& value) -> std::remove_cvref_t<T>* {
-						seq.emplace_back(std::forward<T>(value));
+						seq.emplace_back(std::move(value));
 						return &seq.back();
 					},
 					[&self]<sequence_container Seq>(Seq& seq, T&& value) -> std::remove_cvref_t<T>* {
 						if(seq.empty())
 						{
 							SequenceContainerType<std::remove_cvref_t<T>> new_container{};
-							new_container.emplace_back(std::forward<T>(value));
+							new_container.emplace_back(std::move(value));
 							auto ret = &new_container.back();
 							self.m_value = std::move(new_container);
 							return ret;
@@ -383,9 +399,9 @@ namespace jopp2
 	{
 	public:
 		using generic_value = std::remove_cvref_t<GenericValue>;
-		using value_type = typename generic_value::value_type;
-		using key_type = typename generic_value::key_type;
-		using object = typename generic_value::object;
+		using value_type = generic_value::value_type;
+		using key_type = generic_value::key_type;
+		using object = generic_value::object;
 		using objptr =  std::conditional_t<
 			std::is_const_v<std::remove_reference_t<GenericValue>>,
 			object const*,
@@ -645,7 +661,7 @@ namespace jopp2
 	template<class GenericValue, class VisitorType>
 	void visit_nodes(GenericValue&& root, VisitorType&& visitor)
 	{
-		node_visitor node_visitor{root, std::forward<VisitorType>(visitor)};
+		node_visitor node_visitor{std::forward<GenericValue>(root), std::forward<VisitorType>(visitor)};
 		if constexpr(std::remove_cvref_t<VisitorType>::is_suspendable)
 		{ while(node_visitor.visit_nodes() == visitor_status::suspend){} }
 		else
@@ -659,8 +675,8 @@ namespace jopp2
 		VisitorArgs&&... visitor_args
 	)
 	{
-		node_visitor<GenericValue,VisitorType> node_visitor{
-			root,
+		node_visitor<GenericValue, VisitorType> node_visitor{
+			std::forward<GenericValue>(root),
 			std::in_place_t{},
 			std::forward<VisitorArgs>(visitor_args)...
 		};
@@ -693,7 +709,7 @@ namespace jopp2
 	{
 		UPDATE_CALLBACK static TypeToStore* update(OutputArray& out, update_param_t<TypeToStore> val)
 		{
-			using output_value_type = typename OutputArray::value_type;
+			using output_value_type = OutputArray::value_type;
 			if constexpr(
 				   std::is_constructible_v<output_value_type, TypeToStore>
 				|| std::is_same_v<output_value_type, TypeToStore>
@@ -727,7 +743,7 @@ namespace jopp2
 		static constexpr bool is_suspendable = false;
 
 		using kv_item = std::pair<typename GenericValueOut::key_type, GenericValueOut>;
-		using object_out = typename GenericValueOut::object;
+		using object_out = GenericValueOut::object;
 
 		template<class... SrcValueTypes>
 		struct clone_visitor_value_update_traits:
@@ -767,7 +783,7 @@ namespace jopp2
 		};
 
 		template<class T>
-		using sequence_container_out = typename GenericValueOut::template sequence_container_type<T>;
+		using sequence_container_out =  GenericValueOut::template sequence_container_type<T>;
 
 		using leaf_value_template_param_pack = SrcValueTemplateParamPack;
 
@@ -810,7 +826,7 @@ namespace jopp2
 		>;
 
 		template<class T>
-		using update_result_t = typename clone_visitor_update_result<T>::type;
+		using update_result_t = clone_visitor_update_result<T>::type;
 
 		template<class ... Args>
 		using value_storage_with_result = value_storage<update_result_t, Args...>;
@@ -840,7 +856,7 @@ namespace jopp2
 			{
 				auto const val_ptr = m_value_after_key;
 				m_value_after_key = nullptr;
-				using convert_to = typename std::remove_cvref_t<std::remove_pointer_t<decltype(val_ptr)>>;
+				using convert_to = std::remove_cvref_t<std::remove_pointer_t<decltype(val_ptr)>>;
 				*val_ptr = convert_to{std::forward<T>(value)};
 			}
 			else
@@ -977,7 +993,7 @@ namespace jopp2
 		void handle_leaf_value_array(T const& src, value_visitation_context /*unused*/)
 		{
 			using src_type = std::remove_cvref_t<T>;
-			using src_value_type = typename src_type::value_type;
+			using src_value_type = src_type::value_type;
 			using output_array = sequence_container_out<src_value_type>;
 			output_array* out_ptr{nullptr};
 			if(m_value_after_key != nullptr)
@@ -1025,7 +1041,7 @@ namespace jopp2
 	template<class GenericValueOut, class GenericValueIn>
 	auto clone(GenericValueIn&& src)
 	{
-		using src_value_template_param_pack = typename std::remove_cvref_t<GenericValueIn>::leaf_value_template_param_pack;
+		using src_value_template_param_pack =  std::remove_cvref_t<GenericValueIn>::leaf_value_template_param_pack;
 		GenericValueOut ret;
 		visit_nodes(
 			std::forward<GenericValueIn>(src),
