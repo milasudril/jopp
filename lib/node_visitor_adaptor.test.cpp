@@ -177,28 +177,6 @@ TESTCASE(jopp2_to_visit_node_result_junk_leads_to_sigabrt)
 	);
 }
 
-#if 0
-	template<class NodeSequence, class NodeVisitor>
-	[[nodiscard]] auto visit_nodes(NodeSequence& nodes, NodeVisitor&& nv)
-	{
-		auto&& visitor = std::forward<NodeVisitor>(nv);
-		while(!nodes.empty())
-		{
-			auto& current_node = nodes.back();
-			switch(visit_with_args(current_node.value, visitor, current_node.context))
-			{
-				case visit_node_result::node_visitor_ready:
-					break;
-				case visit_node_result::node_visitor_suspended:
-					return node_visitor_status::suspended;
-				case visit_node_result::completed:
-					nodes.pop_back();
-			}
-		}
-		return node_visitor_status::ready;
-	}
-#endif
-
 TESTCASE(jopp2_node_sequence_visit_nodes_with_empty_node_sequence)
 {
 	std::vector<test_node> nodes;

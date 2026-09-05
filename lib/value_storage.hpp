@@ -126,6 +126,8 @@ namespace jopp2
 	public:
 		constexpr value_storage() = default;
 
+		// update_traits<UpdateResultType, Sink, Types...>
+
 		/**
 		 * \brief Initializes the value_storage with target. UpdateTraits must provide
 		 *        overloads of the static function update for each type, that accepts a
@@ -133,8 +135,8 @@ namespace jopp2
 		 *        the type wrapped in UpdateResultType, which typically results in a
 		 *        pointer or a reference.
 		 */
-		template<class Sink, update_traits<UpdateResultType, Sink, Types...> UpdateTraits>
-		constexpr explicit value_storage(Sink& target, std::type_identity<UpdateTraits>):
+		template<class Sink, class UpdateTraits>
+		constexpr explicit value_storage(Sink& target, std::type_identity<UpdateTraits> /*unused*/):
 				m_handle{&target},
 				m_vtable{&s_vtable<Sink, UpdateTraits>}
 		{}
@@ -178,7 +180,7 @@ namespace jopp2
 
 		template<class Sink, class UpdateTraits>
 		static constexpr vtable s_vtable{
-			[](void* target, update_param_t<Types> value) UPDATE_CALLBACK {
+			[](void* target, update_param_t<Types> value) UPDATE_CALLBACK -> UpdateResultType<Types> {
 				if constexpr(pass_by_value_v<Types> || std::is_trivially_copyable_v<Types>)
 				{ return UpdateTraits::update(*static_cast<Sink*>(target), value); }
 				else
