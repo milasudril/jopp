@@ -102,7 +102,6 @@ namespace
 	};
 }
 
-
 TESTCASE(jopp2_clone_visitor_handle_leaf_value_currently_no_key)
 {
 	test_generic_value_out output;
@@ -111,7 +110,7 @@ TESTCASE(jopp2_clone_visitor_handle_leaf_value_currently_no_key)
 	EXPECT_EQ(res, jopp2::node_visitor_status::ready);
 }
 
-TESTCASE(jopp2_clone_visitor_handle_int_key_with_output_value)
+TESTCASE(jopp2_clone_visitor_handle_int_key_current_value_is_not_an_object)
 {
 	test_generic_value_out output;
 	jopp2::clone_visitor_2<test_generic_value_in, test_generic_value_out> visitor{output};
@@ -119,7 +118,28 @@ TESTCASE(jopp2_clone_visitor_handle_int_key_with_output_value)
 		[&visitor]{
 			std::ignore = visitor.handle_key(1234, jopp2::value_visitation_context{});
 		},
-		"jopp internal error: lib/./clone_visitor.hpp:63: lhs is not an obejct\n",
+		"jopp internal error: lib/./clone_visitor.hpp:64: lhs is not an obejct\n",
 		SIGABRT
 	);
+}
+
+TESTCASE(jopp2_clone_visitor_handle_int_key_current_value_is_an_object)
+{
+	test_generic_value_out output;
+	jopp2::clone_visitor_2<test_generic_value_in, test_generic_value_out> visitor{output};
+	output.value = test_generic_value_out::object{};
+
+	auto& object = *output.get_if<test_generic_value_out::object>();
+
+	{
+		auto const res = visitor.handle_key(1234, jopp2::value_visitation_context{});
+		EXPECT_EQ(res, jopp2::node_visitor_status::ready);
+		EXPECT_EQ(object.contains(test_generic_value_out::object::key_type{1234}), true );
+	}
+
+	{
+		auto const res = visitor.handle_leaf_value(66, jopp2::value_visitation_context{});
+		EXPECT_EQ(res, jopp2::node_visitor_status::ready);
+		EXPECT_EQ(*object.at(test_generic_value_out::object::key_type{1234}).get_if<int>(), 66);
+	}
 }

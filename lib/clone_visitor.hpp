@@ -60,7 +60,8 @@ namespace jopp2
 					std::forward<Rhs>(rhs).value,
 					GenericValueOut{}
 				);
-				raise_internal_error("lhs is not an obejct");
+				if(result.value == nullptr)
+				{ raise_internal_error("lhs is not an obejct"); }
 				return result.value;
 			}
 		};
