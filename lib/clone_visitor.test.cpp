@@ -115,7 +115,7 @@ TESTCASE(jopp2_clone_visitor_handle_int_key_current_value_is_not_an_object)
 		[&visitor]{
 			std::ignore = visitor.handle_key(1234, jopp2::value_visitation_context{});
 		},
-		"jopp internal error: lib/./clone_visitor.hpp:87: lhs is not an obejct\n",
+		"jopp internal error: lib/./clone_visitor.hpp:92: lhs is not an obejct\n",
 		SIGABRT
 	);
 }
@@ -151,7 +151,7 @@ TESTCASE(jopp2_clone_visitor_handle_string_key_current_value_is_not_an_object)
 			jopp2::container_proxy key{std::cref(the_key)};
 			std::ignore = visitor.handle_key(key, jopp2::value_visitation_context{});
 		},
-		"jopp internal error: lib/./clone_visitor.hpp:101: lhs is not an obejct\n",
+		"jopp internal error: lib/./clone_visitor.hpp:106: lhs is not an obejct\n",
 		SIGABRT
 	);
 }
