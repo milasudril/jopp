@@ -132,7 +132,7 @@ namespace jopp2
 	};
 
 	template<class T>
-	struct key_wrapper
+	struct key_node
 	{
 		using value_type = node_item<std::remove_const_t<T>, true>::type;
 		value_type value;
@@ -140,20 +140,20 @@ namespace jopp2
 		template<class U>
 		static constexpr auto create(U&& val)
 		{
-			return key_wrapper{
+			return key_node{
 				.value = node_item<std::remove_const_t<T>, true>::create(std::forward<U>(val))
 			};
 		}
 	};
 
 	template <class T>
-	struct is_key_wrapper : std::false_type {};
+	struct is_key_node : std::false_type {};
 
 	template <class T>
-	struct is_key_wrapper<key_wrapper<T>> : std::true_type {};
+	struct is_key_node<key_node<T>> : std::true_type {};
 
 	template <class T>
-	inline constexpr bool is_key_wrapper_v = is_key_wrapper<T>::value;
+	inline constexpr bool is_key_node_v = is_key_node<T>::value;
 
 	template <typename T>
 	concept range_of_ranges =
@@ -198,7 +198,7 @@ namespace jopp2
 			>,
 			wrap_variant_element_t<
 				wrap_in_variant_t<typename object::key_type>,
-				key_wrapper
+				key_node
 			>
 		>;
 
@@ -242,7 +242,7 @@ namespace jopp2
 		[[gnu::always_inline]] static auto wrap_key(Value&& item)
 		{
 			return node_value{
-				key_wrapper<std::remove_cvref_t<Value>>::create(std::forward<Value>(item))
+				key_node<std::remove_cvref_t<Value>>::create(std::forward<Value>(item))
 			};
 		}
 
@@ -253,7 +253,7 @@ namespace jopp2
 			return std::visit(
 				[]<class T>(T&& item){
 					return node_value{
-						key_wrapper<std::remove_cvref_t<T>>::create(std::forward<T>(item))
+						key_node<std::remove_cvref_t<T>>::create(std::forward<T>(item))
 					};
 				},
 				std::forward<Key>(key)
@@ -305,7 +305,7 @@ namespace jopp2
 
 		template<class T>
 		visit_node_result dispatch_key(
-			key_wrapper<T>::value_type item,
+			key_node<T>::value_type item,
 			value_visitation_context const& current_context
 		)
 		{ return to_visit_node_result(m_visitor.handle_key(item, current_context)); }
@@ -326,7 +326,7 @@ namespace jopp2
 		}
 
 		template <class KeyWrapper, class Unused = int>
-		requires is_key_wrapper_v<std::remove_cvref_t<KeyWrapper>>
+		requires is_key_node_v<std::remove_cvref_t<KeyWrapper>>
 		[[gnu::always_inline]] visit_node_result operator()(
 			KeyWrapper&& item,
 			value_visitation_context const& current_context,

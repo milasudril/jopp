@@ -457,7 +457,7 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_scalar_key)
 		return jopp2::node_visitor_status::ready;
 	});
 	{
-		auto const res = adaptor(jopp2::key_wrapper<int>{23}, expected_context);
+		auto const res = adaptor(jopp2::key_node<int>{23}, expected_context);
 		EXPECT_EQ(res, jopp2::visit_node_result::completed);
 	}
 
@@ -470,7 +470,7 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_scalar_key)
 		return jopp2::node_visitor_status::suspended;
 	});
 	{
-		auto const res = adaptor(jopp2::key_wrapper<int>{23}, expected_context);
+		auto const res = adaptor(jopp2::key_node<int>{23}, expected_context);
 		EXPECT_EQ(res, jopp2::visit_node_result::node_visitor_suspended);
 	}
 }
@@ -486,7 +486,7 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_sequence_key)
 	};
 
 	std::string the_key{"foobar"};
-	jopp2::key_wrapper<std::string> key{
+	jopp2::key_node<std::string> key{
 		.value = jopp2::container_proxy<std::string const>{the_key}
 	};
 
@@ -1025,7 +1025,7 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_object)
 				case 0:
 				{
 					REQUIRE_EQ(std::size(nodes), 2);
-					auto const& key = std::get<jopp2::key_wrapper<std::string>>((std::end(nodes) - 1)->value);
+					auto const& key = std::get<jopp2::key_node<std::string>>((std::end(nodes) - 1)->value);
 					EXPECT_EQ(std::ranges::equal(key.value.active_range(), std::string_view{"Bar"}), true);
 					auto const& val = std::get<
 						jopp2::container_proxy<test_generic_value<>::object const>>(
@@ -1038,7 +1038,7 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_object)
 				{
 					EXPECT_EQ(std::size(nodes), 4);
 					REQUIRE_GE(std::size(nodes), 2);
-					auto const& key = std::get<jopp2::key_wrapper<std::string>>((std::end(nodes) - 1)->value);
+					auto const& key = std::get<jopp2::key_node<std::string>>((std::end(nodes) - 1)->value);
 					EXPECT_EQ(std::ranges::equal(key.value.active_range(), std::string_view{"Foo"}), true);
 					auto const val = std::get<int>((std::end(nodes) - 2)->value);
 					EXPECT_EQ(val, 42);
@@ -1048,7 +1048,7 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_object)
 				{
 					EXPECT_EQ(std::size(nodes), 6);
 					REQUIRE_GE(std::size(nodes), 2);
-					auto const& key = std::get<jopp2::key_wrapper<std::string>>((std::end(nodes) - 1)->value);
+					auto const& key = std::get<jopp2::key_node<std::string>>((std::end(nodes) - 1)->value);
 					EXPECT_EQ(std::ranges::equal(key.value.active_range(), std::string_view{"Values"}), true);
 					auto const& val = std::get<
 					jopp2::container_proxy<std::vector<int> const>>((std::end(nodes) - 2)->value);
@@ -1090,7 +1090,7 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_object_mixed_key_types)
 				{
 					EXPECT_EQ(std::size(nodes), 2);
 					REQUIRE_EQ(std::size(nodes), 2);
-					auto const key = std::get<jopp2::key_wrapper<int>>((std::end(nodes) - 1)->value);
+					auto const key = std::get<jopp2::key_node<int>>((std::end(nodes) - 1)->value);
 					EXPECT_EQ(key.value, 12);
 					auto const& val = std::get<
 						jopp2::container_proxy<test_generic_value<key_type>::object const>>(
@@ -1103,7 +1103,7 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_object_mixed_key_types)
 				{
 					EXPECT_EQ(std::size(nodes), 4);
 					REQUIRE_GE(std::size(nodes), 2);
-					auto const& key = std::get<jopp2::key_wrapper<std::string>>((std::end(nodes) - 1)->value);
+					auto const& key = std::get<jopp2::key_node<std::string>>((std::end(nodes) - 1)->value);
 					EXPECT_EQ(std::ranges::equal(key.value.active_range(), std::string_view{"Foo"}), true);					auto const val = std::get<int>((std::end(nodes) - 2)->value);
 					EXPECT_EQ(val, 42);
 					break;
@@ -1112,7 +1112,7 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_object_mixed_key_types)
 				{
 					EXPECT_EQ(std::size(nodes), 6);
 					REQUIRE_GE(std::size(nodes), 2);
-					auto const& key = std::get<jopp2::key_wrapper<std::string>>((std::end(nodes) - 1)->value);
+					auto const& key = std::get<jopp2::key_node<std::string>>((std::end(nodes) - 1)->value);
 					EXPECT_EQ(std::ranges::equal(key.value.active_range(), std::string_view{"Values"}), true);
 					auto const& val = std::get<
 					jopp2::container_proxy<std::vector<int> const>>((std::end(nodes) - 2)->value);
@@ -1200,7 +1200,7 @@ TESTCASE(jopp2_node_visitor_adaptor_accepts_its_node_value)
 	{
 		std::string key{"Foobar"};
 		node_value val{
-			jopp2::key_wrapper<std::string>{
+			jopp2::key_node<std::string>{
 				.value = jopp2::container_proxy{std::cref(key)}
 			}
 		};
