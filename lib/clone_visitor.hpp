@@ -2,6 +2,7 @@
 #define JOPP2_CLONE_VISITOR_HPP
 
 #include "./node_visitor_adaptor.hpp"
+#include "./generic_value_update_traits.hpp"
 #include "./value_storage.hpp"
 #include "./template_param_pack.hpp"
 #include "lib/exception.hpp"
@@ -11,7 +12,7 @@ namespace jopp2
 {
 	template<class GenericValueOut, class Other>
 	struct clone_visitor_update_result
-	{ using type = GenericValueOut*; };
+	{ using type = void; };
 
 	template<class T>
 	struct key_to_clone
@@ -72,55 +73,6 @@ namespace jopp2
 			complete_pack
 		>;
 
-		struct generic_value_update_traits
-		{
-			template<class Rhs>
-			requires(std::is_constructible_v<GenericValueOut, Rhs> && !instance_of<Rhs, key_to_clone>)
-			[[gnu::always_inline]] static auto update(GenericValueOut& lhs, Rhs&& rhs)
-			{
-				lhs = GenericValueOut(std::forward<Rhs>(rhs));
-				return &lhs;
-			}
-
-			template<class Rhs>
-			requires instance_of<std::remove_cvref_t<Rhs>, key_to_clone>
-			&& (!std::ranges::range<typename std::remove_cvref_t<Rhs>::captured_type>)
-			[[gnu::always_inline]] static auto update(GenericValueOut& lhs, Rhs&& rhs)
-			{
-				auto const result = lhs.emplace(std::forward<Rhs>(rhs).value, GenericValueOut{});
-				if(result.value == nullptr)
-				{ raise_internal_error("lhs is not an obejct"); }
-				return result.value;
-			}
-
-			template<class Rhs>
-			requires instance_of<std::remove_cvref_t<Rhs>, key_to_clone>
-			&& (std::ranges::range<typename std::remove_cvref_t<Rhs>::captured_type>)
-			[[gnu::always_inline]] static auto update(GenericValueOut& lhs, Rhs&& rhs)
-			{
-				using output_type = std::remove_cvref_t<Rhs>::captured_type;
-				auto const result = lhs.emplace(
-					output_type{std::from_range_t{}, std::forward<Rhs>(rhs).value}, GenericValueOut{}
-				);
-				if(result.value == nullptr)
-				{ raise_internal_error("lhs is not an obejct"); }
-				return result.value;
-			}
-
-			template<class Rhs>
-			requires std::ranges::range<Rhs>
-			&& (!std::is_constructible_v<GenericValueOut, Rhs> && !instance_of<Rhs, key_to_clone>)
-			[[gnu::always_inline]] static auto update(GenericValueOut& lhs, Rhs&& rhs)
-			{
-				using output_type = sequence_container_out<
-					std::remove_cvref_t<std::ranges::range_value_t<Rhs>>
-				>;
-
-				lhs = GenericValueOut{output_type{std::from_range_t{}, std::forward<Rhs>(rhs)}};
-				return &lhs;
-			}
-		};
-
 		explicit clone_visitor_2(GenericValueOut& output_value)
 		{
 			m_contexts.reserve(1024);
@@ -129,7 +81,7 @@ namespace jopp2
 					.parent_node = {},
 					.output_value = value_storage_out{
 						output_value,
-						std::type_identity<generic_value_update_traits>{}
+						std::type_identity<generic_value_update_traits<GenericValueOut>>{}
 					}
 				}
 			);
@@ -146,7 +98,7 @@ namespace jopp2
 				*val_ptr = convert_to{std::forward<T>(value)};
 			}
 			else
-			{ std::ignore = m_contexts.back().output_value.update_with(std::forward<T>(value)); }
+			{ m_contexts.back().output_value.update_with(std::forward<T>(value)); }
 
 			return node_visitor_status::ready;
 		}
@@ -196,7 +148,7 @@ namespace jopp2
 			value.pop_active_elements();
 			return node_visitor_status::ready;
 		}
-
+#if 0
 		template<class T>
 		node_visitor_status handle_begin_of_container(
 			container_proxy<T>& value,
@@ -240,6 +192,7 @@ namespace jopp2
 			}
 			return node_visitor_status::ready;
 		}
+#endif
 
 		template<class T>
 		node_visitor_status handle_end_of_container(

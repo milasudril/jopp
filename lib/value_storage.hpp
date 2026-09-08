@@ -149,7 +149,7 @@ namespace jopp2
 			!std::is_lvalue_reference_v<SourceValue> ||
 			pass_by_value_v<std::remove_cvref_t<SourceValue>>
 		)
-		[[gnu::always_inline]] [[nodiscard]] constexpr auto update_with(SourceValue&& value) const
+		[[gnu::always_inline]] constexpr auto update_with(SourceValue&& value) const
 		{
 			using raw_type = std::remove_cvref_t<SourceValue>;
 			return std::get<update_callback_t<raw_type>>(*m_vtable)(m_handle, std::forward<SourceValue>(value));
@@ -157,7 +157,7 @@ namespace jopp2
 
 		template<class SourceValue>
 		requires(!pass_by_value_v<std::remove_cvref_t<SourceValue>>)
-		[[gnu::always_inline]] [[nodiscard]] constexpr auto update_with(SourceValue const& value) const
+		[[gnu::always_inline]] constexpr auto update_with(SourceValue const& value) const
 		{
 			using raw_type = std::remove_cvref_t<SourceValue>;
 			if constexpr(std::is_trivially_copyable_v<std::remove_cvref_t<SourceValue>>)
@@ -180,7 +180,7 @@ namespace jopp2
 
 		template<class Sink, class UpdateTraits>
 		static constexpr vtable s_vtable{
-			[](void* target, update_param_t<Types> value) UPDATE_CALLBACK -> UpdateResultType<Types> {
+			[](void* target, update_param_t<Types> value) UPDATE_CALLBACK {
 				if constexpr(pass_by_value_v<Types> || std::is_trivially_copyable_v<Types>)
 				{ return UpdateTraits::update(*static_cast<Sink*>(target), value); }
 				else
