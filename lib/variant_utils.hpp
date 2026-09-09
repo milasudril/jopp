@@ -1,6 +1,8 @@
 #ifndef JOPP_VARIANT_UTILS_HPP
 #define JOPP_VARIANT_UTILS_HPP
 
+#include "./exception.hpp"
+
 #include <cstddef>
 #include <variant>
 #include <array>
@@ -8,7 +10,7 @@
 namespace jopp2
 {
 	template<class T>
-	struct make_variant_type_tag
+	struct variant_element_tag
 	{ using type = T; };
 
 	template<class... T>
@@ -22,9 +24,22 @@ namespace jopp2
 	template<class T>
 	inline constexpr auto is_variant_v = is_variant<T>::value;
 
-	template<size_t Index, class VariantType, class CallableWrapper, class Callable, class ... Args>
-	consteval void fill_visit_variant_type_vtable(
-		std::array<CallableWrapper, std::variant_size_v<VariantType>>& vtable
+	template<class Callable, class Placeholder, class... Args>
+	using callable_wrapper = std::invoke_result_t<Callable, Placeholder, Args...> (*)(
+		Callable&&,
+		Args&&...
+	);
+
+	template<size_t Index, class VariantType, class Callable, class... Args>
+	consteval void fill_visit_variant_element_vtable(
+		std::array<
+			callable_wrapper<
+				Callable,
+				variant_element_tag<std::variant_alternative_t<0, VariantType>>,
+				Args...
+			>,
+			std::variant_size_v<VariantType>
+		>& vtable
 	)
 	{
 		if constexpr(Index == std::variant_size_v<VariantType>)
@@ -32,33 +47,42 @@ namespace jopp2
 		else
 		{
 			using type = std::variant_alternative_t<Index, VariantType>;
-			using type_tag =  make_variant_type_tag<type>;
+			using type_tag =  variant_element_tag<type>;
 			vtable[Index] = [](Callable&& f, Args&&... args) {
 				return std::move(f)(type_tag{}, std::move(args)...);
 			};
-			return fill_make_variant_vtable<Index + 1>(vtable);
+			return fill_visit_variant_element_vtable<Index + 1, VariantType, Callable, Args...>(vtable);
 		}
 	}
 
-	template<class VariantType, class Factory>
-	consteval auto create_make_variant_vtable()
+	template<class VariantType, class Callable, class...  Args>
+	consteval auto create_visit_variant_element_vtable()
 	{
-		std::array<VariantType (*)(Factory&&), std::variant_size_v<VariantType>> ret{};
-		fill_visit_variant_type_vtable<0, VariantType>(ret);
+		std::array<
+			callable_wrapper<
+				Callable,
+				variant_element_tag<std::variant_alternative_t<0, VariantType>>,
+				Args...
+			>,
+			std::variant_size_v<VariantType>
+		> ret{};
+		fill_visit_variant_element_vtable<0, VariantType, Callable, Args...>(ret);
 		return ret;
 	}
 
-	template<class VariantType, class Factory>
-	constexpr auto make_variant_vtable = create_make_variant_vtable<VariantType, Factory>();
-
-	template<class VariantType, class Factory>
-	constexpr auto make_variant(size_t kind, Factory&& factory)
+	template<class VariantType, class Callable, class... Args>
+	constexpr auto visit_variant_element(size_t index, Callable&& cb, Args&&... args)
 	{
-		constexpr auto& vtable = make_variant_vtable<VariantType, Factory>;
-		if(kind >= std::size(vtable)) [[unlikely]]
-		{ return VariantType{}; }
+		static constexpr auto vtable = create_visit_variant_element_vtable<
+			VariantType,
+			Callable,
+			Args...
+		>();
 
-		return vtable[kind](std::forward<Factory>(factory));
+		if(index >= std::size(vtable))
+		{ throw exception{"Bad variant index"}; }
+
+		return vtable[index](std::forward<Callable>(cb), std::forward<Args>(args)...);
 	}
 
 	template<class VariantType, class... TypesToAppend>
@@ -66,7 +90,7 @@ namespace jopp2
 	{
 	private:
 		template<size_t... I>
-		static consteval auto resolve_type(std::index_sequence<I...>)
+		static consteval auto resolve_type(std::index_sequence<I...> /*unused*/)
 		{
 			return std::type_identity<
 				std::variant<
@@ -231,7 +255,7 @@ namespace jopp2
 			[](auto&& arg) {
 				return ret_type{&arg};
 			},
-			variant
+			std::forward<VariantType>(variant)
 		);
 	}
 }
