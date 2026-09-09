@@ -22,9 +22,9 @@ namespace jopp2
 	template<class T>
 	inline constexpr auto is_variant_v = is_variant<T>::value;
 
-	template<size_t Index, class VariantType, class Factory>
-	consteval void fill_make_variant_vtable(
-		std::array<VariantType (*)(Factory&&), std::variant_size_v<VariantType>>& vtable
+	template<size_t Index, class VariantType, class CallableWrapper, class Callable, class ... Args>
+	consteval void fill_visit_variant_type_vtable(
+		std::array<CallableWrapper, std::variant_size_v<VariantType>>& vtable
 	)
 	{
 		if constexpr(Index == std::variant_size_v<VariantType>)
@@ -33,12 +33,8 @@ namespace jopp2
 		{
 			using type = std::variant_alternative_t<Index, VariantType>;
 			using type_tag =  make_variant_type_tag<type>;
-			static_assert(
-				std::is_same_v<std::invoke_result_t<Factory, type_tag>, type>,
-				"Factory returns wrong type"
-			);
-			vtable[Index] = [](Factory&& f) {
-				return VariantType(std::move(f)(make_variant_type_tag<type>{}));
+			vtable[Index] = [](Callable&& f, Args&&... args) {
+				return std::move(f)(type_tag{}, std::move(args)...);
 			};
 			return fill_make_variant_vtable<Index + 1>(vtable);
 		}
@@ -47,9 +43,9 @@ namespace jopp2
 	template<class VariantType, class Factory>
 	consteval auto create_make_variant_vtable()
 	{
-			std::array<VariantType (*)(Factory&&), std::variant_size_v<VariantType>> ret{};
-			fill_make_variant_vtable<0>(ret);
-			return ret;
+		std::array<VariantType (*)(Factory&&), std::variant_size_v<VariantType>> ret{};
+		fill_visit_variant_type_vtable<0, VariantType>(ret);
+		return ret;
 	}
 
 	template<class VariantType, class Factory>
