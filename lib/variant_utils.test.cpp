@@ -28,16 +28,20 @@ TESTCASE(jopp2_variant_utils_make_variant_of_pointers)
 	}
 }
 
+struct arg_type
+{
+	int value;
+};
+
 TESTCASE(jopp2_variant_utils_visit_variant_element)
 {
 	using variant_type = std::variant<int, std::string>;
 	enum class which{int_visited, string_visisted};
-	struct arg_type{
-		int value;
-	};
 	TestFwk::mock_entry_overload_set<
 		which(jopp2::variant_element_tag<int>, arg_type),
-		which(jopp2::variant_element_tag<std::string>, arg_type)
+		which(jopp2::variant_element_tag<std::string>, arg_type),
+		which(jopp2::variant_element_tag<int>, int&),
+		which(jopp2::variant_element_tag<std::string>, int&)
 	> visitor;
 
 	visitor.expect_call_with_action(
@@ -69,4 +73,20 @@ TESTCASE(jopp2_variant_utils_visit_variant_element)
 		}
 	);
 	EXPECT_EQ(result2, which::string_visisted);
+
+	int value = 1;
+	visitor.expect_call_with_action(
+		[](jopp2::variant_element_tag<int>, int& arg) {
+			arg = 2;
+			EXPECT_EQ(arg, 1);
+			return which::int_visited;
+		}
+	);
+	auto const result3 = jopp2::visit_variant_element<variant_type>(
+		0,
+		visitor,
+		value
+	);
+	EXPECT_EQ(result3, which::int_visited);
+	EXPECT_EQ(arg, 2);
 }

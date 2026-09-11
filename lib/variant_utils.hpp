@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <variant>
 #include <array>
+#include <functional>
 
 namespace jopp2
 {
@@ -26,8 +27,8 @@ namespace jopp2
 
 	template<class Callable, class Placeholder, class... Args>
 	using callable_wrapper = std::invoke_result_t<Callable, Placeholder, Args...> (*)(
-		Callable&&,
-		Args&&...
+		Callable,
+		Args...
 	);
 
 	template<size_t Index, class VariantType, class Callable, class... Args>
@@ -48,8 +49,8 @@ namespace jopp2
 		{
 			using type = std::variant_alternative_t<Index, VariantType>;
 			using type_tag =  variant_element_tag<type>;
-			vtable[Index] = [](Callable&& f, Args&&... args) {
-				return std::move(f)(type_tag{}, std::move(args)...);
+			vtable[Index] = [](Callable f, Args... args) -> decltype(auto) {
+				return f(type_tag{}, args...);
 			};
 			return fill_visit_variant_element_vtable<Index + 1, VariantType, Callable, Args...>(vtable);
 		}
@@ -75,8 +76,8 @@ namespace jopp2
 	{
 		static constexpr auto vtable = create_visit_variant_element_vtable<
 			VariantType,
-			Callable,
-			Args...
+			decltype(cb),
+			decltype(args)...
 		>();
 
 		if(index >= std::size(vtable))
