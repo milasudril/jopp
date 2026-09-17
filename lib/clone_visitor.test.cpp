@@ -1,4 +1,4 @@
-//@	{"target":{"name":"clone_visitor.test"}}
+//	{"target":{"name":"clone_visitor.test"}}
 
 #include "./clone_visitor.hpp"
 #include "lib/node_visitor_adaptor.hpp"
@@ -99,12 +99,22 @@ namespace
 	};
 }
 
-TESTCASE(jopp2_clone_visitor_handle_leaf_value_currently_no_key)
+TESTCASE(jopp2_clone_visitor_copy_leaf_value_to_empty)
 {
 	test_generic_value_out output;
 	jopp2::clone_visitor_2<test_generic_value_in, test_generic_value_out> visitor{output};
 	auto const res = visitor.handle_leaf_value(1234, jopp2::value_visitation_context{});
 	EXPECT_EQ(res, jopp2::node_visitor_status::ready);
+	EXPECT_EQ(*output.get_if<int>(), 1234);
+}
+
+TESTCASE(jopp2_clone_visitor_copy_leaf_value_to_non_empty)
+{
+	test_generic_value_out output{"Hello, World"};
+	jopp2::clone_visitor_2<test_generic_value_in, test_generic_value_out> visitor{output};
+	auto const res = visitor.handle_leaf_value(1234, jopp2::value_visitation_context{});
+	EXPECT_EQ(res, jopp2::node_visitor_status::ready);
+	EXPECT_EQ(*output.get_if<int>(), 1234);
 }
 
 #if 0

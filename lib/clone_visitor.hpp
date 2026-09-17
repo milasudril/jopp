@@ -5,6 +5,7 @@
 #include "./generic_value_update_traits.hpp"
 #include "./value_storage.hpp"
 #include "./template_param_pack.hpp"
+#include "./variant_utils.hpp"
 #include "lib/exception.hpp"
 #include <ranges>
 
@@ -75,16 +76,27 @@ namespace jopp2
 
 		explicit clone_visitor_2(GenericValueOut& output_value)
 		{
+			output_value = GenericValueOut{};
 			m_contexts.reserve(1024);
 			m_contexts.push_back(
 				context{
 					.parent_node = {},
-					.output_value = value_storage_out{
-						output_value,
-						std::type_identity<generic_value_update_traits<GenericValueOut>>{}
-					}
+					.output_value = visit_variant_element<typename GenericValueOut::value_type>(
+						output_value.get_value().index(),
+						*this,
+						output_value
+					)
 				}
 			);
+		}
+
+		template<class T>
+		static value_storage_out operator()(T /*unused*/, GenericValueOut& output_value)
+		{
+			return value_storage_out{
+				output_value,
+				std::type_identity<generic_value_update_traits<GenericValueOut>>{}
+			};
 		}
 
 		template<class T>
