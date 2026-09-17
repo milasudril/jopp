@@ -77,8 +77,8 @@ TESTCASE(jopp2_variant_utils_visit_variant_element)
 	int value = 1;
 	visitor.expect_call_with_action(
 		[](jopp2::variant_element_tag<int>, int& arg) {
-			arg = 2;
 			EXPECT_EQ(arg, 1);
+			arg = 2;
 			return which::int_visited;
 		}
 	);
@@ -88,5 +88,5 @@ TESTCASE(jopp2_variant_utils_visit_variant_element)
 		value
 	);
 	EXPECT_EQ(result3, which::int_visited);
-	EXPECT_EQ(arg, 2);
+	EXPECT_EQ(value, 2);
 }
