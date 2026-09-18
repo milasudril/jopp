@@ -117,7 +117,6 @@ TESTCASE(jopp2_clone_visitor_copy_leaf_value_to_non_empty)
 	EXPECT_EQ(*output.get_if<int>(), 1234);
 }
 
-#if 0
 TESTCASE(jopp2_clone_visitor_handle_int_key_current_value_is_not_an_object)
 {
 	test_generic_value_out output;
@@ -234,4 +233,3 @@ TESTCASE(jopp2_clone_visitor_handle_simple_array_at_key)
 	EXPECT_EQ(saved_v, vals);
 	EXPECT_NE(std::data(saved_v), std::data(vals));
 }
-#endif
