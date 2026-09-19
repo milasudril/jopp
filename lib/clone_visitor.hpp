@@ -6,9 +6,7 @@
 #include "./container_update_traits.hpp"
 #include "./value_storage.hpp"
 #include "./template_param_pack.hpp"
-#include "./variant_utils.hpp"
 #include "./exception.hpp"
-#include "./sequence_container.hpp"
 #include <ranges>
 
 namespace jopp2
@@ -72,22 +70,12 @@ namespace jopp2
 			m_contexts.push_back(
 				context{
 					.parent_node = {},
-					.output_value = visit_variant_element<typename GenericValueOut::value_type>(
-						output_value.get_value().index(),
-						*this,
-						output_value
-					)
+					.output_value = value_storage_out{
+						output_value,
+						std::type_identity<generic_value_update_traits<GenericValueOut>>{}
+					}
 				}
 			);
-		}
-
-		template<class T>
-		static value_storage_out operator()(T /*unused*/, GenericValueOut& output_value)
-		{
-			return value_storage_out{
-				output_value,
-				std::type_identity<generic_value_update_traits<GenericValueOut>>{}
-			};
 		}
 
 		template<class T>
