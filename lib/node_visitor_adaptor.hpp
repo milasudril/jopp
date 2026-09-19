@@ -84,6 +84,21 @@ namespace jopp2
 
 	using jopp::instance_of;
 
+	template<class T>
+	struct key_to_clone
+	{
+		using captured_type = T;
+		T value;
+	};
+
+	template<class T>
+	requires std::ranges::range<T>
+	struct key_to_clone<T>
+	{
+		using captured_type = T;
+		container_proxy<T const>::active_range_type value;
+	};
+
 	template<class Type, bool IsConst>
 	struct node_item
 	{

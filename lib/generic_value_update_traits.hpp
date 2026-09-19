@@ -2,29 +2,10 @@
 #define JOPP2_GENERIC_VALUE_UPDATE_TRAITS_HPP
 
 #include "./exception.hpp"
-#include "./container_proxy.hpp"
-#include "lib/node_visitor_adaptor.hpp"
-#include "lib/utils.hpp"
+#include "./node_visitor_adaptor.hpp"
 
 namespace jopp2
 {
-	using jopp::instance_of;
-
-	template<class T>
-	struct key_to_clone
-	{
-		using captured_type = T;
-		T value;
-	};
-
-	template<class T>
-	requires std::ranges::range<T>
-	struct key_to_clone<T>
-	{
-		using captured_type = T;
-		container_proxy<T const>::active_range_type value;
-	};
-
 	template<class GenericValueOut>
 	struct generic_value_update_traits
 	{

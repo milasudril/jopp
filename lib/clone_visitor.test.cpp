@@ -99,7 +99,7 @@ namespace
 	};
 }
 
-TESTCASE(jopp2_clone_visitor_copy_leaf_value_to_empty)
+TESTCASE(jopp2_clone_visitor_handle_leaf_value_to_empty)
 {
 	test_generic_value_out output;
 	jopp2::clone_visitor_2<test_generic_value_in, test_generic_value_out> visitor{output};
@@ -108,7 +108,7 @@ TESTCASE(jopp2_clone_visitor_copy_leaf_value_to_empty)
 	EXPECT_EQ(*output.get_if<int>(), 1234);
 }
 
-TESTCASE(jopp2_clone_visitor_copy_leaf_value_to_non_empty)
+TESTCASE(jopp2_clone_visitor_copy_handle_leaf_value_to_non_empty)
 {
 	test_generic_value_out output{"Hello, World"};
 	jopp2::clone_visitor_2<test_generic_value_in, test_generic_value_out> visitor{output};

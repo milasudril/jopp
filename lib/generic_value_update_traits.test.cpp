@@ -19,7 +19,7 @@ TESTCASE(jopp2_generic_value_update_traits_update_generic_value_bad_source)
 			int value = 0;
 			jopp2::generic_value_update_traits<int>::update(value, "1234");
 		},
-		"jopp internal error: lib/./generic_value_update_traits.hpp:41: Cannot store the given value in a GenericValue\n",
+		"jopp internal error: lib/./generic_value_update_traits.hpp:22: Cannot store the given value in a GenericValue\n",
 		SIGABRT
 	);
 }
@@ -31,7 +31,7 @@ TESTCASE(jopp2_generic_value_update_traits_update_generic_value_source_is_key)
 			int value = 0;
 			jopp2::generic_value_update_traits<int>::update(value, jopp2::key_to_clone{24});
 		},
-		"jopp internal error: lib/./generic_value_update_traits.hpp:50: Cannot store the given value in a GenericValue\n",
+		"jopp internal error: lib/./generic_value_update_traits.hpp:31: Cannot store the given value in a GenericValue\n",
 		SIGABRT
 	);
 }
