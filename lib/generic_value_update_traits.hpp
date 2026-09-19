@@ -18,11 +18,7 @@ namespace jopp2
 		}
 
 		template<class Rhs>
-		[[gnu::always_inline]] [[noreturn]] static GenericValueOut* update(
-			GenericValueOut& /*unused*/,
-			Rhs&& /*unsed*/
-		)
-		{ raise_internal_error("Cannot store the given value in a GenericValue"); }
+		static auto update(GenericValueOut&, Rhs&&) = delete;
 
 		template<class Rhs>
 		requires instance_of<std::remove_cvref_t<Rhs> ,key_to_clone>
