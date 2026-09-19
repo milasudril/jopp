@@ -6,6 +6,7 @@
 #include "./template_param_pack.hpp"
 #include "./value_storage.hpp"
 #include "./exception.hpp"
+#include "./sequence_container.hpp"
 
 #include <ranges>
 #include <stack>
@@ -15,14 +16,6 @@
 namespace jopp2
 {
 	using jopp::overload;
-
-	template<class T>
-	concept sequence_container = requires(T& obj){
-		{obj.back()};
-		{obj.push_back(std::declval<typename T::value_type>())};
-		{obj.emplace_back(std::declval<typename T::value_type>())};
-		{obj.empty()} -> std::same_as<bool>;
-	};
 
 	struct value_visitation_context
 	{

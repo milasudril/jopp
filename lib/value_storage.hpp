@@ -77,44 +77,6 @@ namespace jopp2
 	using update_func_t = UpdateResultType<T> (*)(Sink&, update_param_t<T>) UPDATE_CALLBACK;
 
 	/**
-	 * \brief Type that indicates that a suitable overload for update was found
-	 */
-	struct update_func_found{};
-
-	/**
-	 * \brief Checks whether or not UpdateTraits has a member called update which matches update_func_t
-	 * \returns The type that failed the check, or update_func_found a suitable overload was found.
-	 */
-	template<class UpdateTraits, template<class> class R, class Sink, class... Types>
-	struct has_applicable_update
-	{
-		using result = update_func_found;
-	};
-
-	template<class UpdateTraits, template<class> class R, class Sink, class T, class... Types>
-	struct has_applicable_update<UpdateTraits, R, Sink, T, Types...>
-	{
-		static constexpr auto current_value = requires(update_func_t<R, Sink, T>& cb) {
-			{ cb = &UpdateTraits::update };
-		};
-
-		using result = std::conditional_t<
-			current_value,
-			typename has_applicable_update<UpdateTraits, R, Sink, Types...>::result,
-			T
-		>;
-	};
-
-	/**
-	 * \brief Concept used to check that UpdateTraits satisfies all requirements
-	 */
-	template<class UpdateTraits, template<class> class UpdateResultType, class Sink, class... Types>
-	concept update_traits = std::same_as<
-		typename has_applicable_update<UpdateTraits, UpdateResultType, Sink, Types...>::result,
-		update_func_found
-	>;
-
-	/**
 	 * \brief A type erased wrapper around an entity that can store a value
 	 *
 	 * \tparam UpdateResultType \see update_func_t
@@ -180,7 +142,7 @@ namespace jopp2
 
 		template<class Sink, class UpdateTraits>
 		static constexpr vtable s_vtable{
-			[](void* target, update_param_t<Types> value) UPDATE_CALLBACK {
+			[](void* target, update_param_t<Types> value) UPDATE_CALLBACK -> UpdateResultType<Types> {
 				if constexpr(pass_by_value_v<Types> || std::is_trivially_copyable_v<Types>)
 				{ return UpdateTraits::update(*static_cast<Sink*>(target), value); }
 				else

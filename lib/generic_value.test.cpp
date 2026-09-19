@@ -369,7 +369,7 @@ TESTCASE(jopp2_explain_lookup_error_code)
 			// NOLINTNEXTLINE
 			explain(static_cast<jopp2::lookup_error_code>(234));
 		},
-		"jopp internal error: lib/./generic_value.hpp:57: Invalid lookup error code\n",
+		"jopp internal error: lib/./generic_value.hpp:50: Invalid lookup error code\n",
 		SIGABRT
 	);
 }
@@ -405,7 +405,7 @@ TESTCASE(jopp2_lookup_result_from_pointer)
 		[result]{
 			std::ignore = result.error_code();
 		},
-		"jopp internal error: lib/./generic_value.hpp:92: Error code not set in a non-error condition\n",
+		"jopp internal error: lib/./generic_value.hpp:85: Error code not set in a non-error condition\n",
 		SIGABRT
 	);
 }

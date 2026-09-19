@@ -3,6 +3,7 @@
 
 #include "./node_visitor_adaptor.hpp"
 #include "./generic_value_update_traits.hpp"
+#include "./container_update_traits.hpp"
 #include "./value_storage.hpp"
 #include "./template_param_pack.hpp"
 #include "./variant_utils.hpp"
@@ -15,20 +16,9 @@ namespace jopp2
 	struct clone_visitor_update_result
 	{ using type = void; };
 
-	template<class T>
-	struct key_to_clone
-	{
-		using captured_type = T;
-		T value;
-	};
-
-	template<class T>
-	requires std::ranges::range<T>
-	struct key_to_clone<T>
-	{
-		using captured_type = T;
-		container_proxy<T const>::active_range_type value;
-	};
+	template<class GenericValueOut, class T>
+	struct clone_visitor_update_result<GenericValueOut, key_to_clone<T>>
+	{ using type = GenericValueOut*; };
 
 	template<class GenericValueIn, class GenericValueOut>
 	class clone_visitor_2
@@ -44,8 +34,11 @@ namespace jopp2
 		>;
 
 		template<class T>
+		using sequence_container_type = GenericValueIn::template sequence_container_type<T>;
+
+		template<class T>
 		using container_proxy_range = container_proxy<
-			typename GenericValueIn::template sequence_container_type<T> const
+			sequence_container_type<T> const
 		>::active_range_type;
 
 		using complete_pack= concatenate_template_param_packs_t<
@@ -56,7 +49,7 @@ namespace jopp2
 			>,
 			wrap_template_param_pack_elements_t<
 				src_value_param_pack,
-				container_proxy_range
+				sequence_container_type
 			>
 		>;
 
@@ -155,12 +148,12 @@ namespace jopp2
 			else
 			{
 				auto const old_out = m_contexts.back().output_value;
-				std::ignore =  old_out.update_with(value.active_range());
+				old_out.update_with(output_array{std::from_range_t{}, value.active_range()});
 			}
 			value.pop_active_elements();
 			return node_visitor_status::ready;
 		}
-#if 0
+
 		template<class T>
 		node_visitor_status handle_begin_of_container(
 			container_proxy<T>& value,
@@ -183,28 +176,28 @@ namespace jopp2
 					context{
 						.parent_node = old_out,
 						.output_value = value_storage_out{
-							*val_ptr,
-							std::type_identity<generic_value_update_traits>{}
+							*val_ptr->template get_if<container>(),
+							std::type_identity<container_update_traits<container>>{}
 						}
 					}
 				);
 			}
 			else
 			{
-				auto const ret = old_out.update_with(container{});
+				auto& ret = old_out.update_with(container{});
 				m_contexts.push(
 					context{
 						.parent_node = old_out,
 						.output_value = value_storage_out{
-							*ret,
-							std::type_identity<generic_value_update_traits>{}
+							ret,
+							std::type_identity<container_update_traits<container>>{}
 						}
 					}
 				);
 			}
 			return node_visitor_status::ready;
 		}
-#endif
+
 
 		template<class T>
 		node_visitor_status handle_end_of_container(
