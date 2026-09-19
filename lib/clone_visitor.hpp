@@ -22,10 +22,10 @@ namespace jopp2
 		using src_value_param_pack = GenericValueIn::leaf_value_template_param_pack;
 		using src_kv_item = GenericValueIn::object::value_type;
 		using dest_kv_item = GenericValueOut::object::value_type;
-		using objcontainer = std::conditional_t<
+		using objcontainer_in = std::conditional_t<
 			std::is_const_v<GenericValueIn>,
-			typename GenericValueOut::object const,
-			typename GenericValueOut::object
+			typename GenericValueIn::object const,
+			typename GenericValueIn::object
 		>;
 
 		template<class T>
@@ -49,7 +49,10 @@ namespace jopp2
 				src_value_param_pack,
 				sequence_container_in
 			>,
-			wrap_in_template_param_pack_t<sequence_container_out<GenericValueOut>>
+			template_param_pack<
+				sequence_container_out<GenericValueOut>,
+				typename GenericValueOut::object
+			>
 		>;
 
 		template<class T>
@@ -148,7 +151,7 @@ namespace jopp2
 		{
 			auto const old_out = m_contexts.back().output_value;
 			using container = std::conditional_t<
-				std::is_same_v<T, objcontainer>,
+				std::is_same_v<std::remove_const_t<T>, std::remove_const_t<objcontainer_in>>,
 				typename GenericValueOut::object,
 				std::conditional_t<
 					std::is_same_v<typename T::value_type, GenericValueIn>,
@@ -157,6 +160,7 @@ namespace jopp2
 				>
 			>;
 			// TODO: use number of elements in value to reserve space if supported by container
+
 
 			if(m_value_after_key != nullptr)
 			{

@@ -149,3 +149,22 @@ TESTCASE(jopp2_clone_visitor_handle_begin_of_container_sequence_no_key)
 	// TODO: capacity should equal vals.capacity
 	EXPECT_EQ(saved_v.empty(), true);
 }
+
+TESTCASE(jopp2_clone_visitor_handle_begin_of_container_object_no_key)
+{
+	test_generic_value_out output;
+	jopp2::clone_visitor_2<test_generic_value_in, test_generic_value_out> visitor{output};
+
+	test_generic_value_in::object obj{
+		{"first",test_generic_value_in{1}},
+		{"second",test_generic_value_in{2}},
+		{"third",test_generic_value_in{3}}
+	};
+
+	jopp2::container_proxy container{std::cref(obj)};
+	auto const res = visitor.handle_begin_of_container(container, jopp2::value_visitation_context{});
+	EXPECT_EQ(res, jopp2::node_visitor_status::ready);
+	EXPECT_EQ(container.at_begin(), true);
+	auto const& saved_v = *output.get_if<test_generic_value_out::object>();
+	EXPECT_EQ(saved_v.empty(), true);
+}
