@@ -3,7 +3,6 @@
 #include "./clone_visitor.hpp"
 #include "lib/node_visitor_adaptor.hpp"
 #include "lib/template_param_pack.hpp"
-#include "testfwk/death_test.hpp"
 
 #include <map>
 #include <testfwk/testfwk.hpp>
@@ -50,7 +49,7 @@ namespace
 			std::string,
 			std::vector<int>,
 			std::vector<std::string>,
-			std::vector<test_generic_value_in>,
+			std::vector<test_generic_value_out>,
 			object
 		>;
 
@@ -137,10 +136,10 @@ TESTCASE(jopp2_clone_visitor_handle_begin_of_container_sequence_no_key)
 	test_generic_value_out output;
 	jopp2::clone_visitor_2<test_generic_value_in, test_generic_value_out> visitor{output};
 
-	std::vector<test_generic_value_out> vals{
-		test_generic_value_out{1},
-		test_generic_value_out{2},
-		test_generic_value_out{3}
+	std::vector vals{
+		test_generic_value_in{1},
+		test_generic_value_in{2},
+		test_generic_value_in{3}
 	};
 
 	jopp2::container_proxy container{std::cref(vals)};

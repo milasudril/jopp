@@ -54,7 +54,7 @@ namespace jopp2
 	 * \brief Helper function for forwarding src
 	 */
 	template<class T>
-	[[gnu::always_inline]] inline constexpr decltype(auto) maybe_move(T&& src)
+	[[gnu::always_inline]] constexpr decltype(auto) maybe_move(T&& src)
 	{
 		if constexpr(std::is_reference_v<T>)
 		{
