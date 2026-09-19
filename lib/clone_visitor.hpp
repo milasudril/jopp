@@ -15,7 +15,7 @@ namespace jopp2
 {
 	template<class GenericValueOut, class Other>
 	struct clone_visitor_update_result
-	{ using type = GenericValueOut&; };
+	{ using type = GenericValueOut*; };
 
 	template<class GenericValueIn, class GenericValueOut>
 	class clone_visitor_2
@@ -187,12 +187,12 @@ namespace jopp2
 			}
 			else
 			{
-				auto& ret = old_out.update_with(container{});
+				auto ret = old_out.update_with(container{});
 				m_contexts.push_back(
 					context{
 						.parent_node = old_out,
 						.output_value = value_storage_out{
-							ret,
+							*ret->template get_if<container>(),
 							std::type_identity<container_update_traits<container>>{}
 						}
 					}

@@ -130,7 +130,6 @@ TESTCASE(jopp2_clone_visitor_handle_simple_array_currently_no_key)
 	EXPECT_NE(std::data(saved_v), std::data(vals));
 }
 
-#if 0
 TESTCASE(jopp2_clone_visitor_handle_begin_of_container_sequence_no_key)
 {
 	test_generic_value_out output;
@@ -143,6 +142,10 @@ TESTCASE(jopp2_clone_visitor_handle_begin_of_container_sequence_no_key)
 	};
 
 	jopp2::container_proxy container{std::cref(vals)};
-	visitor.handle_begin_of_container(container, jopp2::value_visitation_context{});
+	auto const res = visitor.handle_begin_of_container(container, jopp2::value_visitation_context{});
+	EXPECT_EQ(res, jopp2::node_visitor_status::ready);
+	EXPECT_EQ(container.at_begin(), true);
+	auto const& saved_v = *output.get_if<std::vector<test_generic_value_out>>();
+	// TODO: capacity should equal vals.capacity
+	EXPECT_EQ(saved_v.empty(), true);
 }
-#endif
