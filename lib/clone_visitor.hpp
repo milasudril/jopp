@@ -187,7 +187,7 @@ namespace jopp2
 			}
 			else
 			{
-				auto ret = old_out.update_with(container{});
+				auto const ret = old_out.update_with(container{});
 				m_contexts.push_back(
 					context{
 						.parent_node = old_out,
