@@ -1,6 +1,7 @@
 //@	{"target":{"name":"clone_visitor.test"}}
 
 #include "./clone_visitor.hpp"
+#include "lib/container_proxy.hpp"
 #include "lib/node_visitor_adaptor.hpp"
 #include "lib/template_param_pack.hpp"
 
@@ -111,12 +112,13 @@ TESTCASE(jopp2_clone_visitor_copy_handle_leaf_value_to_non_empty)
 {
 	test_generic_value_out output{"Hello, World"};
 	jopp2::clone_visitor_2<test_generic_value_in, test_generic_value_out> visitor{output};
+	EXPECT_EQ(*output.get_if<int>(), 0);
 	auto const res = visitor.handle_leaf_value(1234, jopp2::value_visitation_context{});
 	EXPECT_EQ(res, jopp2::node_visitor_status::ready);
 	EXPECT_EQ(*output.get_if<int>(), 1234);
 }
 
-TESTCASE(jopp2_clone_visitor_handle_simple_array_currently_no_key)
+TESTCASE(jopp2_clone_visitor_handle_simple_array_no_current_key)
 {
 	test_generic_value_out output;
 	jopp2::clone_visitor_2<test_generic_value_in, test_generic_value_out> visitor{output};
@@ -130,7 +132,7 @@ TESTCASE(jopp2_clone_visitor_handle_simple_array_currently_no_key)
 	EXPECT_NE(std::data(saved_v), std::data(vals));
 }
 
-TESTCASE(jopp2_clone_visitor_handle_begin_of_container_sequence_no_key)
+TESTCASE(jopp2_clone_visitor_handle_begin_of_container_sequence_no_current_key)
 {
 	test_generic_value_out output;
 	jopp2::clone_visitor_2<test_generic_value_in, test_generic_value_out> visitor{output};
@@ -150,7 +152,7 @@ TESTCASE(jopp2_clone_visitor_handle_begin_of_container_sequence_no_key)
 	EXPECT_EQ(saved_v.empty(), true);
 }
 
-TESTCASE(jopp2_clone_visitor_handle_begin_of_container_object_no_key)
+TESTCASE(jopp2_clone_visitor_handle_begin_of_container_object_no_current_key)
 {
 	test_generic_value_out output;
 	jopp2::clone_visitor_2<test_generic_value_in, test_generic_value_out> visitor{output};
@@ -167,4 +169,28 @@ TESTCASE(jopp2_clone_visitor_handle_begin_of_container_object_no_key)
 	EXPECT_EQ(container.at_begin(), true);
 	auto const& saved_v = *output.get_if<test_generic_value_out::object>();
 	EXPECT_EQ(saved_v.empty(), true);
+}
+
+namespace
+{
+	template<class Visitor, class Key>
+	void set_current_key(Visitor& visitor, Key&& key)
+	{
+		test_generic_value_in::object obj;
+		jopp2::container_proxy container{std::cref(obj)};
+		visitor.handle_begin_of_container(container, jopp2::value_visitation_context{});
+		visitor.handle_key(
+			jopp2::key_to_clone{std::forward<Key>(key)},
+			jopp2::value_visitation_context{}
+		);
+	}
+}
+
+TESTCASE(jopp2_clone_visitor_handle_leaf_value_with_current_key)
+{
+	test_generic_value_out value_out;
+	jopp2::clone_visitor_2<test_generic_value_in, test_generic_value_out> visitor{value_out};
+	set_current_key(visitor, 245);
+
+
 }

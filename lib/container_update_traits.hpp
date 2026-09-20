@@ -23,10 +23,7 @@ namespace jopp2
 		{ raise_internal_error("Objects can only update keys"); }
 
 		template<class Rhs>
-		requires (
-			 instance_of<std::remove_cvref_t<Rhs>, key_to_clone>
-		&& std::is_constructible_v<container_key_type, Rhs>
-		)
+		requires instance_of<std::remove_cvref_t<Rhs>, key_to_clone>
 		[[gnu::always_inline]] static output_value_type* update(
 			Container& object,
 			Rhs&& key
@@ -34,7 +31,7 @@ namespace jopp2
 		{
 			auto const insertion_pair = object.insert(
 				std::pair{
-					std::forward_like<Rhs>(std::forward<Rhs>(key).value),
+					std::forward<Rhs>(key).template take_as<container_key_type>(),
 					output_value_type{}
 				}
 			);
