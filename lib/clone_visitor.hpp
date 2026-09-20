@@ -105,7 +105,7 @@ namespace jopp2
 			{ jopp2::raise_internal_error("No output object present"); }
 
 			m_value_after_key = old_out.update_with(
-				key_to_clone<std::remove_const_t<T>>{key.active_range()}
+				key_to_clone<std::remove_const_t<T>>{std::from_range_t{}, key.active_range()}
 			);
 			key.pop_active_elements();
 			return node_visitor_status::ready;
@@ -192,7 +192,6 @@ namespace jopp2
 			}
 			return node_visitor_status::ready;
 		}
-
 
 		template<class T>
 		node_visitor_status handle_end_of_container(

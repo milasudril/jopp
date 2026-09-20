@@ -4,6 +4,7 @@
 #include "lib/container_proxy.hpp"
 #include "lib/node_visitor_adaptor.hpp"
 #include "lib/template_param_pack.hpp"
+#include "testfwk/validation.hpp"
 
 #include <map>
 #include <testfwk/testfwk.hpp>
@@ -190,7 +191,11 @@ TESTCASE(jopp2_clone_visitor_handle_leaf_value_with_current_key)
 {
 	test_generic_value_out value_out;
 	jopp2::clone_visitor_2<test_generic_value_in, test_generic_value_out> visitor{value_out};
-	set_current_key(visitor, 245);
+	set_current_key(visitor, std::string{"Hello, world"});
+	auto const res = visitor.handle_leaf_value(132, jopp2::value_visitation_context{});
+	EXPECT_EQ(res, jopp2::node_visitor_status::ready);
 
-
+	auto const object = value_out.get_if<test_generic_value_out::object>();
+	REQUIRE_NE(object, nullptr);
+	EXPECT_EQ(*object->at("Hello, world").get_if<int>(), 132);
 }

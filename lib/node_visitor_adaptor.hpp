@@ -96,25 +96,6 @@ namespace jopp2
 		{ return Other(std::forward_like<Self>(std::forward<Self>(self).value)); }
 	};
 
-	template<class T>
-	requires std::ranges::range<T>
-	struct key_to_clone<T>
-	{
-		using captured_type = T;
-		using stored_type = container_proxy<T const>::active_range_type;
-		stored_type value;
-
-		template<class Other, class Self>
-		Other take_as(this Self&& self)
-		{
-			auto&& val = std::forward_like<Self>(std::forward<Self>(self).value);
-			if constexpr(std::is_constructible_v<Other, std::from_range_t, decltype(val)>)
-			{ return Other(std::from_range_t{}, val); }
-			else
-			{ return Other(std::in_place_type_t<captured_type>{}, std::from_range_t{}, val); }
-		}
-	};
-
 	template<class Type, bool IsConst>
 	struct node_item
 	{
