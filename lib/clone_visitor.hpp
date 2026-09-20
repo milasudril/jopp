@@ -66,6 +66,12 @@ namespace jopp2
 			complete_pack
 		>;
 
+		struct context
+		{
+			value_storage_out parent_node;
+			value_storage_out output_value;
+		};
+
 		explicit clone_visitor_2(GenericValueOut& output_value)
 		{
 			output_value = GenericValueOut{};
@@ -202,12 +208,6 @@ namespace jopp2
 			m_contexts.pop_back();
 			return node_visitor_status::ready;
 		}
-
-		struct context
-		{
-			value_storage_out parent_node;
-			value_storage_out output_value;
-		};
 
 	private:
 		std::vector<context> m_contexts;
