@@ -209,6 +209,12 @@ namespace jopp2
 			return node_visitor_status::ready;
 		}
 
+		auto const& contexts() const
+		{ return m_contexts; }
+
+		auto value_after_key() const
+		{ return static_cast<GenericValueOut const*>(m_value_after_key); }
+
 	private:
 		std::vector<context> m_contexts;
 		GenericValueOut* m_value_after_key{nullptr};

@@ -131,6 +131,13 @@ namespace jopp2
 		[[gnu::always_inline]] constexpr operator bool() const
 		{ return m_handle != nullptr; }
 
+		template<class Sink, class UpdateTraits>
+		[[gnu::always_inline]] constexpr bool is_bound_to(
+			Sink const& target,
+			std::type_identity<UpdateTraits> /*unused*/
+		) const
+		{ return m_handle == &target && m_vtable == &s_vtable<std::remove_const_t<Sink>, UpdateTraits>; }
+
 	private:
 		template<class T>
 		using update_callback_t = UpdateResultType<T> (*)(void*, update_param_t<T>) UPDATE_CALLBACK;
