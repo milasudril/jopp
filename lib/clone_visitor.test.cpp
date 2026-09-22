@@ -127,10 +127,14 @@ TESTCASE(jopp2_clone_visitor_handle_leaf_value_no_current_key)
 	using visitor_type = jopp2::clone_visitor_2<test_generic_value_in, test_generic_value_out>;
 	visitor_type visitor{output};
 
+	auto const& context_before = visitor.contexts().back();
 	EXPECT_EQ(*output.get_if<int>(), 0);
 	auto const res = visitor.handle_leaf_value(1234, jopp2::value_visitation_context{});
 	EXPECT_EQ(res, jopp2::node_visitor_status::ready);
 	EXPECT_EQ(*output.get_if<int>(), 1234);
+	auto const& context_after = visitor.contexts().back();
+	EXPECT_EQ(&context_before, &context_after);
+	EXPECT_EQ(visitor.value_after_key(), nullptr);
 }
 
 TESTCASE(jopp2_clone_visitor_handle_simple_array_no_current_key)
@@ -141,12 +145,17 @@ TESTCASE(jopp2_clone_visitor_handle_simple_array_no_current_key)
 
 	std::vector vals{1, 2, 3};
 	jopp2::container_proxy val_proxy{std::cref(vals)};
+	auto const& context_before = visitor.contexts().back();
 	auto const res = visitor.handle_simple_array(val_proxy, jopp2::value_visitation_context{});
 	EXPECT_EQ(res, jopp2::node_visitor_status::ready);
 	EXPECT_EQ(val_proxy.at_end(), true);
 	auto const& saved_v = *output.get_if<std::vector<int>>();
 	EXPECT_EQ(saved_v, vals);
 	EXPECT_NE(std::data(saved_v), std::data(vals));
+	EXPECT_EQ(visitor.contexts().size(), 1);
+	auto const& context_after = visitor.contexts().back();
+	EXPECT_EQ(&context_before, &context_after);
+	EXPECT_EQ(visitor.value_after_key(), nullptr);
 }
 
 TESTCASE(jopp2_clone_visitor_handle_begin_of_container_sequence_no_current_key)
@@ -162,12 +171,25 @@ TESTCASE(jopp2_clone_visitor_handle_begin_of_container_sequence_no_current_key)
 	};
 
 	jopp2::container_proxy container{std::cref(vals)};
+	auto const& context_before = visitor.contexts().back();
 	auto const res = visitor.handle_begin_of_container(container, jopp2::value_visitation_context{});
 	EXPECT_EQ(res, jopp2::node_visitor_status::ready);
 	EXPECT_EQ(container.at_begin(), true);
 	auto const& saved_v = *output.get_if<std::vector<test_generic_value_out>>();
 	// TODO: capacity should equal vals.capacity
 	EXPECT_EQ(saved_v.empty(), true);
+	EXPECT_EQ(visitor.contexts().size(), 2);
+	auto const& context_after = visitor.contexts().back();
+	EXPECT_NE(&context_before, &context_after);
+	EXPECT_EQ(visitor.value_after_key(), nullptr);
+	EXPECT_EQ(context_after.parent_node.is_bound_to(context_before.output_value), true);
+	EXPECT_EQ(
+		context_after.output_value.is_bound_to(
+			*output.get_if<std::vector<test_generic_value_out>>(),
+			std::type_identity<jopp2::container_update_traits<std::vector<test_generic_value_out>>>{}
+		),
+		true
+	);
 }
 
 TESTCASE(jopp2_clone_visitor_handle_begin_of_container_object_no_current_key)
@@ -183,11 +205,24 @@ TESTCASE(jopp2_clone_visitor_handle_begin_of_container_object_no_current_key)
 	};
 
 	jopp2::container_proxy container{std::cref(obj)};
+	auto const& context_before = visitor.contexts().back();
 	auto const res = visitor.handle_begin_of_container(container, jopp2::value_visitation_context{});
 	EXPECT_EQ(res, jopp2::node_visitor_status::ready);
 	EXPECT_EQ(container.at_begin(), true);
 	auto const& saved_v = *output.get_if<test_generic_value_out::object>();
 	EXPECT_EQ(saved_v.empty(), true);
+	EXPECT_EQ(visitor.contexts().size(), 2);
+	auto const& context_after = visitor.contexts().back();
+	EXPECT_NE(&context_before, &context_after);
+	EXPECT_EQ(visitor.value_after_key(), nullptr);
+	EXPECT_EQ(context_after.parent_node.is_bound_to(context_before.output_value), true);
+	EXPECT_EQ(
+		context_after.output_value.is_bound_to(
+			*output.get_if<test_generic_value_out::object>(),
+			std::type_identity<jopp2::container_update_traits<test_generic_value_out::object>>{}
+		),
+		true
+	);
 }
 
 namespace
@@ -215,7 +250,13 @@ TESTCASE(jopp2_clone_visitor_handle_leaf_value_with_current_key)
 	auto const res = visitor.handle_leaf_value(132, jopp2::value_visitation_context{});
 	EXPECT_EQ(res, jopp2::node_visitor_status::ready);
 
+	auto const& context_before = visitor.contexts().back();
+	EXPECT_EQ(visitor.contexts().size(), 2);
 	auto const object = value_out.get_if<test_generic_value_out::object>();
 	REQUIRE_NE(object, nullptr);
 	EXPECT_EQ(*object->at("Hello, world").get_if<int>(), 132);
+	EXPECT_EQ(visitor.contexts().size(), 2);
+	auto const& context_after = visitor.contexts().back();
+	EXPECT_EQ(&context_before, &context_after);
+	EXPECT_EQ(visitor.value_after_key(), nullptr);
 }
