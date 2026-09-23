@@ -138,7 +138,7 @@ namespace jopp2
 		) const
 		{ return m_handle == &target && m_vtable == &s_vtable<std::remove_const_t<Sink>, UpdateTraits>; }
 
-		[[gnu::always_inline]] constexpr bool is_bound_to(value_storage const& other) const
+		[[gnu::always_inline]] constexpr bool is_bound_to_same_as(value_storage const& other) const
 		{ return m_handle == other.m_handle && m_vtable == other.m_vtable; }
 
 	private:

@@ -181,7 +181,7 @@ TESTCASE(jopp2_clone_visitor_handle_begin_of_container_sequence_no_current_key)
 	auto const& context_after = visitor.contexts().back();
 	EXPECT_NE(&context_before, &context_after);
 	EXPECT_EQ(visitor.value_after_key(), nullptr);
-	EXPECT_EQ(context_after.parent_node.is_bound_to(context_before.output_value), true);
+	EXPECT_EQ(context_after.parent_node.is_bound_to_same_as(context_before.output_value), true);
 	EXPECT_EQ(
 		context_after.output_value.is_bound_to(
 			*output.get_if<std::vector<test_generic_value_out>>(),
@@ -214,7 +214,7 @@ TESTCASE(jopp2_clone_visitor_handle_begin_of_container_object_no_current_key)
 	auto const& context_after = visitor.contexts().back();
 	EXPECT_NE(&context_before, &context_after);
 	EXPECT_EQ(visitor.value_after_key(), nullptr);
-	EXPECT_EQ(context_after.parent_node.is_bound_to(context_before.output_value), true);
+	EXPECT_EQ(context_after.parent_node.is_bound_to_same_as(context_before.output_value), true);
 	EXPECT_EQ(
 		context_after.output_value.is_bound_to(
 			*output.get_if<test_generic_value_out::object>(),
@@ -261,7 +261,7 @@ TESTCASE(jopp2_clone_visitor_handle_leaf_value_with_current_key)
 }
 
 
-TESTCASE(jopp2_clone_visitor_handle_simple_array_withcurrent_key)
+TESTCASE(jopp2_clone_visitor_handle_simple_array_with_current_key)
 {
 	test_generic_value_out output;
 	using visitor_type = jopp2::clone_visitor_2<test_generic_value_in, test_generic_value_out>;
@@ -314,7 +314,7 @@ TESTCASE(jopp2_clone_visitor_handle_begin_of_container_sequence_with_current_key
 	auto const& context_after = visitor.contexts().back();
 	EXPECT_NE(&context_before, &context_after);
 	EXPECT_EQ(visitor.value_after_key(), nullptr);
-	EXPECT_EQ(context_after.parent_node.is_bound_to(context_before.output_value), true);
+	EXPECT_EQ(context_after.parent_node.is_bound_to_same_as(context_before.output_value), true);
 	EXPECT_EQ(
 		context_after.output_value.is_bound_to(
 			saved_v,
@@ -351,7 +351,7 @@ TESTCASE(jopp2_clone_visitor_handle_begin_of_container_object_with_current_key)
 	auto const& context_after = visitor.contexts().back();
 	EXPECT_NE(&context_before, &context_after);
 	EXPECT_EQ(visitor.value_after_key(), nullptr);
-	EXPECT_EQ(context_after.parent_node.is_bound_to(context_before.output_value), true);
+	EXPECT_EQ(context_after.parent_node.is_bound_to_same_as(context_before.output_value), true);
 	EXPECT_EQ(
 		context_after.output_value.is_bound_to(
 			saved_v,
