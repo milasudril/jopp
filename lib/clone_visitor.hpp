@@ -107,11 +107,8 @@ namespace jopp2
 		node_visitor_status handle_key(jopp2::container_proxy<T>& key, value_visitation_context const& /*unused*/)
 		{
 			auto& old_out = m_contexts.back().output_value;
-			if(!old_out)
-			{ jopp2::raise_internal_error("No output object present"); }
-
 			m_value_after_key = old_out.update_with(
-				key_to_clone<std::remove_const_t<T>>{std::from_range_t{}, key.active_range()}
+				key_to_clone{std::remove_const_t<T>(std::from_range_t{}, key.active_range())}
 			);
 			key.pop_active_elements();
 			return node_visitor_status::ready;
@@ -121,9 +118,6 @@ namespace jopp2
 		node_visitor_status handle_key(T&& key, value_visitation_context const& /*unused*/)
 		{
 			auto& old_out = m_contexts.back().output_value;
-			if(!old_out)
-			{ jopp2::raise_internal_error("No output object present"); }
-
 			m_value_after_key = old_out.update_with(key_to_clone{std::forward<T>(key)});
 			return node_visitor_status::ready;
 		}

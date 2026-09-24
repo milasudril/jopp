@@ -360,3 +360,41 @@ TESTCASE(jopp2_clone_visitor_handle_begin_of_container_object_with_current_key)
 		true
 	);
 }
+
+TESTCASE(jopp2_clone_visitor_handle_key_in_container)
+{
+	test_generic_value_out output;
+	using visitor_type = jopp2::clone_visitor_2<test_generic_value_in, test_generic_value_out>;
+	visitor_type visitor{output};
+
+	test_generic_value_in::object obj;
+	jopp2::container_proxy container{std::cref(obj)};
+	visitor.handle_begin_of_container(container, jopp2::value_visitation_context{});
+
+	std::string the_key{"Hello, world"};
+	jopp2::container_proxy wrapped_key{std::cref(the_key)};
+	auto const res = visitor.handle_key(wrapped_key, jopp2::value_visitation_context{});
+	EXPECT_EQ(res, jopp2::node_visitor_status::ready);
+	EXPECT_EQ(wrapped_key.at_end(), true);
+	auto& inserted_item = output.get_if<test_generic_value_out::object>()->at("Hello, world");
+	EXPECT_EQ(visitor.value_after_key(), &inserted_item);
+}
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wfree-nonheap-object"
+TESTCASE(jopp2_clone_visitor_handle_key_no_container)
+{
+	test_generic_value_out output;
+	using visitor_type = jopp2::clone_visitor_2<test_generic_value_in, test_generic_value_out>;
+	visitor_type visitor{output};
+
+	test_generic_value_in::object obj;
+	jopp2::container_proxy container{std::cref(obj)};
+	visitor.handle_begin_of_container(container, jopp2::value_visitation_context{});
+
+	auto const res = visitor.handle_key(55, jopp2::value_visitation_context{});
+	EXPECT_EQ(res, jopp2::node_visitor_status::ready);
+	auto& inserted_item = output.get_if<test_generic_value_out::object>()->at(55);
+	EXPECT_EQ(visitor.value_after_key(), &inserted_item);
+}
+#pragma GCC diagnostic pop
