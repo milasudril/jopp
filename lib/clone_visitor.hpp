@@ -98,7 +98,12 @@ namespace jopp2
 				*val_ptr = convert_to{std::forward<T>(value)};
 			}
 			else
-			{ m_contexts.back().output_value.update_with(std::forward<T>(value)); }
+			{
+				if(m_contexts.empty())
+				{ raise_internal_error("No contexts"); }
+
+				m_contexts.back().output_value.update_with(std::forward<T>(value));
+			}
 
 			return node_visitor_status::ready;
 		}
@@ -106,6 +111,9 @@ namespace jopp2
 		template<class T>
 		node_visitor_status handle_key(jopp2::container_proxy<T>& key, value_visitation_context const& /*unused*/)
 		{
+			if(m_contexts.empty())
+			{ raise_internal_error("No contexts"); }
+
 			auto& old_out = m_contexts.back().output_value;
 			m_value_after_key = old_out.update_with(
 				key_to_clone{std::remove_const_t<T>(std::from_range_t{}, key.active_range())}
@@ -136,6 +144,9 @@ namespace jopp2
 			}
 			else
 			{
+				if(m_contexts.empty())
+				{ raise_internal_error("No contexts"); }
+
 				auto const old_out = m_contexts.back().output_value;
 				old_out.update_with(output_array{std::from_range_t{}, value.active_range()});
 			}
@@ -149,6 +160,9 @@ namespace jopp2
 			value_visitation_context const& /*unused*/
 		)
 		{
+			if(m_contexts.empty())
+			{ raise_internal_error("No contexts"); }
+
 			auto const old_out = m_contexts.back().output_value;
 			using container = std::conditional_t<
 				std::is_same_v<std::remove_const_t<T>, std::remove_const_t<objcontainer_in>>,
@@ -159,9 +173,8 @@ namespace jopp2
 					sequence_container_out<typename T::value_type>
 				>
 			>;
+
 			// TODO: use number of elements in value to reserve space if supported by container
-
-
 			if(m_value_after_key != nullptr)
 			{
 				auto const val_ptr = m_value_after_key;
@@ -199,6 +212,9 @@ namespace jopp2
 			value_visitation_context const& /*unused*/
 		)
 		{
+			if(m_contexts.empty())
+			{ raise_internal_error("No contexts"); }
+
 			m_contexts.pop_back();
 			return node_visitor_status::ready;
 		}
