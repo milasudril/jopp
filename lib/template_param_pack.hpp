@@ -145,7 +145,7 @@ namespace jopp2
 	{
 	private:
 		template<size_t... I>
-		static consteval auto resolve_type(std::index_sequence<I...>)
+		static consteval auto resolve_type(std::index_sequence<I...> /*Unused*/)
 		{
 			return std::type_identity<
 				template_param_pack<
@@ -250,7 +250,7 @@ namespace jopp2
 		using type = wrap_in_template_param_pack_t<T>;
 	};
 
-	template<template<class> class SrcType, class ... Args>
+	template<template<class...> class SrcType, class ... Args>
 	struct make_template_param_pack<SrcType<Args...>>
 	{
 		using type = template_param_pack<Args...>;

@@ -32,13 +32,6 @@ namespace
 		template<class T>
 		using sequence_container_type = std::vector<T>;
 
-		template<class T>
-		static constexpr auto is_leaf_value = std::is_same_v<T, int> || std::is_same_v<T, std::string>;
-
-		template<class Self>
-		auto&& get_value(this Self&& self)
-		{ return std::forward_like<Self>(std::forward<Self>(self).value); }
-
 		value_type value;
 	};
 
@@ -62,15 +55,6 @@ namespace
 
 		template<class T>
 		using sequence_container_type = std::vector<T>;
-#if 0
-
-		template<class T>
-		static constexpr auto is_leaf_value = std::is_same_v<T, int> || std::is_same_v<T, std::string>;
-#endif
-
-		template<class Self>
-		auto&& get_value(this Self&& self)
-		{ return std::forward_like<Self>(std::forward<Self>(self).value); }
 
 		value_type value;
 		template<class T, class Self>
@@ -81,21 +65,6 @@ namespace
 		{
 			test_generic_value_out* value;
 		};
-
-		template<class Self, class T, class KeyLike>
-		auto emplace(this Self& self, KeyLike&& key, T&& value)
-		{
-			using ret_type = emplace_ret_val;
-
-			auto i = self.template get_if<object>();
-			if(i == nullptr)
-			{ return ret_type{}; }
-
-			auto const insert_result = i->emplace(std::forward<KeyLike>(key), std::forward<T>(value));
-			return ret_type{
-				.value = &insert_result.first->second
-			};
-		}
 	};
 }
 
