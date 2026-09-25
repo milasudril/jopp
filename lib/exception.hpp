@@ -5,8 +5,26 @@
 #include <print>
 #include <source_location>
 
+#ifdef COVERAGE_BUILD
+extern "C"
+{
+	void __gcov_dump();
+}
+#endif
+
 namespace jopp2
 {
+#ifdef COVERAGE_BUILD
+	inline void flush_errstream(FILE* stream)
+	{
+		fflush(stream);
+		__gcov_dump();
+	}
+#else
+	inline void flush_errstream(FILE* stream)
+	{ fflush(stream); }
+#endif
+
 	/**
 	 * \brief Class used for exception raised by jopp
 	 */
@@ -49,7 +67,7 @@ namespace jopp2
 			loc.line(),
 			std::move(msg)
 		);
-		fflush(stderr);
+		flush_errstream(stderr);
 		abort();
 	}
 
