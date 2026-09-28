@@ -367,3 +367,16 @@ TESTCASE(jopp2_clone_visitor_handle_key_no_container)
 	EXPECT_EQ(visitor.value_after_key(), &inserted_item);
 }
 #pragma GCC diagnostic pop
+
+TESTCASE(jopp2_clone_visitor_handle_end_of_container)
+{
+	test_generic_value_out output;
+	using visitor_type = jopp2::clone_visitor_2<test_generic_value_in, test_generic_value_out>;
+	visitor_type visitor{output};
+
+	EXPECT_EQ(visitor.contexts().empty(), false);
+	test_generic_value_in::object obj;
+	jopp2::container_proxy container{std::cref(obj)};
+	visitor.handle_end_of_container(container, jopp2::value_visitation_context{});
+	EXPECT_EQ(visitor.contexts().empty(), true);
+}
