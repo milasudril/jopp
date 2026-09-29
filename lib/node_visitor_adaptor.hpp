@@ -372,13 +372,7 @@ namespace jopp2
 			if constexpr(std::is_same_v<typename std::remove_cvref_t<T>::container_type, objcontainer>)
 			{
 				auto& key = obj.active_range().begin()->first;
-				auto& value = obj.active_range().begin()->second;
-				nodes.push_back(
-					node{
-						.value = wrap_value(value),
-						.context = next_context
-					}
-				);
+				push_value(obj.active_range().begin()->second, next_context, nodes);
 				nodes.push_back(
 					node{
 						.value = wrap_key(key),
@@ -387,14 +381,7 @@ namespace jopp2
 				);
 			}
 			else
-			{
-				nodes.push_back(
-					node{
-						.value = wrap_value(next_item),
-						.context = next_context
-					}
-				);
-			}
+			{ push_value(next_item, next_context, nodes); }
 			obj.pop_active_element();
 
 			return visit_node_result::node_visitor_ready;
@@ -402,6 +389,21 @@ namespace jopp2
 
 		auto const& visitor() const
 		{ return m_visitor; }
+
+		template<class T>
+		static void push_value(
+			T&& value,
+			value_visitation_context const& next_context,
+			node_stack& nodes
+		)
+		{
+				nodes.push_back(
+					node{
+						.value = wrap_value(std::forward<T>(value)),
+						.context = next_context
+					}
+				);
+		}
 
 	private:
 		NodeVisitor m_visitor;
