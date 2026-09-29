@@ -189,14 +189,6 @@ namespace jopp2
 		>;
 
 		template<class T>
-		using sequence_container_type =
-			std::conditional_t<
-				src_is_const,
-				typename generic_value_t::template sequence_container_type<T> const,
-				typename generic_value_t::template sequence_container_type<T>
-			>;
-
-		template<class T>
 		using node_item_t = node_item<T, src_is_const>::type;
 
 		using node_value = concatenate_variants_t<
