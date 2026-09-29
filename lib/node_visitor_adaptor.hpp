@@ -392,17 +392,27 @@ namespace jopp2
 
 		template<class T>
 		static void push_value(
-			T&& value,
+			T& value,
 			value_visitation_context const& next_context,
 			node_stack& nodes
 		)
 		{
+			nodes.push_back(
+				node{
+					.value = wrap_value(value),
+					.context = next_context
+				}
+			);
+
+			if constexpr(requires{value.subtype();})
+			{
 				nodes.push_back(
 					node{
-						.value = wrap_value(std::forward<T>(value)),
+						.value = wrap_value(value.subtype()),
 						.context = next_context
 					}
 				);
+			}
 		}
 
 	private:
