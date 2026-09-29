@@ -404,11 +404,11 @@ namespace jopp2
 				}
 			);
 
-			if constexpr(requires{value.subtype();})
+			if constexpr(requires{value.subtype_id();})
 			{
 				nodes.push_back(
 					node{
-						.value = wrap_value(value.subtype()),
+						.value = wrap_value(value.subtype_id()),
 						.context = next_context
 					}
 				);
