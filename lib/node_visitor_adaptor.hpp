@@ -201,11 +201,7 @@ namespace jopp2
 
 		using node_value = concatenate_variants_t<
 			wrap_variant_element_t<
-				std::conditional_t<
-					src_is_const,
-					wrap_variant_element_t<value_type, std::add_const_t>,
-					value_type
-				>,
+				value_type,
 				node_item_t
 			>,
 			wrap_variant_element_t<
