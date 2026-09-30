@@ -540,6 +540,63 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_sequence_key)
 	}
 }
 
+TESTCASE(jopp2_node_visitor_adaptor_dispatch_sequence_subtype_id)
+{
+	test_node_visitor visitor{};
+	auto adaptor = jopp2::make_node_visitor_adaptor<test_generic_value<>&>(visitor);
+	static constexpr jopp2::value_visitation_context expected_context{
+		.node_index = 1,
+		.parent_container_size = 2,
+		.depth = 3
+	};
+
+	std::string the_subtype_id{"foobar"};
+	jopp2::subtype_id_node<std::string> subtype_id{
+		.value = jopp2::container_proxy<std::string const>{the_subtype_id}
+	};
+
+	visitor.handle_subtype_id.expect_call_with_action([&subtype_id](
+		jopp2::container_proxy<std::string const>& value,
+		jopp2::value_visitation_context const& ctxt
+	){
+		EXPECT_EQ(&subtype_id.value, &value);
+		EXPECT_EQ(ctxt, expected_context);
+		return jopp2::node_visitor_status::suspended;
+	});
+	{
+		auto const res = adaptor(subtype_id, expected_context);
+		EXPECT_EQ(res, jopp2::visit_node_result::node_visitor_suspended);
+	}
+
+	visitor.handle_subtype_id.expect_call_with_action([&subtype_id](
+		jopp2::container_proxy<std::string const>& value,
+		jopp2::value_visitation_context const& ctxt
+	){
+		EXPECT_EQ(&subtype_id.value, &value);
+		EXPECT_EQ(ctxt, expected_context);
+		return jopp2::node_visitor_status::ready;
+	});
+	{
+		auto const res = adaptor(subtype_id, expected_context);
+		EXPECT_EQ(res, jopp2::visit_node_result::node_visitor_ready);
+	}
+
+	visitor.handle_subtype_id.expect_call_with_action([&subtype_id](
+		jopp2::container_proxy<std::string const>& value,
+		jopp2::value_visitation_context const& ctxt
+	){
+		EXPECT_EQ(&subtype_id.value, &value);
+		subtype_id.value.pop_active_elements(6);
+		EXPECT_EQ(subtype_id.value.at_end(), true);
+		EXPECT_EQ(ctxt, expected_context);
+		return jopp2::node_visitor_status::ready;
+	});
+	{
+		auto const res = adaptor(subtype_id, expected_context);
+		EXPECT_EQ(res, jopp2::visit_node_result::completed);
+	}
+}
+
 namespace
 {
 	template<class KeyType = std::string, class ContainerType>
