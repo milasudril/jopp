@@ -167,6 +167,36 @@ namespace jopp2
 	template <class T>
 	inline constexpr bool is_key_node_v = is_key_node<T>::value;
 
+	template<class T>
+	struct subtype_id_node
+	{
+		using value_type = node_item<std::remove_const_t<T>, true>::type;
+		value_type value;
+
+		template<class U>
+		static constexpr auto create(U&& val)
+		{
+			return subtype_id_node{
+				.value = node_item<std::remove_const_t<T>, true>::create(std::forward<U>(val))
+			};
+		}
+	};
+
+	template <class T>
+	struct is_subtype_id_node : std::false_type {};
+
+	template <class T>
+	struct is_subtype_id_node<subtype_id_node<T>> : std::true_type {};
+
+	template <class T>
+	inline constexpr bool is_subtype_id_node_v = is_subtype_id_node<T>::value;
+
+	template<class T>
+	concept with_subtype = requires(T obj)
+	{
+		{ obj.subtype_id()};
+	};
+
 	template <typename T>
 	concept range_of_ranges =
 			 std::ranges::range<T>
@@ -199,6 +229,10 @@ namespace jopp2
 			wrap_variant_element_t<
 				wrap_in_variant_t<typename object::key_type>,
 				key_node
+			>,
+			wrap_variant_element_t<
+				wrap_in_variant_t<typename object::subtype_id_type>,
+				subtype_id_node
 			>
 		>;
 
@@ -258,6 +292,15 @@ namespace jopp2
 				},
 				std::forward<Key>(key)
 			);
+		}
+
+		template<class Value>
+		requires(!is_variant_v<std::remove_cvref_t<Value>>)
+		[[gnu::always_inline]] static auto wrap_subtype_id(Value&& item)
+		{
+			return node_value{
+				subtype_id_node<std::remove_cvref_t<Value>>::create(std::forward<Value>(item))
+			};
 		}
 
 		template<class NodeVisitorType>
@@ -325,6 +368,28 @@ namespace jopp2
 			);
 		}
 
+		template<class T>
+		visit_node_result dispatch_subtype_id(
+			subtype_id_node<T>::value_type item,
+			value_visitation_context const& current_context
+		)
+		{ return to_visit_node_result(m_visitor.handle_subtype_id(item, current_context)); }
+
+		template<class T>
+		requires instance_of<std::remove_cvref_t<T>, container_proxy>
+		visit_node_result dispatch_subtype_id(
+			T& item,
+			value_visitation_context const& current_context
+		)
+		{
+			return to_visit_node_result(
+				m_visitor.handle_subtype_id(item, current_context),
+				[&item](){
+					return item.at_end();
+				}
+			);
+		}
+
 		template <class KeyWrapper, class Unused = int>
 		requires is_key_node_v<std::remove_cvref_t<KeyWrapper>>
 		[[gnu::always_inline]] visit_node_result operator()(
@@ -335,6 +400,18 @@ namespace jopp2
 		{
 			using val_type = std::remove_cvref_t<KeyWrapper>::value_type;
 			return dispatch_key<val_type>(std::forward<KeyWrapper>(item).value, current_context);
+		}
+
+		template <class SubtypeIdWrapper, class Unused = int>
+		requires is_subtype_id_node_v<std::remove_cvref_t<SubtypeIdWrapper>>
+		[[gnu::always_inline]] visit_node_result operator()(
+			SubtypeIdWrapper&& item,
+			value_visitation_context const& current_context,
+			Unused&& /*unused*/ = Unused{}
+		)
+		{
+			using val_type = std::remove_cvref_t<SubtypeIdWrapper>::value_type;
+			return dispatch_subtype_id<val_type>(std::forward<SubtypeIdWrapper>(item).value, current_context);
 		}
 
 		template<class T>
@@ -404,11 +481,11 @@ namespace jopp2
 				}
 			);
 
-			if constexpr(requires{value.subtype_id();})
+			if constexpr(with_subtype<T>)
 			{
 				nodes.push_back(
 					node{
-						.value = wrap_value(value.subtype_id()),
+						.value = wrap_subtype_id(value.subtype_id()),
 						.context = next_context
 					}
 				);

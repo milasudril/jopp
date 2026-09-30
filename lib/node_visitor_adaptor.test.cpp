@@ -3,6 +3,7 @@
 #include "./node_visitor_adaptor.hpp"
 #include "./container_proxy.hpp"
 #include "./variant_utils.hpp"
+#include "./with_subtype_id.hpp"
 
 #include <ranges>
 #include <testfwk/death_test.hpp>
@@ -15,7 +16,7 @@ namespace
 	template<class KeyType = std::string>
 	struct test_generic_value
 	{
-		using object = std::map<KeyType, test_generic_value>;
+		using object = jopp2::with_subtype_id<std::string, std::map<KeyType, test_generic_value>>;
 
 		using value_type = std::variant<
 			int,
@@ -117,6 +118,13 @@ namespace
 				jopp2::value_visitation_context const&
 			)
 		> handle_key;
+
+		TestFwk::mock_entry_overload_set<
+			jopp2::node_visitor_status(
+				jopp2::container_proxy<std::string const>&,
+				jopp2::value_visitation_context const&
+			)
+		> handle_subtype_id;
 	};
 
 	struct test_context
@@ -848,11 +856,12 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_object_cursor_at_begin_visitor_susp
 {
 	jopp2_node_visitor_adaptor_dispatch_array_cursor_at_begin_visitor_suspended(
 		test_generic_value<>::object{
+			"outer_type",
 			std::pair{std::string{"Foo"}, test_generic_value<>{42}},
 			std::pair{
 				std::string{"Bar"},
 				test_generic_value<>{
-					test_generic_value<>::object{}
+					test_generic_value<>::object{"inner_type"}
 				}
 			},
 			std::pair{
@@ -889,11 +898,12 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_object_cursor_at_end_visitor_suspen
 {
 	jopp2_node_visitor_adaptor_dispatch_array_cursor_at_end_visitor_suspended(
 		test_generic_value<>::object{
+			"my_outer_type",
 			std::pair{std::string{"Foo"}, test_generic_value<>{42}},
 			std::pair{
 				std::string{"Bar"},
 				test_generic_value<>{
-					test_generic_value<>::object{}
+					test_generic_value<>::object{"my_inner_type"}
 				}
 			},
 			std::pair{
@@ -930,11 +940,12 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_object_cursor_at_end_visitor_ready)
 {
 	jopp2_node_visitor_adaptor_dispatch_array_cursor_at_end_visitor_ready(
 		test_generic_value<>::object{
+			"my_outer_type",
 			std::pair{std::string{"Foo"}, test_generic_value<>{42}},
 			std::pair{
 				std::string{"Bar"},
 				test_generic_value<>{
-					test_generic_value<>::object{}
+					test_generic_value<>::object{"my_inner_type"}
 				}
 			},
 			std::pair{
@@ -1007,11 +1018,12 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_object)
 {
 	jopp2_node_visitor_adaptor_dispatch_array(
 		test_generic_value<>::object{
+			"my_outer_type",
 			std::pair{std::string{"Foo"}, test_generic_value<>{42}},
 			std::pair{
 				std::string{"Bar"},
 				test_generic_value<>{
-					test_generic_value<>::object{}
+					test_generic_value<>::object{"my_inner_type"}
 				}
 			},
 			std::pair{
@@ -1071,11 +1083,12 @@ TESTCASE(jopp2_node_visitor_adaptor_dispatch_object_mixed_key_types)
 
 	jopp2_node_visitor_adaptor_dispatch_array<key_type>(
 		test_generic_value<key_type>::object{
+			"my_outer_type",
 			std::pair{std::string{"Foo"}, test_generic_value<key_type>{42}},
 			std::pair{
 				12,
 				test_generic_value<key_type>{
-					test_generic_value<key_type>::object{}
+					test_generic_value<key_type>::object{"my_inner_type"}
 				}
 			},
 			std::pair{
