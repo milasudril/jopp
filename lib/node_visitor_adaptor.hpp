@@ -191,12 +191,6 @@ namespace jopp2
 	template <class T>
 	inline constexpr bool is_subtype_id_node_v = is_subtype_id_node<T>::value;
 
-	template<class T>
-	concept with_subtype = requires(T obj)
-	{
-		{ obj.subtype_id()};
-	};
-
 	template <typename T>
 	concept range_of_ranges =
 			 std::ranges::range<T>
@@ -467,6 +461,19 @@ namespace jopp2
 		auto const& visitor() const
 		{ return m_visitor; }
 
+		static void push_value(
+			std::conditional_t<src_is_const, generic_value_t const&, generic_value_t&> value,			value_visitation_context const& next_context,
+			node_stack& nodes
+		)
+		{
+			std::visit(
+				[&nodes, &next_context]<class T>(T&& item) {
+					push_value(std::forward<T>(item), next_context, nodes);
+				},
+				value.get_value()
+			);
+		}
+
 		template<class T>
 		static void push_value(
 			T& value,
@@ -481,7 +488,7 @@ namespace jopp2
 				}
 			);
 
-			if constexpr(with_subtype<T>)
+			if constexpr(requires{value.subtype_id();})
 			{
 				nodes.push_back(
 					node{

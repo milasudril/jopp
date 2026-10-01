@@ -24,6 +24,8 @@ debug:
 	maike2 --configfiles=maikeconfig2.json,maikeconfig2-dbg.json --target-dir=__targets_dbg
 
 coverage-build:
+	find  __targets_gcov -name '*.gcda' -print0 | xargs -0 rm || true
+	find  __targets_gcov -name '*.gcno' -print0 | xargs -0 rm || true
 	maike2 --configfiles=maikeconfig2.json,maikeconfig2-gcov.json --target-dir=__targets_gcov
 
 coverage: __targets_gcov/.coverage/coverage.html
