@@ -47,6 +47,13 @@ namespace jopp2
 			jopp2::value_visitation_context const& /*unused*/
 		)
 		{ return node_visitor_status::ready; }
+
+		template<class T>
+		node_visitor_status handle_subtype_id(
+			T&& /*unused*/,
+			jopp2::value_visitation_context const& /*unused*/
+		)
+		{ return node_visitor_status::ready; }
 	};
 }
 
