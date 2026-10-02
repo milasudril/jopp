@@ -169,18 +169,26 @@ namespace jopp2
 			return node_visitor_status::ready;
 		}
 
-		template<class T>
-		T create_container()
+		template<class Container>
+		Container create_container()
 		{
-			if constexpr(std::is_same_v<T, objcontainer_out>)
-			{ return T{std::move(m_current_subtype_id)}; }
+			if constexpr(std::is_same_v<Container, objcontainer_out>)
+			{ return Container{std::move(m_current_subtype_id)}; }
 			else
-			{ return T{};}
+			{ return Container{};}
+		}
+
+		template<class Container>
+		static Container&& reserve_space_if_supported(Container&& c, size_t elem_count)
+		{
+			if constexpr (requires { c.reserve(elem_count); })
+			{ c.reserve(elem_count); }
+			return std::forward<Container>(c);
 		}
 
 		template<class T>
 		node_visitor_status handle_begin_of_container(
-			container_proxy<T>& /*value*/,
+			container_proxy<T>& value,
 			value_visitation_context const& /*unused*/
 		)
 		{
@@ -198,12 +206,13 @@ namespace jopp2
 				>
 			>;
 
-			// TODO: use number of elements in value to reserve space if supported by container
 			if(m_value_after_key != nullptr)
 			{
 				auto const val_ptr = m_value_after_key;
 				m_value_after_key = nullptr;
-				*val_ptr = GenericValueOut{create_container<container>()};
+				*val_ptr = GenericValueOut{
+					reserve_space_if_supported(create_container<container>(), value.total_size())
+				};
 				m_contexts.push_back(
 					context{
 						.parent_node = old_out,
@@ -216,7 +225,9 @@ namespace jopp2
 			}
 			else
 			{
-				auto const ret = old_out.update_with(create_container<container>());
+				auto const ret = old_out.update_with(
+					reserve_space_if_supported(create_container<container>(), value.total_size())
+				);
 				m_contexts.push_back(
 					context{
 						.parent_node = old_out,
