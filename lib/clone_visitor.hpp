@@ -170,6 +170,15 @@ namespace jopp2
 		}
 
 		template<class T>
+		T create_container()
+		{
+			if constexpr(std::is_same_v<T, objcontainer_out>)
+			{ return T{std::move(m_current_subtype_id)}; }
+			else
+			{ return T{};}
+		}
+
+		template<class T>
 		node_visitor_status handle_begin_of_container(
 			container_proxy<T>& /*value*/,
 			value_visitation_context const& /*unused*/
@@ -194,12 +203,7 @@ namespace jopp2
 			{
 				auto const val_ptr = m_value_after_key;
 				m_value_after_key = nullptr;
-				[&]{
-					if constexpr(std::is_same_v<container, objcontainer_out>)
-					{ *val_ptr = GenericValueOut{container{std::move(m_current_subtype_id)}}; }
-					else
-					{ *val_ptr = GenericValueOut{container{}}; }
-				}();
+				*val_ptr = GenericValueOut{create_container<container>()};
 				m_contexts.push_back(
 					context{
 						.parent_node = old_out,
@@ -212,12 +216,7 @@ namespace jopp2
 			}
 			else
 			{
-				auto const ret = [&]{
-					if constexpr(std::is_same_v<container, objcontainer_out>)
-					{ return old_out.update_with(container{std::move(m_current_subtype_id)}); }
-					else
-					{ return old_out.update_with(container{}); }
-				}();
+				auto const ret = old_out.update_with(create_container<container>());
 				m_contexts.push_back(
 					context{
 						.parent_node = old_out,
