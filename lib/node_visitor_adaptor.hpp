@@ -96,6 +96,18 @@ namespace jopp2
 		{ return Other(std::forward_like<Self>(std::forward<Self>(self).value)); }
 	};
 
+	template<class T>
+	struct subtype_id_to_clone
+	{
+		using captured_type = T;
+		using stored_type = T;
+		stored_type value;
+
+		template<class Other, class Self>
+		Other take_as(this Self&& self)
+		{ return Other(std::forward_like<Self>(std::forward<Self>(self).value)); }
+	};
+
 	template<class Type, bool IsConst>
 	struct node_item
 	{

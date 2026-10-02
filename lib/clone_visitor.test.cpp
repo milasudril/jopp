@@ -1,9 +1,10 @@
 //@	{"target":{"name":"clone_visitor.test"}}
 
 #include "./clone_visitor.hpp"
-#include "lib/container_proxy.hpp"
-#include "lib/node_visitor_adaptor.hpp"
-#include "lib/template_param_pack.hpp"
+#include "./with_subtype_id.hpp"
+#include "./container_proxy.hpp"
+#include "./node_visitor_adaptor.hpp"
+#include "./template_param_pack.hpp"
 
 #include <map>
 #include <testfwk/testfwk.hpp>
@@ -19,7 +20,10 @@ namespace
 
 		using key_type = std::variant<int, std::string>;
 
-		using object = std::map<key_type, test_generic_value_in>;
+		using object = jopp2::with_subtype_id<
+			std::string,
+			std::map<key_type, test_generic_value_in>
+		>;
 		using value_type = std::variant<
 			int,
 			std::string,
@@ -37,7 +41,10 @@ namespace
 
 	struct test_generic_value_out
 	{
-		using object = std::map<std::variant<int, std::string>, test_generic_value_out>;
+		using object = jopp2::with_subtype_id<
+			std::string,
+			std::map<std::variant<int, std::string>, test_generic_value_out>
+		>;
 		using value_type = std::variant<
 			int,
 			std::string,
@@ -172,12 +179,18 @@ TESTCASE(jopp2_clone_visitor_handle_begin_of_container_object_no_current_key)
 		{"third",test_generic_value_in{3}}
 	};
 
+	std::string subtype_id{"my_type"};
+	jopp2::container_proxy subtype_id_ref{std::cref(subtype_id)};
+	visitor.handle_subtype_id(subtype_id_ref, jopp2::value_visitation_context{});
+	EXPECT_EQ(subtype_id_ref.at_end(), true);
+
 	jopp2::container_proxy container{std::cref(obj)};
 	auto const& context_before = visitor.contexts().back();
 	auto const res = visitor.handle_begin_of_container(container, jopp2::value_visitation_context{});
 	EXPECT_EQ(res, jopp2::node_visitor_status::ready);
 	EXPECT_EQ(container.at_begin(), true);
 	auto const& saved_v = *output.get_if<test_generic_value_out::object>();
+	EXPECT_EQ(saved_v.subtype_id(), subtype_id);
 	EXPECT_EQ(saved_v.empty(), true);
 	EXPECT_EQ(visitor.contexts().size(), 2);
 	auto const& context_after = visitor.contexts().back();
@@ -306,6 +319,11 @@ TESTCASE(jopp2_clone_visitor_handle_begin_of_container_object_with_current_key)
 		{"third",test_generic_value_in{3}}
 	};
 
+	std::string subtype_id{"my_type"};
+	jopp2::container_proxy subtype_id_ref{std::cref(subtype_id)};
+	visitor.handle_subtype_id(subtype_id_ref, jopp2::value_visitation_context{});
+	EXPECT_EQ(subtype_id_ref.at_end(), true);
+
 	jopp2::container_proxy container{std::cref(obj)};
 	auto const& context_before = visitor.contexts().back();
 	auto const res = visitor.handle_begin_of_container(container, jopp2::value_visitation_context{});
@@ -315,6 +333,7 @@ TESTCASE(jopp2_clone_visitor_handle_begin_of_container_object_with_current_key)
 	auto const object = output.get_if<test_generic_value_out::object>();
 	REQUIRE_NE(object, nullptr);
 	auto const& saved_v = *object->at("Hello, world").get_if<test_generic_value_out::object>();
+	EXPECT_EQ(saved_v.subtype_id(), subtype_id);
 	EXPECT_EQ(saved_v.empty(), true);
 	EXPECT_EQ(visitor.contexts().size(), 3);
 	auto const& context_after = visitor.contexts().back();

@@ -28,6 +28,8 @@ namespace jopp2
 			typename GenericValueIn::object
 		>;
 
+		using objcontainer_out = GenericValueOut::object;
+
 		template<class T>
 		using sequence_container_in = GenericValueIn::template sequence_container_type<T>;
 
@@ -131,6 +133,19 @@ namespace jopp2
 		}
 
 		template<class T>
+		node_visitor_status handle_subtype_id(
+			jopp2::container_proxy<T>& id,
+			jopp2::value_visitation_context const& /*unused*/
+		)
+		{
+			m_current_subtype_id = typename objcontainer_out::subtype_id_type{
+				std::remove_const_t<T>(std::from_range_t{}, id.active_range())
+			};
+			id.pop_active_elements();
+			return node_visitor_status::ready;
+		}
+
+		template<class T>
 		node_visitor_status handle_simple_array(T& value, value_visitation_context const& /*unused*/)
 		{
 			using src_type = std::remove_cvref_t<T>;
@@ -179,7 +194,12 @@ namespace jopp2
 			{
 				auto const val_ptr = m_value_after_key;
 				m_value_after_key = nullptr;
-				*val_ptr = GenericValueOut{container{}};
+				[&]{
+					if constexpr(std::is_same_v<container, objcontainer_out>)
+					{ *val_ptr = GenericValueOut{container{std::move(m_current_subtype_id)}}; }
+					else
+					{ *val_ptr = GenericValueOut{container{}}; }
+				}();
 				m_contexts.push_back(
 					context{
 						.parent_node = old_out,
@@ -192,7 +212,12 @@ namespace jopp2
 			}
 			else
 			{
-				auto const ret = old_out.update_with(container{});
+				auto const ret = [&]{
+					if constexpr(std::is_same_v<container, objcontainer_out>)
+					{ return old_out.update_with(container{std::move(m_current_subtype_id)}); }
+					else
+					{ return old_out.update_with(container{}); }
+				}();
 				m_contexts.push_back(
 					context{
 						.parent_node = old_out,
@@ -228,6 +253,7 @@ namespace jopp2
 	private:
 		std::vector<context> m_contexts;
 		GenericValueOut* m_value_after_key{nullptr};
+		objcontainer_out::subtype_id_type m_current_subtype_id;
 	};
 
 	template<class SrcValueTemplateParamPack, class GenericValueOut>
