@@ -19,6 +19,9 @@ namespace jopp2
 		constexpr bool operator==(value_visitation_context const&) const = default;
 		constexpr bool operator!=(value_visitation_context const&) const = default;
 
+		constexpr bool is_last_node() const
+		{ return node_index == parent_container_size; }
+
 		size_t node_index{};
 		size_t parent_container_size{};
 		size_t depth{};
@@ -42,7 +45,7 @@ namespace jopp2
 		while(!nodes.empty())
 		{
 			auto& current_node = nodes.back();
-			switch(visit_with_args(current_node.value, visitor, current_node.context))
+			switch(visit_with_args(current_node.value, visitor, current_node.context, nodes))
 			{
 				case visit_node_result::node_visitor_ready:
 					break;
@@ -452,10 +455,12 @@ namespace jopp2
 				.depth = current_context.depth + 1
 			};
 
+			obj.pop_active_element();
+
 			if constexpr(std::is_same_v<typename std::remove_cvref_t<T>::container_type, objcontainer>)
 			{
-				auto& key = obj.active_range().begin()->first;
-				push_value(obj.active_range().begin()->second, next_context, nodes);
+				auto& key = next_item.first;
+				push_value(next_item.second, next_context, nodes);
 				nodes.push_back(
 					node{
 						.value = wrap_key(key),
@@ -465,7 +470,6 @@ namespace jopp2
 			}
 			else
 			{ push_value(next_item, next_context, nodes); }
-			obj.pop_active_element();
 
 			return visit_node_result::node_visitor_ready;
 		}
@@ -474,7 +478,8 @@ namespace jopp2
 		{ return m_visitor; }
 
 		static void push_value(
-			std::conditional_t<src_is_const, generic_value_t const&, generic_value_t&> value,			value_visitation_context const& next_context,
+			std::conditional_t<src_is_const, generic_value_t const&, generic_value_t&> value,
+			value_visitation_context const& next_context,
 			node_stack& nodes
 		)
 		{
@@ -531,5 +536,29 @@ namespace jopp2
 			std::forward<NodeVisitorType>(node_visitor)
 		);
 	}
+
+	template<class GenericValue, class NodeVisitor>
+	class node_visitor
+	{
+	public:
+		explicit node_visitor(GenericValue& value, NodeVisitor&& visitor):
+			m_visitor{std::move(visitor)}
+		{
+			m_nodes.push_back(
+				typename adaptor::node{
+					.value = adaptor::wrap_value(value),
+					.context = value_visitation_context{}
+				}
+			);
+		}
+
+		auto visit_nodes()
+		{ return jopp2::visit_nodes(m_nodes, m_visitor); }
+
+	private:
+		using adaptor = node_visitor_adaptor<GenericValue&, NodeVisitor>;
+		adaptor m_visitor;
+		adaptor::node_stack m_nodes;
+	};
 }
 #endif

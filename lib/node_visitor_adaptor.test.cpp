@@ -180,7 +180,7 @@ TESTCASE(jopp2_to_visit_node_result_junk_leads_to_sigabrt)
 				completed_mock
 			);
 		},
-		"jopp internal error: lib/./node_visitor_adaptor.hpp:81: Invalid return value from node visitor\n",
+		"jopp internal error: lib/./node_visitor_adaptor.hpp:84: Invalid return value from node visitor\n",
 		SIGABRT
 	);
 }
@@ -189,8 +189,8 @@ TESTCASE(jopp2_node_sequence_visit_nodes_with_empty_node_sequence)
 {
 	std::vector<test_node> nodes;
 	TestFwk::mock_entry_overload_set<
-		jopp2::visit_node_result(int, test_context),
-		jopp2::visit_node_result(std::string const&, test_context)
+		jopp2::visit_node_result(int, test_context, std::vector<test_node>&),
+		jopp2::visit_node_result(std::string const&, test_context, std::vector<test_node>&)
 	> visitor_mock;
 	auto const result = jopp2::visit_nodes(nodes, visitor_mock);
 	EXPECT_EQ(result, jopp2::node_visitor_status::ready);
@@ -210,17 +210,19 @@ TESTCASE(jopp2_node_sequence_visit_nodes_keeps_going_until_visitor_suspended)
 
 	size_t callcount = 0;
 	TestFwk::mock_entry_overload_set<
-		jopp2::visit_node_result(int, test_context),
-		jopp2::visit_node_result(std::string const&, test_context)
+		jopp2::visit_node_result(int, test_context, std::vector<test_node>&),
+		jopp2::visit_node_result(std::string const&, test_context, std::vector<test_node>&)
 	> visitor_mock;
 	visitor_mock.expect_call_with_action(
-		[&callcount](std::string const& str, test_context ctxt){
+		[&callcount, &nodes]
+		(std::string const& str, test_context ctxt, std::vector<test_node>& nodes_recv){
 			auto const retval = callcount < 3?
 				  jopp2::visit_node_result::node_visitor_ready
 				: jopp2::visit_node_result::node_visitor_suspended;
 				++callcount;
-				EXPECT_EQ(str, "Foobar");
-				EXPECT_EQ(ctxt, test_context{1});
+			EXPECT_EQ(str, "Foobar");
+			EXPECT_EQ(ctxt, test_context{1});
+			EXPECT_EQ(&nodes, &nodes_recv);
 			return retval;
 		},
 		TestFwk::expectation_options{
@@ -246,17 +248,19 @@ TESTCASE(jopp2_node_sequence_visit_nodes_keeps_going_until_visitor_completed)
 
 	size_t callcount = 0;
 	TestFwk::mock_entry_overload_set<
-		jopp2::visit_node_result(int, test_context),
-		jopp2::visit_node_result(std::string const&, test_context)
+		jopp2::visit_node_result(int, test_context, std::vector<test_node>&),
+		jopp2::visit_node_result(std::string const&, test_context, std::vector<test_node>&)
 	> visitor_mock;
 	visitor_mock.expect_call_with_action(
-		[&callcount](std::string const& str, test_context ctxt){
+		[&callcount, &nodes]
+		(std::string const& str, test_context ctxt, std::vector<test_node>& nodes_recv){
 			auto const retval = callcount < 3?
 				  jopp2::visit_node_result::node_visitor_ready
 				: jopp2::visit_node_result::completed;
-				++callcount;
-				EXPECT_EQ(str, "Foobar");
-				EXPECT_EQ(ctxt, test_context{1});
+			++callcount;
+			EXPECT_EQ(str, "Foobar");
+			EXPECT_EQ(ctxt, test_context{1});
+			EXPECT_EQ(&nodes, &nodes_recv);
 			return retval;
 		},
 		TestFwk::expectation_options{

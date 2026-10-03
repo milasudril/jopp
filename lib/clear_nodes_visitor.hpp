@@ -20,7 +20,7 @@ namespace jopp2
 			jopp2::value_visitation_context const& /*unused*/
 		)
 		{
-			obj.clear();
+			obj.clear_backing_store();
 			return node_visitor_status::ready;
 		}
 
@@ -37,23 +37,34 @@ namespace jopp2
 			jopp2::value_visitation_context const& /*unused*/
 		)
 		{
-			obj.clear();
+			obj.clear_backing_store();
 			return node_visitor_status::ready;
 		}
 
 		template<class T>
 		node_visitor_status handle_key(
-			T&& /*unused*/,
+			T&& obj,
 			jopp2::value_visitation_context const& /*unused*/
 		)
-		{ return node_visitor_status::ready; }
+		{
+			if constexpr(requires{std::forward<T>(obj).pop_active_elements(); })
+			{ std::forward<T>(obj).pop_active_elements(); }
+
+			return node_visitor_status::ready;
+		}
 
 		template<class T>
 		node_visitor_status handle_subtype_id(
-			T&& /*unused*/,
+			T&& obj,
 			jopp2::value_visitation_context const& /*unused*/
 		)
-		{ return node_visitor_status::ready; }
+		{
+			if constexpr(requires{std::forward<T>(obj).pop_active_elements(); })
+			{ std::forward<T>(obj).pop_active_elements(); }
+
+			return node_visitor_status::ready;
+
+		}
 	};
 }
 

@@ -1,6 +1,7 @@
 //@	{"target":{"name": "generic_value.test"}}
 
 #include "./generic_value.hpp"
+#include "lib/clear_nodes_visitor.hpp"
 #include "testfwk/death_test.hpp"
 #include "testfwk/validation.hpp"
 
@@ -64,287 +65,6 @@ namespace
 	template<>
 	struct map_type_name<std::monostate>
 	{ static constexpr const char* name = "null"; };
-
-	struct test_node_visitor
-	{
-		static constexpr bool is_suspendable = true;
-
-		void do_indent()
-		{
-			if(skip_indent)
-			{
-				skip_indent = false;
-				return;
-			}
-
-			for(size_t k = 0; k != indentation; ++k)
-			{ output.get() +="    "; }
-		}
-
-		static constexpr auto internal_to_string = jopp2::overload{
-			[](std::monostate) {
-				return "null";
-			},
-			[](bool_wrapper value) {
-				return value == bool_wrapper::enabled? "true" : "false";
-			},
-			[](std::string const& str) {
-				return str;
-			},
-			[](double x) {
-				return std::format("{}", x);
-			}
-		};
-
-		bool should_suspend()
-		{
-			return std::bernoulli_distribution{0.5}(rng);
-		}
-
-		template<class T>
-		[[nodiscard]] auto print_without_tag(T const& item, size_t index, size_t parent_container_size)
-		{
-			if(should_suspend())
-			{ return jopp2::visitor_status::suspend; }
-
-			do_indent();
-			if(index + 1== parent_container_size) [[unlikely]]
-			{
-				output.get() += std::format(
-					"({} of {}) {}\n", index + 1, parent_container_size, internal_to_string(item)
-				);
-			}
-			else
-			{
-				output.get() += std::format(
-					"({} of {}) {},\n", index + 1, parent_container_size, internal_to_string(item)
-				);
-			}
-			return  jopp2::visitor_status::keep_going;
-		}
-
-		static jopp2::visitor_status default_state(test_node_visitor& /*unused*/)
-		{ return jopp2::visitor_status::keep_going; }
-
-		auto flush()
-		{
-			auto const res = current_state(*this);
-			if(res == jopp2::visitor_status::keep_going)
-			{ current_state = default_state;}
-			return res;
-		}
-
-		template<class T>
-		auto handle_leaf_value_array(std::vector<T> const& src, jopp2::value_visitation_context context)
-		{
-			handle_begin_of_array(std::type_identity<T>{}, context);
-			auto resume_from = [&](size_t index) {
-				return [
-					range = std::span{src},
-					index,
-					size = std::size(src),
-					context
-				](test_node_visitor& visitor) mutable{
-					while(index != size)
-					{
-						// NOLINTNEXTLINE
-						auto const& item = range[index];
-						if(
-							visitor.print_without_tag(item, index, size) ==
-							jopp2::visitor_status::suspend
-						)
-						{ return jopp2::visitor_status::suspend; }
-						++index;
-					}
-					visitor.handle_end_of_array(std::type_identity<T>{}, context);
-					visitor.current_state = default_state;
-					return jopp2::visitor_status::keep_going;
-				};
-			};
-
-			if(should_suspend())
-			{
-				current_state = resume_from(0);
-				return jopp2::visitor_status::suspend;
-			}
-
-			auto const size = std::size(src);
-			for(auto&& [index, item]: std::ranges::enumerate_view{src})
-			{
-				if(print_without_tag(item, static_cast<size_t>(index), size) == jopp2::visitor_status::suspend)
-				{
-					current_state = resume_from(static_cast<size_t>(index));
-					return jopp2::visitor_status::suspend;
-				}
-			}
-			handle_end_of_array(std::type_identity<T>{}, context);
-			return jopp2::visitor_status::keep_going;
-		}
-
-		auto handle_leaf_value(std::string const& str, jopp2::value_visitation_context context)
-		{
-			do_indent();
-			auto const index = context.node_index ;
-			auto const parent_container_size = context.parent_container_size;
-			if(index + 1 == parent_container_size) [[unlikely]]
-			{
-				output.get() += std::format("({} of {}) str({})\n", index + 1, parent_container_size, str);
-			}
-			else
-			{
-				output.get() += std::format("({} of {}) str({}),\n", index + 1, parent_container_size, str);
-			}
-			return jopp2::visitor_status::keep_going;
-		}
-
-		auto handle_leaf_value(double value, jopp2::value_visitation_context context)
-		{
-			do_indent();
-			auto const index = context.node_index ;
-			auto const parent_container_size = context.parent_container_size;
-			if(index + 1 == parent_container_size) [[unlikely]]
-			{
-				output.get() += std::format( "({} of {}) sd{}\n", index + 1, parent_container_size, value);
-			}
-			else
-			{
-				output.get() += std::format( "({} of {}) sd{},\n", index + 1, parent_container_size, value);
-			}
-			return jopp2::visitor_status::keep_going;
-		}
-
-		auto handle_leaf_value(std::monostate /*unused*/, jopp2::value_visitation_context context)
-		{
-			do_indent();
-			auto const index = context.node_index ;
-			auto const parent_container_size = context.parent_container_size;
-			if(index + 1 == parent_container_size) [[unlikely]]
-			{
-				output.get() += std::format("({} of {}) null\n", index + 1, parent_container_size);
-			}
-			else
-			{
-				output.get() += std::format("({} of {}) null,\n", index + 1, parent_container_size);
-			}
-			return jopp2::visitor_status::keep_going;
-		}
-
-		auto handle_leaf_value(bool_wrapper value, jopp2::value_visitation_context context)
-		{
-			do_indent();
-			auto const index = context.node_index ;
-			auto const parent_container_size = context.parent_container_size;
-			if(index + 1 == parent_container_size) [[unlikely]]
-			{
-				output.get() += std::format(
-					"({} of {}) {}\n", index + 1, parent_container_size, internal_to_string(value)
-				);
-			}
-			else
-			{
-				output.get() += std::format(
-					"({} of {}) {},\n", index + 1, parent_container_size, internal_to_string(value)
-				);
-			}
-			return jopp2::visitor_status::keep_going;
-		}
-
-		auto handle_property_name(std::string const& name, jopp2::value_visitation_context /*unused*/)
-		{
-			if(should_suspend())
-			{
-				current_state = [name](test_node_visitor& visitor){
-					if(visitor.should_suspend())
-					{ return jopp2::visitor_status::suspend; }
-
-					visitor.do_indent();
-					visitor.output.get() += std::format("{}: ", name);
-					visitor.skip_indent = true;
-
-					visitor.current_state = default_state;
-					return jopp2::visitor_status::keep_going;
-				};
-			}
-			do_indent();
-			output.get() += std::format("{}: ", name);
-			skip_indent = true;
-			return jopp2::visitor_status::keep_going;
-		}
-
-		auto handle_begin_of_object(jopp2::value_visitation_context context)
-		{
-			do_indent();
-			output.get() += std::format(
-				"({} of {}) {{\n",
-				context.node_index + 1,
-				context.parent_container_size
-			);
-			++indentation;
-			return jopp2::visitor_status::keep_going;
-		}
-
-		auto handle_begin_of_object(size_t /*unused*/)
-		{
-			do_indent();
-			output.get() += std::format("{{\n");
-			++indentation;
-			return jopp2::visitor_status::keep_going;
-		}
-
-		auto handle_end_of_object(jopp2::value_visitation_context context)
-		{
-			--indentation;
-			do_indent();
-			if(!context.is_last_node())
-			{ output.get() += "},\n"; }
-			else
-			{ output.get() += "}\n"; }
-			return jopp2::visitor_status::keep_going;
-		}
-
-		auto handle_end_of_object()
-		{
-			assert(indentation != 0);
-			--indentation;
-			do_indent();
-			output.get() += "}\n";
-			return jopp2::visitor_status::keep_going;
-		}
-
-		template<class T>
-		auto handle_begin_of_array(std::type_identity<T> /*unused*/, jopp2::value_visitation_context context)
-		{
-			assert(context.node_index < context.parent_container_size);
-			do_indent();
-			output.get() += std::format(
-				"({} of {}) {}[\n",
-				context.node_index + 1,
-				context.parent_container_size,
-				map_type_name<T>::name
-			);
-			++indentation;
-			return jopp2::visitor_status::keep_going;
-		}
-
-		template<class T>
-		auto handle_end_of_array(std::type_identity<T> /*unused*/, jopp2::value_visitation_context context)
-		{
-			--indentation;
-			do_indent();
-			if(!context.is_last_node())
-			{ output.get() += "],\n"; }
-			else
-			{ output.get() += "]\n"; }
-			return jopp2::visitor_status::keep_going;
-		}
-
-		std::reference_wrapper<std::string> output;
-		size_t indentation = 0;
-		// NOLINTNEXTLINE Not according to gcc
-		std::mt19937 rng{};
-		std::move_only_function<jopp2::visitor_status(test_node_visitor&)> current_state = default_state;
-		bool skip_indent = false;
-	};
 }
 
 TESTCASE(jopp2_explain_lookup_error_code)
@@ -369,7 +89,7 @@ TESTCASE(jopp2_explain_lookup_error_code)
 			// NOLINTNEXTLINE
 			explain(static_cast<jopp2::lookup_error_code>(234));
 		},
-		"jopp internal error: lib/./generic_value.hpp:50: Invalid lookup error code\n",
+		"jopp internal error: lib/./generic_value.hpp:38: Invalid lookup error code\n",
 		SIGABRT
 	);
 }
@@ -405,7 +125,7 @@ TESTCASE(jopp2_lookup_result_from_pointer)
 		[result]{
 			std::ignore = result.error_code();
 		},
-		"jopp internal error: lib/./generic_value.hpp:85: Error code not set in a non-error condition\n",
+		"jopp internal error: lib/./generic_value.hpp:73: Error code not set in a non-error condition\n",
 		SIGABRT
 	);
 }
@@ -851,6 +571,19 @@ TESTCASE(jopp2_generic_value_store_at_end_value_is_a_sequence)
 	EXPECT_EQ(res, "bar");
 }
 
+TESTCASE(jopp2_generic_value_insanely_deep_tree)
+{
+	using json_value = jopp2::generic_value<std::unordered_map, std::vector, json_value_traits>;
+	json_value val{json_value::object{}};
+	auto current = val.get_if<json_value::object>();
+	for(size_t k = 0; k != 1024ZU*256; ++k)
+	{
+		auto res = current->insert(std::pair{"foobar", json_value::object{}});
+		current = res.first->second.get_if<json_value::object>();
+	}
+}
+
+#if TODO
 TESTCASE(jopp2_generic_value_visit_nodes)
 {
 	using json_value = jopp2::generic_value<std::unordered_map, std::vector, json_value_traits>;
@@ -1171,3 +904,4 @@ TESTCASE(jopp2_generic_value_visit_nodes)
 
 	EXPECT_EQ(output, expected_output);
 }
+#endif

@@ -165,7 +165,7 @@ namespace jopp2
 	{
 	private:
 		template<size_t... I>
-		static consteval auto resolve_type(std::index_sequence<I...>)
+		static consteval auto resolve_type(std::index_sequence<I...> /*Unused*/)
 		{
 			return std::type_identity<
 				std::variant<
