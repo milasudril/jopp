@@ -1,7 +1,6 @@
 //@	{"target":{"name": "generic_value.test"}}
 
 #include "./generic_value.hpp"
-#include "lib/clear_nodes_visitor.hpp"
 #include "testfwk/death_test.hpp"
 #include "testfwk/validation.hpp"
 
@@ -19,12 +18,28 @@ namespace
 	{
 		using key_type = std::string;
 		using leaf_value_type = jopp2::template_param_pack<int, double, std::string, char>;
+
+		template<class Key, class Value>
+		using map_type = std::flat_map<Key, Value>;
+
+		template<class T>
+		using sequence_container_type = std::vector<T>;
+
+		using subtype_id_type = std::string;
 	};
 
 	struct my_value_traits_with_no_pack
 	{
 		using key_type = std::string;
 		using leaf_value_type = std::string;
+
+		template<class Key, class Value>
+		using map_type = std::flat_map<Key, Value>;
+
+		template<class T>
+		using sequence_container_type = std::vector<T>;
+
+		using subtype_id_type = std::string;
 	};
 
 	enum class bool_wrapper:bool{
@@ -36,6 +51,12 @@ namespace
 	{
 		using key_type = std::string;
 		using leaf_value_type = jopp2::template_param_pack<std::monostate, bool_wrapper, double, std::string>;
+		using subtype_id_type = std::string;
+		template<class Key, class Value>
+		using map_type = std::unordered_map<Key, Value>;
+
+		template<class T>
+		using sequence_container_type = std::vector<T>;
 	};
 
 	template<class T>
@@ -132,7 +153,7 @@ TESTCASE(jopp2_lookup_result_from_pointer)
 
 TESTCASE(jopp2_generic_value_static_properties)
 {
-	using type_with_pack = jopp2::generic_value<std::flat_map, std::vector, my_value_traits_with_pack>;
+	using type_with_pack = jopp2::generic_value<my_value_traits_with_pack>;
 	EXPECT_EQ(
 		(std::is_same_v<
 			type_with_pack::value_type,
@@ -160,7 +181,7 @@ TESTCASE(jopp2_generic_value_static_properties)
 	EXPECT_EQ((std::is_constructible_v<type_with_pack, int>), true);
 	EXPECT_EQ((std::is_constructible_v<type_with_pack, type_with_pack::value_type>), true);
 
-	using type_with_no_pack = jopp2::generic_value<std::flat_map, std::vector, my_value_traits_with_no_pack>;
+	using type_with_no_pack = jopp2::generic_value<my_value_traits_with_no_pack>;
 		EXPECT_EQ(
 		(std::is_same_v<
 			type_with_no_pack::value_type,
@@ -186,21 +207,21 @@ TESTCASE(jopp2_generic_value_static_properties)
 
 TESTCASE(jopp2_generic_value_default_constructed)
 {
-	using json_value = jopp2::generic_value<std::unordered_map, std::vector, json_value_traits>;
+	using json_value = jopp2::generic_value<json_value_traits>;
 	json_value val;
 	EXPECT_EQ(val.get<std::monostate>(), std::monostate{});
 }
 
 TESTCASE(jopp2_generic_value_construct_from_value)
 {
-	using json_value = jopp2::generic_value<std::unordered_map, std::vector, json_value_traits>;
+	using json_value = jopp2::generic_value<json_value_traits>;
 	json_value val{12.5};
 	EXPECT_EQ(val.get<double>(), 12.5);
 }
 
 TESTCASE(jopp2_generic_value_get_wrong_type)
 {
-	using json_value = jopp2::generic_value<std::unordered_map, std::vector, json_value_traits>;
+	using json_value = jopp2::generic_value<json_value_traits>;
 	json_value val{12.5};
 
 	{
@@ -221,7 +242,7 @@ TESTCASE(jopp2_generic_value_get_wrong_type)
 
 TESTCASE(jopp2_generic_value_get_by_name_not_an_object)
 {
-	using json_value = jopp2::generic_value<std::unordered_map, std::vector, json_value_traits>;
+	using json_value = jopp2::generic_value<json_value_traits>;
 	json_value val{12.5};
 
 	{
@@ -246,7 +267,7 @@ TESTCASE(jopp2_generic_value_get_by_name_not_an_object)
 
 TESTCASE(jopp2_generic_value_get_by_name_key_not_found)
 {
-	using json_value = jopp2::generic_value<std::unordered_map, std::vector, json_value_traits>;
+	using json_value = jopp2::generic_value<json_value_traits>;
 	json_value val{json_value::object{}};
 
 	{
@@ -271,7 +292,7 @@ TESTCASE(jopp2_generic_value_get_by_name_key_not_found)
 
 TESTCASE(jopp2_generic_value_get_by_name_wrong_type)
 {
-	using json_value = jopp2::generic_value<std::unordered_map, std::vector, json_value_traits>;
+	using json_value = jopp2::generic_value<json_value_traits>;
 	json_value val{json_value::object{}};
 	val.store_value_as(std::string{"This is a string"}, "Foobar");
 
@@ -297,7 +318,7 @@ TESTCASE(jopp2_generic_value_get_by_name_wrong_type)
 
 TESTCASE(jopp2_generic_value_get_by_name_succesful)
 {
-	using json_value = jopp2::generic_value<std::unordered_map, std::vector, json_value_traits>;
+	using json_value = jopp2::generic_value<json_value_traits>;
 	json_value val{json_value::object{}};
 	val.store_value_as(12.5, "Foobar");
 
@@ -311,7 +332,7 @@ TESTCASE(jopp2_generic_value_get_by_name_succesful)
 
 TESTCASE(jopp2_generic_value_try_store_value_as_value_is_not_an_object)
 {
-	using json_value = jopp2::generic_value<std::unordered_map, std::vector, json_value_traits>;
+	using json_value = jopp2::generic_value<json_value_traits>;
 	json_value val{};
 	auto const res = val.try_store_value_as(12.5, "Foobar");
 	EXPECT_EQ(res.value, nullptr);
@@ -321,7 +342,7 @@ TESTCASE(jopp2_generic_value_try_store_value_as_value_is_not_an_object)
 
 TESTCASE(jopp2_generic_value_try_store_value_value_is_an_object)
 {
-	using json_value = jopp2::generic_value<std::unordered_map, std::vector, json_value_traits>;
+	using json_value = jopp2::generic_value<json_value_traits>;
 	json_value val{json_value::object{}};
 
 	{
@@ -341,7 +362,7 @@ TESTCASE(jopp2_generic_value_try_store_value_value_is_an_object)
 
 TESTCASE(jopp2_generic_value_store_value_as_value_is_not_an_object)
 {
-	using json_value = jopp2::generic_value<std::unordered_map, std::vector, json_value_traits>;
+	using json_value = jopp2::generic_value<json_value_traits>;
 	json_value val{};
 	try
 	{
@@ -356,7 +377,7 @@ TESTCASE(jopp2_generic_value_store_value_as_value_is_not_an_object)
 
 TESTCASE(jopp2_generic_value_store_value_as_value_is_an_object)
 {
-	using json_value = jopp2::generic_value<std::unordered_map, std::vector, json_value_traits>;
+	using json_value = jopp2::generic_value<json_value_traits>;
 	json_value val{json_value::object{}};
 	{
 		auto const res = val.store_value_as(12.5, std::string{"This is a longer key"});
@@ -377,7 +398,7 @@ TESTCASE(jopp2_generic_value_store_value_as_value_is_an_object)
 
 TESTCASE(jopp2_generic_value_try_store_key_value_value_is_not_an_object)
 {
-	using json_value = jopp2::generic_value<std::unordered_map, std::vector, json_value_traits>;
+	using json_value = jopp2::generic_value<json_value_traits>;
 	json_value val{};
 	auto const res = val.try_store_key_value(json_value::map_value_type{"Foobar", 12.5});
 	EXPECT_EQ(res.was_inserted, false);
@@ -387,7 +408,7 @@ TESTCASE(jopp2_generic_value_try_store_key_value_value_is_not_an_object)
 
 TESTCASE(jopp2_generic_value_try_store_key_value_value_is_an_object)
 {
-	using json_value = jopp2::generic_value<std::unordered_map, std::vector, json_value_traits>;
+	using json_value = jopp2::generic_value<json_value_traits>;
 	json_value val{json_value::object{}};
 	{
 		auto const res = val.try_store_key_value(json_value::map_value_type{"Foobar", 12.5});
@@ -406,7 +427,7 @@ TESTCASE(jopp2_generic_value_try_store_key_value_value_is_an_object)
 
 TESTCASE(jopp2_generic_value_store_key_value_value_is_not_an_object)
 {
-	using json_value = jopp2::generic_value<std::unordered_map, std::vector, json_value_traits>;
+	using json_value = jopp2::generic_value<json_value_traits>;
 	json_value val{};
 	try
 	{
@@ -424,7 +445,7 @@ TESTCASE(jopp2_generic_value_store_key_value_value_is_not_an_object)
 
 TESTCASE(jopp2_generic_value_store_key_value_value_is_an_object)
 {
-	using json_value = jopp2::generic_value<std::unordered_map, std::vector, json_value_traits>;
+	using json_value = jopp2::generic_value<json_value_traits>;
 	json_value val{json_value::object{}};
 
 	{
@@ -449,7 +470,7 @@ TESTCASE(jopp2_generic_value_store_key_value_value_is_an_object)
 
 TESTCASE(jopp2_generic_value_try_store_at_end_not_a_sequence)
 {
-	using json_value = jopp2::generic_value<std::unordered_map, std::vector, json_value_traits>;
+	using json_value = jopp2::generic_value<json_value_traits>;
 	json_value val{json_value::object{}};
 	auto const res = val.try_store_at_end(134.0);
 	EXPECT_EQ(res, nullptr);
@@ -457,7 +478,7 @@ TESTCASE(jopp2_generic_value_try_store_at_end_not_a_sequence)
 
 TESTCASE(jopp2_generic_value_try_store_at_end_value_is_a_string)
 {
-	using json_value = jopp2::generic_value<std::unordered_map, std::vector, json_value_traits>;
+	using json_value = jopp2::generic_value<json_value_traits>;
 	json_value val{std::string{"Hej hopp"}};
 	auto const res = val.try_store_at_end(134.0);
 	EXPECT_EQ(res, nullptr);
@@ -465,7 +486,7 @@ TESTCASE(jopp2_generic_value_try_store_at_end_value_is_a_string)
 
 TESTCASE(jopp2_generic_value_try_store_at_end_typed_container_with_matching_type)
 {
-	using json_value = jopp2::generic_value<std::unordered_map, std::vector, json_value_traits>;
+	using json_value = jopp2::generic_value<json_value_traits>;
 	{
 		json_value val{std::vector{1.0, 2.0, 3.0}};
 		auto const res = val.try_store_at_end(5.0);
@@ -489,7 +510,7 @@ TESTCASE(jopp2_generic_value_try_store_at_end_typed_container_with_matching_type
 
 TESTCASE(jopp2_generic_value_try_store_at_end_leaf_value_in_empty_generic_container)
 {
-	using json_value = jopp2::generic_value<std::unordered_map, std::vector, json_value_traits>;
+	using json_value = jopp2::generic_value<json_value_traits>;
 	json_value val{std::vector<json_value>{}};
 	auto const res = val.try_store_at_end(5.0);
 	EXPECT_EQ(*res, 5.0);
@@ -499,7 +520,7 @@ TESTCASE(jopp2_generic_value_try_store_at_end_leaf_value_in_empty_generic_contai
 
 TESTCASE(jopp2_generic_value_try_store_at_end_generic_value_in_empty_leaf_container)
 {
-	using json_value = jopp2::generic_value<std::unordered_map, std::vector, json_value_traits>;
+	using json_value = jopp2::generic_value<json_value_traits>;
 	json_value val{std::vector<double>{}};
 	auto const res = val.try_store_at_end(json_value{"Foo"});
 	EXPECT_EQ(res->get<std::string>(), "Foo");
@@ -509,7 +530,7 @@ TESTCASE(jopp2_generic_value_try_store_at_end_generic_value_in_empty_leaf_contai
 
 TESTCASE(jopp2_generic_value_try_store_at_end_leaf_value_in_non_empty_generic_container)
 {
-	using json_value = jopp2::generic_value<std::unordered_map, std::vector, json_value_traits>;
+	using json_value = jopp2::generic_value<json_value_traits>;
 	json_value val{std::vector<json_value>{}};
 	{
 		auto const res = val.try_store_at_end(json_value{"Foo"});
@@ -528,7 +549,7 @@ TESTCASE(jopp2_generic_value_try_store_at_end_leaf_value_in_non_empty_generic_co
 
 TESTCASE(jopp2_generic_value_try_store_at_end_leaf_value_in_non_empty_container_of_different_type)
 {
-	using json_value = jopp2::generic_value<std::unordered_map, std::vector, json_value_traits>;
+	using json_value = jopp2::generic_value<json_value_traits>;
 	json_value val{std::vector{1.0, 2.0, 4.0}};
 	auto const res = val.try_store_at_end(std::string{"This is a string"});
 	EXPECT_EQ(*res, "This is a string");
@@ -539,7 +560,7 @@ TESTCASE(jopp2_generic_value_try_store_at_end_leaf_value_in_non_empty_container_
 
 TESTCASE(jopp2_generic_value_try_store_at_end_generic_value_in_non_empty_container_of_different_type)
 {
-	using json_value = jopp2::generic_value<std::unordered_map, std::vector, json_value_traits>;
+	using json_value = jopp2::generic_value<json_value_traits>;
 	json_value val{std::vector{1.0, 2.0, 4.0}};
 	auto const res = val.try_store_at_end(json_value{std::string{"This is a string"}});
 	EXPECT_EQ(res->get<std::string>(), "This is a string");
@@ -550,7 +571,7 @@ TESTCASE(jopp2_generic_value_try_store_at_end_generic_value_in_non_empty_contain
 
 TESTCASE(jopp2_generic_value_store_at_end_value_is_not_a_sequence)
 {
-	using json_value = jopp2::generic_value<std::unordered_map, std::vector, json_value_traits>;
+	using json_value = jopp2::generic_value<json_value_traits>;
 	json_value val{std::string{"foo"}};
 	try
 	{
@@ -565,7 +586,7 @@ TESTCASE(jopp2_generic_value_store_at_end_value_is_not_a_sequence)
 
 TESTCASE(jopp2_generic_value_store_at_end_value_is_a_sequence)
 {
-	using json_value = jopp2::generic_value<std::unordered_map, std::vector, json_value_traits>;
+	using json_value = jopp2::generic_value<json_value_traits>;
 	json_value val{std::vector<std::string>{"foo"}};
 	auto const& res = val.store_at_end(std::string{"bar"});
 	EXPECT_EQ(res, "bar");
@@ -573,7 +594,7 @@ TESTCASE(jopp2_generic_value_store_at_end_value_is_a_sequence)
 
 TESTCASE(jopp2_generic_value_insanely_deep_tree)
 {
-	using json_value = jopp2::generic_value<std::unordered_map, std::vector, json_value_traits>;
+	using json_value = jopp2::generic_value<json_value_traits>;
 	json_value val{json_value::object{}};
 	auto current = val.get_if<json_value::object>();
 	for(size_t k = 0; k != 1024ZU*256; ++k)
@@ -586,7 +607,7 @@ TESTCASE(jopp2_generic_value_insanely_deep_tree)
 #if TODO
 TESTCASE(jopp2_generic_value_visit_nodes)
 {
-	using json_value = jopp2::generic_value<std::unordered_map, std::vector, json_value_traits>;
+	using json_value = jopp2::generic_value<json_value_traits>;
 
 	static_assert(json_value::is_leaf_value<double>);
 	static_assert(!json_value::is_leaf_value<int>);

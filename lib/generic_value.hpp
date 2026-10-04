@@ -79,29 +79,27 @@ namespace jopp2
 		lookup_error_code m_err_code;
 	};
 
-	template<
-		template<class KeyType, class MappedType, class...> class AssociativeContainerType,
-		template<class ValueType, class...> class SequenceContainerType,
-		class ValueTraits
-	>
+	template<class GenericValueTraits>
 	class generic_value
 	{
 	public:
 		using leaf_value_template_param_pack = wrap_in_template_param_pack_t<
-			typename ValueTraits::leaf_value_type
+			typename GenericValueTraits::leaf_value_type
 		>;
 
 		using leaf_value_type = map_template_param_pack_to_type_t<
 			std::variant,
 			leaf_value_template_param_pack
 		>;
-		using key_type = ValueTraits::key_type;
+		using key_type = GenericValueTraits::key_type;
 
-		// TODO: Subtype id type should be fetched from ValueTraits
-		using object = with_subtype_id<std::string, AssociativeContainerType<key_type, generic_value>>;
+		using object = with_subtype_id<
+			typename GenericValueTraits::subtype_id_type,
+			typename GenericValueTraits::template map_type<key_type, generic_value>
+		>;
 		using map_value_type = object::value_type;
 		template<class T>
-		using sequence_container_type = SequenceContainerType<T>;
+		using sequence_container_type = GenericValueTraits:: template sequence_container_type<T>;
 		static_assert(sequence_container<sequence_container_type<leaf_value_type>>);
 
 		template<class T>
@@ -127,8 +125,6 @@ namespace jopp2
 			std::variant,
 			value_template_param_pack_type
 		>;
-
-		using generic_sequence_container = SequenceContainerType<generic_value>;
 
 		generic_value() = default;
 
@@ -312,14 +308,14 @@ namespace jopp2
 			return visit_with_args(
 				self.m_value,
 				overload{
-					[](SequenceContainerType<std::remove_cvref_t<T>>& seq, T&& value) -> std::remove_cvref_t<T>* {
+					[](sequence_container_type<std::remove_cvref_t<T>>& seq, T&& value) -> std::remove_cvref_t<T>* {
 						seq.emplace_back(std::move(value));
 						return &seq.back();
 					},
 					[&self]<sequence_container Seq>(Seq& seq, T&& value) -> std::remove_cvref_t<T>* {
 						if(seq.empty())
 						{
-							SequenceContainerType<std::remove_cvref_t<T>> new_container{};
+							sequence_container_type<std::remove_cvref_t<T>> new_container{};
 							new_container.emplace_back(std::move(value));
 							auto ret = &new_container.back();
 							self.m_value = std::move(new_container);
@@ -333,7 +329,7 @@ namespace jopp2
 						}
 						else
 						{
-							SequenceContainerType<generic_value> new_container;
+							sequence_container_type<generic_value> new_container;
 							if constexpr(
 								requires{{new_container.reserve(size_t{})};} &&
 								requires{{std::size(seq)};}
