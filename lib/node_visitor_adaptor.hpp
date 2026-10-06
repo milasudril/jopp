@@ -448,7 +448,7 @@ namespace jopp2
 				return visit_node_result::completed;
 			}
 
-			auto& next_item = *obj.active_range().begin();
+			decltype(auto) next_item = *obj.active_range().begin();
 			value_visitation_context const next_context{
 				.node_index = obj.cursor_offset(),
 				.parent_container_size = obj.total_size(),

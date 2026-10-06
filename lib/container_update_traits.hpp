@@ -20,7 +20,12 @@ namespace jopp2
 			Container& /*unused*/,
 			Rhs&& /*unused*/
 		)
-		{ raise_internal_error("Objects can only update keys"); }
+		{
+			raise_internal_error(
+				"Cannot store {} in a {}",
+				make_fmt_args(typeid(std::remove_cvref_t<Rhs>).name(), typeid(Container).name())
+			);
+		}
 
 		template<class Rhs>
 		requires instance_of<std::remove_cvref_t<Rhs>, key_to_clone>

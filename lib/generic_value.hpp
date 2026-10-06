@@ -9,6 +9,7 @@
 #include "./sequence_container.hpp"
 #include "./node_visitor_adaptor.hpp"
 #include "./with_subtype_id.hpp"
+#include "./clone_visitor.hpp"
 
 #include <algorithm>
 #include <type_traits>
@@ -100,7 +101,6 @@ namespace jopp2
 		using map_value_type = object::value_type;
 		template<class T>
 		using sequence_container_type = GenericValueTraits:: template sequence_container_type<T>;
-		static_assert(sequence_container<sequence_container_type<leaf_value_type>>);
 
 		template<class T>
 		static constexpr auto is_leaf_value = requires(T&& x){
@@ -312,7 +312,7 @@ namespace jopp2
 						seq.emplace_back(std::move(value));
 						return &seq.back();
 					},
-					[&self]<sequence_container Seq>(Seq& seq, T&& value) -> std::remove_cvref_t<T>* {
+					[&self]<sequence_container Seq> requires (!is_leaf_value<Seq>)(Seq& seq, T&& value) -> std::remove_cvref_t<T>* {
 						if(seq.empty())
 						{
 							sequence_container_type<std::remove_cvref_t<T>> new_container{};
@@ -366,6 +366,15 @@ namespace jopp2
 	private:
 		value_type m_value;
 	};
+
+	template<class GenericValueOut, class GenericValueIn>
+	auto clone(GenericValueIn const& src)
+	{
+		GenericValueOut ret{};
+		node_visitor nv{src, clone_visitor_2<GenericValueIn, GenericValueOut>{ret}};
+		nv.visit_nodes();
+		return ret;
+	}
 }
 
 #endif

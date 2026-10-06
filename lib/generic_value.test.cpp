@@ -59,6 +59,18 @@ namespace
 		using sequence_container_type = std::vector<T>;
 	};
 
+	struct json_value_traits_sorted
+	{
+		using key_type = std::string;
+		using leaf_value_type = jopp2::template_param_pack<std::monostate, bool_wrapper, double, std::string>;
+		using subtype_id_type = std::string;
+		template<class Key, class Value>
+		using map_type = std::flat_map<Key, Value>;
+
+		template<class T>
+		using sequence_container_type = std::vector<T>;
+	};
+
 	template<class T>
 	struct map_type_name
 	{};
@@ -110,7 +122,7 @@ TESTCASE(jopp2_explain_lookup_error_code)
 			// NOLINTNEXTLINE
 			explain(static_cast<jopp2::lookup_error_code>(234));
 		},
-		"jopp internal error: lib/./generic_value.hpp:38: Invalid lookup error code\n",
+		"jopp internal error: lib/./generic_value.hpp:39: Invalid lookup error code\n",
 		SIGABRT
 	);
 }
@@ -146,7 +158,7 @@ TESTCASE(jopp2_lookup_result_from_pointer)
 		[result]{
 			std::ignore = result.error_code();
 		},
-		"jopp internal error: lib/./generic_value.hpp:73: Error code not set in a non-error condition\n",
+		"jopp internal error: lib/./generic_value.hpp:74: Error code not set in a non-error condition\n",
 		SIGABRT
 	);
 }
@@ -604,7 +616,6 @@ TESTCASE(jopp2_generic_value_insanely_deep_tree)
 	}
 }
 
-#if TODO
 TESTCASE(jopp2_generic_value_visit_nodes)
 {
 	using json_value = jopp2::generic_value<json_value_traits>;
@@ -799,9 +810,10 @@ TESTCASE(jopp2_generic_value_visit_nodes)
 
 	value.store_value_as(std::string{"lorem ipsum"}, "string_value");
 
-	using json_value_sorted = jopp2::generic_value<std::flat_map, std::vector, json_value_traits>;
+	using json_value_sorted = jopp2::generic_value<json_value_traits_sorted>;
 
 	auto result = clone<json_value_sorted>(value);
+#if 0
 	std::string output;
 	visit_nodes(result, std::in_place_type_t<test_node_visitor>{}, output);
 	static constexpr auto expected_output = R"((1 of 1) {
@@ -924,5 +936,5 @@ TESTCASE(jopp2_generic_value_visit_nodes)
 )";
 
 	EXPECT_EQ(output, expected_output);
-}
 #endif
+}

@@ -7,6 +7,7 @@
 #include "./value_storage.hpp"
 #include "./template_param_pack.hpp"
 #include "./exception.hpp"
+#include "lib/sequence_container.hpp"
 #include <ranges>
 
 namespace jopp2
@@ -117,8 +118,9 @@ namespace jopp2
 			{ raise_internal_error("No contexts"); }
 
 			auto& old_out = m_contexts.back().output_value;
+			using key_type = std::remove_const_t<T>;
 			m_value_after_key = old_out.update_with(
-				key_to_clone{std::remove_const_t<T>(std::from_range_t{}, key.active_range())}
+				key_to_clone{key_type(std::from_range_t{}, key.active_range())}
 			);
 			key.pop_active_elements();
 			return node_visitor_status::ready;
@@ -150,7 +152,11 @@ namespace jopp2
 		{
 			using src_type = std::remove_cvref_t<T>;
 			using src_value_type = src_type::value_type;
-			using output_array = sequence_container_out<src_value_type>;
+			using output_array = std::conditional_t<
+				GenericValueOut::template is_leaf_value<typename T::container_type>,
+				std::remove_const_t<typename T::container_type>,
+				sequence_container_out<src_value_type>
+			>;
 			if(m_value_after_key != nullptr)
 			{
 				auto const val_ptr = m_value_after_key;
@@ -187,6 +193,38 @@ namespace jopp2
 		}
 
 		template<class T>
+		requires(
+			std::is_same_v<
+				std::remove_cvref_t<typename T::value_type>, std::remove_const_t<objcontainer_in>
+			>
+		)
+		node_visitor_status handle_begin_of_container(
+			container_proxy<T>& /*unused*/,
+			value_visitation_context const& /*unused*/
+		)
+		{
+			printf("%s not handled\n", typeid(std::remove_cvref_t<T>).name());
+			return node_visitor_status::suspended;
+		}
+
+		template<class T>
+		requires(sequence_container<std::remove_cvref_t<typename T::value_type>>)
+		node_visitor_status handle_begin_of_container(
+			container_proxy<T>& /*unused*/,
+			value_visitation_context const& /*unused*/
+		)
+		{
+			printf("%s not handled\n", typeid(std::remove_cvref_t<T>).name());
+			return node_visitor_status::suspended;
+		}
+
+		template<class T>
+		requires(
+			!sequence_container<std::remove_cvref_t<typename T::value_type>> &&
+			!std::is_same_v<
+				std::remove_cvref_t<typename T::value_type>, std::remove_const_t<objcontainer_in>
+			>
+		)
 		node_visitor_status handle_begin_of_container(
 			container_proxy<T>& value,
 			value_visitation_context const& /*unused*/
@@ -202,7 +240,11 @@ namespace jopp2
 				std::conditional_t<
 					std::is_same_v<typename T::value_type, GenericValueIn>,
 					sequence_container_out<GenericValueOut>,
-					sequence_container_out<typename T::value_type>
+					std::conditional_t<
+						std::is_same_v<std::remove_const_t<typename T::value_type>, std::remove_const_t<objcontainer_in>>,
+						sequence_container_out<objcontainer_out>,
+						sequence_container_out<typename T::value_type>
+					>
 				>
 			>;
 

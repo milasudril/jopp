@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <utility>
 #include <limits>
+#include <variant>
 
 /**
  * \file template_param_pack.hpp
@@ -250,8 +251,8 @@ namespace jopp2
 		using type = wrap_in_template_param_pack_t<T>;
 	};
 
-	template<template<class...> class SrcType, class ... Args>
-	struct make_template_param_pack<SrcType<Args...>>
+	template<class ... Args>
+	struct make_template_param_pack<std::variant<Args...>>
 	{
 		using type = template_param_pack<Args...>;
 	};

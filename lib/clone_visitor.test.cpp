@@ -45,6 +45,17 @@ namespace
 			std::string,
 			std::map<std::variant<int, std::string>, test_generic_value_out>
 		>;
+
+		using leaf_value_type = std::variant<
+			int,
+			std::string
+		>;
+
+		template<class T>
+		static constexpr auto is_leaf_value = requires(T&& x){
+			{ leaf_value_type{std::forward<T>(x)} };
+		};
+
 		using value_type = std::variant<
 			int,
 			std::string,
