@@ -13,8 +13,8 @@ namespace jopp2
 	template<size_t N>
 	union array_union;
 
-	template<size_t TargetSize, size_t CurrentN>
-	constexpr decltype(auto) get(array_union<CurrentN>& u);
+	template<size_t CurrentN, size_t SrcSize>
+	constexpr void set(array_union<CurrentN>& u, std::array<char, SrcSize> const& src);
 
 	template<size_t TargetSize, size_t CurrentN>
 	constexpr decltype(auto) get(array_union<CurrentN> const& u);
@@ -23,8 +23,9 @@ namespace jopp2
 	union array_union
 	{
 		std::array<char, N> value;
-		array_union<N - 1> next;
+		array_union<N - 1> next{};
 
+		array_union() = default;
 		array_union& operator=(array_union const&) = default;
 		array_union& operator=(array_union&&) = default;
 		array_union(array_union const&) = default;
@@ -35,17 +36,16 @@ namespace jopp2
 		constexpr array_union& operator=(const std::array<char, M>& src) noexcept
 		{
 			static_assert(M <= N && M > 0, "Source array exceeds union size");
-			get<M>(*this) = src;
+			set(*this, src);
 			return *this;
-    }
+		}
 
 		template<size_t M>
 		constexpr array_union(const std::array<char, M>& src) noexcept
 		{
 			static_assert(M <= N && M > 0, "Source array exceeds union size");
-			get<M>(*this) = src;
-			return *this;
-    }
+			set(*this, src);
+		}
 	};
 
 	template<>
@@ -55,14 +55,14 @@ namespace jopp2
 	static_assert(sizeof(array_union<16>) == 16);
 	static_assert(std::is_trivially_copyable_v<array_union<16>>);
 
-	template<size_t TargetSize, size_t CurrentN>
-	constexpr decltype(auto) get(array_union<CurrentN>& u)
+	template<size_t CurrentN, size_t SrcSize>
+	constexpr void set(array_union<CurrentN>& u, std::array<char, SrcSize> const& src)
 	{
-		static_assert(TargetSize <= CurrentN && TargetSize > 0, "Requested size out of bounds");
-		if constexpr (TargetSize == CurrentN)
-		{ return u.value; }
+		static_assert(SrcSize <= CurrentN && SrcSize > 0, "Requested size out of bounds");
+		if constexpr (SrcSize == CurrentN)
+		{ u.value = src; }
 		else
-		{ return get<TargetSize>(u.next); }
+		{ set(u.next, src); }
 	}
 
 	template<size_t TargetSize, size_t CurrentN>
@@ -171,7 +171,7 @@ namespace jopp2
 
 		union value_to_store
 		{
-			void const* ptr;
+			void const* ptr{};
 			array_union<max_inline_size> value;
 		};
 
