@@ -128,7 +128,7 @@ namespace jopp2
 			{ raise_internal_error("Unset value_sink_ref"); }
 
 			using plain_t = std::remove_cvref_t<T>;
-			if(SinkTraits::template type_id<plain_t> != m_type_id)
+			if(SinkTraits::template source_type_id<plain_t> != m_type_id)
 			{ raise_internal_error("Type mismatch during assignment"); }
 
 			if constexpr(pass_by_value<plain_t>)
@@ -144,11 +144,11 @@ namespace jopp2
 			{ return m_store_value(m_handle, value_to_store{.ptr = &val}); }
 		}
 
-		[[nodiscard]] constexpr bool valid() const noexcept
+		[[nodiscard]] constexpr bool is_bound() const noexcept
 		{ return m_handle != nullptr; }
 
 		[[nodiscard]] constexpr explicit operator bool() const noexcept
-		{ return valid(); }
+		{ return is_bound(); }
 
 		template<class Sink>
 		[[nodiscard]] constexpr bool is_bound_to(Sink const& sink) const noexcept
@@ -158,7 +158,7 @@ namespace jopp2
 		[[nodiscard]] constexpr bool accepts_type() const noexcept
 		{
 			using plain_t = std::remove_cvref_t<T>;
-			return m_type_id == SinkTraits::template type_id<plain_t>;
+			return m_type_id == SinkTraits::template source_type_id<plain_t>;
 		}
 
 
