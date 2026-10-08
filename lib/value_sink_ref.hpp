@@ -123,12 +123,12 @@ namespace jopp2
 			if(callback == nullptr)
 			{
 				SinkTraits::value_sink_type_mismatch(
-					std::type_identity_t<plain_t>{}, m_current_callback.index()
+					std::type_identity<plain_t>{}, m_current_callback.index()
 				);
 				abort();
 			}
 
-			return callback(m_handle, std::forward<T>(val));
+			return (*callback)(m_handle, std::forward<T>(val));
 		}
 
 	private:

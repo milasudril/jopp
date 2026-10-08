@@ -1,9 +1,9 @@
 //@	{"target":{"name":"value_sink_ref.test"}}
 
 #include "./value_sink_ref.hpp"
-#include "testfwk/validation.hpp"
 
 #include <testfwk/testfwk.hpp>
+#include <testfwk/mock_util.hpp>
 
 TESTCASE(jopp2_array_union_set_and_get_values)
 {
@@ -81,11 +81,24 @@ namespace
 		}
 
 		using supported_sink_types = jopp2::template_param_pack<int>;
+
+		static TestFwk::mock_entry<void()> value_sink_is_unset;
+		static TestFwk::mock_entry_overload_set<
+			void(std::type_identity<int>, size_t)
+		> value_sink_type_mismatch;
 	};
+
+	TestFwk::mock_entry<void()> test_sink_traits::value_sink_is_unset;
+	TestFwk::mock_entry_overload_set<
+		void(std::type_identity<int>, size_t)
+	> test_sink_traits::value_sink_type_mismatch;
 }
 
 TESTCASE(jopp2_value_sink_ref_store_value)
 {
 	int value = 0;
 	jopp2::value_sink_ref<test_sink_traits> sink{value};
+	auto& result = sink.store_value(34);
+	EXPECT_EQ(&result, &value);
+	EXPECT_EQ(value, 34);
 }
