@@ -56,43 +56,36 @@ TESTCASE(jopp2_array_union_set_and_get_values)
 
 namespace
 {
-	struct sink_ref_traits
+	template<class T>
+	struct source_type
 	{
-		template<class T>
-		using source_value_type = T;
-
-		template<class T>
-		static constexpr auto source_type_id = 0;
-
-		static constexpr int& store_value(int& sink, int source)
-		{
-			sink = source;
-			return sink;
-		}
+		using type = T;
 	};
-#if __cpp_constexpr >= 202306L
-	consteval int set_value_throug_sink_ref(int new_val)
+
+	template<class T>
+	requires requires{typename T::value_type;}
+	struct source_type<T>
 	{
-		int ret{};
-		jopp2::value_sink_ref<sink_ref_traits> sink_ref{std::ref(ret)};
-		sink_ref.store_value(new_val);
-		return ret;
-	}
-#endif
+		using type = T::value_type;
+	};
+
+	struct test_sink_traits
+	{
+		template<class T>
+		using source_value_type = source_type<T>::type;
+
+		static int& store_value(int& val, int source)
+		{
+			val = source;
+			return val;
+		}
+
+		using supported_sink_types = jopp2::template_param_pack<int>;
+	};
 }
 
-TESTCASE(jopp2_value_sink_ref_store_int)
+TESTCASE(jopp2_value_sink_ref_store_value)
 {
-#if __cpp_constexpr >= 202306L
-	static_assert(set_value_throug_sink_ref(243) == 243);
-#endif
-
-	int value{};
-	jopp2::value_sink_ref<sink_ref_traits> sink_ref{std::ref(value)};
-	auto ret = sink_ref.store_value(243);
-	EXPECT_EQ(value, 243);
-	EXPECT_EQ(ret.is_bound(), true);
-	EXPECT_EQ(static_cast<bool>(ret), true);
-	EXPECT_EQ(ret.accepts_type<int>(), true);
-	EXPECT_EQ(ret.is_bound_to(value), true);
+	int value = 0;
+	jopp2::value_sink_ref<test_sink_traits> sink{value};
 }

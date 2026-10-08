@@ -32,7 +32,7 @@ namespace jopp2
 	template<size_t Index, class Head, class... Tail>
 	struct template_param_pack_type_at_index<Index, template_param_pack<Head, Tail...>>
 	{
-		using type = typename template_param_pack_type_at_index<Index - 1, template_param_pack<Tail...>>::type;
+		using type = template_param_pack_type_at_index<Index - 1, template_param_pack<Tail...>>::type;
 	};
 
 	template<class Head, class... Tail>
@@ -48,7 +48,7 @@ namespace jopp2
 
 
 	template<size_t Current, class Which, class Head, class... Types>
-	inline size_t consteval get_index_of_type_impl()
+	size_t consteval get_index_of_type_impl()
 	{
 		if constexpr(std::is_same_v<Which, Head>)
 		{ return Current; }
@@ -65,7 +65,7 @@ namespace jopp2
 	 * \brief Queries the first index that matches the Which
 	 */
 	template<class Which, class Head, class... Types>
-	inline size_t consteval get_index_of_type()
+	size_t consteval get_index_of_type()
 	{ return get_index_of_type_impl<0, Which, Head, Types...>(); }
 
 	template<class Which, class ... Types>
@@ -222,7 +222,7 @@ namespace jopp2
 	{
 	private:
 		template<size_t... I>
-		static consteval auto resolve_type(std::index_sequence<I...>)
+		static consteval auto resolve_type(std::index_sequence<I...> /*unused*/)
 		{
 			return std::type_identity<
 				template_param_pack<

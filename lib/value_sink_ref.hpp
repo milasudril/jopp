@@ -2,11 +2,13 @@
 #define JOPP_VALUE_SINK_REF_HPP
 
 #include "./exception.hpp"
+#include "lib/template_param_pack.hpp"
 
 #include <cstddef>
 #include <array>
 #include <bit>
 #include <functional>
+#include <cstddef>
 
 namespace jopp2
 {
@@ -85,99 +87,64 @@ namespace jopp2
 	class value_sink_ref
 	{
 	public:
+		template<class Sink>
+		using source_value_type = SinkTraits::template source_value_type<Sink>;
+
+		template<class Sink>
+		using store_value_ret_type = std::invoke_result_t<
+			decltype(SinkTraits::store_value),
+			Sink&,
+			source_value_type<Sink>
+		>;
+
 		value_sink_ref() = default;
 
 		template<class Sink>
-		constexpr explicit value_sink_ref(std::reference_wrapper<Sink> sink) noexcept:
-			m_handle{&sink.get()},
-			m_store_value{
-				[](void* sink, value_to_store source){
-					using source_value_type = SinkTraits::template source_value_type<Sink>;
-					auto& sink_ref = *static_cast<Sink*>(sink);
-					if constexpr(pass_by_value<source_value_type>)
-					{
-						return value_sink_ref{
-							std::ref(
-								SinkTraits::store_value(
-									sink_ref,
-									std::bit_cast<source_value_type>(get<sizeof(source_value_type)>(source.value))
-								)
-							)
-						};
-					}
-					else
-					{
-						return value_sink_ref{
-							std::ref(
-								SinkTraits::store_value(
-									sink_ref,
-									static_cast<source_value_type const&>(source.ptr)
-								)
-							)
-						};
-					}
+		constexpr explicit value_sink_ref(Sink& sink) noexcept:
+			m_handle{&sink},
+			m_current_callback{
+				[](void* sink, source_value_type<Sink> source) -> store_value_ret_type<Sink>{
+					return SinkTraits::store_value(*static_cast<Sink*>(sink), source);
 				}
-			},
-			m_type_id{SinkTraits::template source_type_id<Sink>}
+			}
 		{}
 
 		template<class T>
-		constexpr value_sink_ref store_value(T&& val) const noexcept
+		constexpr decltype(auto) store_value(T&& val) const
 		{
 			if(m_handle == nullptr)
-			{ raise_internal_error("Unset value_sink_ref"); }
-
-			using plain_t = std::remove_cvref_t<T>;
-			if(SinkTraits::template source_type_id<plain_t> != m_type_id)
-			{ raise_internal_error("Type mismatch during assignment"); }
-
-			if constexpr(pass_by_value<plain_t>)
 			{
-				return m_store_value(
-					m_handle,
-					value_to_store{
-						.value = std::bit_cast<std::array<char, sizeof(plain_t)>>(std::forward<T>(val))
-					}
-				);
+				SinkTraits::value_sink_is_unset();
+				abort();
 			}
-			else
-			{ return m_store_value(m_handle, value_to_store{.ptr = &val}); }
-		}
 
-		[[nodiscard]] constexpr bool is_bound() const noexcept
-		{ return m_handle != nullptr; }
-
-		[[nodiscard]] constexpr explicit operator bool() const noexcept
-		{ return is_bound(); }
-
-		template<class Sink>
-		[[nodiscard]] constexpr bool is_bound_to(Sink const& sink) const noexcept
-		{ return m_handle == &sink; }
-
-		template<class T>
-		[[nodiscard]] constexpr bool accepts_type() const noexcept
-		{
 			using plain_t = std::remove_cvref_t<T>;
-			return m_type_id == SinkTraits::template source_type_id<plain_t>;
-		}
+			auto const callback = std::get_if<store_value_callback<plain_t>>(&m_current_callback);
+			if(callback == nullptr)
+			{
+				SinkTraits::value_sink_type_mismatch(
+					std::type_identity_t<plain_t>{}, m_current_callback.index()
+				);
+				abort();
+			}
 
+			return callback(m_handle, std::forward<T>(val));
+		}
 
 	private:
-		static constexpr auto max_inline_size = 2*sizeof(void*);
-
-		template<class T>
-		static constexpr bool pass_by_value = can_be_bitcasted_to_array<T>
-			&& sizeof(T) <= max_inline_size;
-
-		union value_to_store
-		{
-			void const* ptr{};
-			array_union<max_inline_size> value;
-		};
+		template<class Sink>
+		using store_value_callback = store_value_ret_type<Sink> (*)(
+			void*, source_value_type<Sink>
+		);
 
 		void* m_handle{nullptr};
-		value_sink_ref (*m_store_value)(void* sink, value_to_store source) = nullptr;
-		size_t m_type_id = static_cast<size_t>(-1);
+		map_template_param_pack_to_type_t<
+			std::variant,
+			wrap_template_param_pack_elements_t<
+				typename SinkTraits::supported_sink_types,
+				store_value_callback
+			>
+		> m_current_callback;
 	};
 }
 
