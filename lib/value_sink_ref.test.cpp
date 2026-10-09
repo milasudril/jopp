@@ -82,7 +82,7 @@ namespace
 
 		inline static TestFwk::mock_entry_overload_set<
 			int&(int&, int),
-			int&(std::unique_ptr<int>&, std::unique_ptr<int>)
+			std::unique_ptr<int>&(std::unique_ptr<int>&, std::unique_ptr<int>)
 		> store_value;
 
 		inline static TestFwk::mock_entry_overload_set<
@@ -144,4 +144,21 @@ TESTCASE(jopp2_value_sink_ref_store_value_wrong_type)
 	}
 	catch(std::exception const& err)
 	{ EXPECT_EQ(err.what(), std::string_view{"Foo"}); };
+}
+
+TESTCASE(jopp2_value_sink_ref_store_move_only_type)
+{
+	std::unique_ptr<int> value;
+	jopp2::value_sink_ref<test_sink_traits> sink{value};
+	test_sink_traits::store_value.expect_call_with_action(
+		[&value](std::unique_ptr<int>& sink, std::unique_ptr<int> val) -> std::unique_ptr<int>& {
+			EXPECT_EQ(*val, 34);
+			EXPECT_EQ(&value, &sink);
+			sink = std::move(val);
+			return sink;
+		}
+	);
+	auto& result = sink.store_value(std::make_unique<int>(34));
+	EXPECT_EQ(&result, &value);
+	EXPECT_EQ(*value, 34);
 }
