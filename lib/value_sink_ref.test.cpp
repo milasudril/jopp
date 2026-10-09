@@ -75,10 +75,14 @@ namespace
 		template<class T>
 		using source_value_type = source_type<T>::type;
 
-		using supported_sink_types = jopp2::template_param_pack<int>;
+		using supported_sink_types = jopp2::template_param_pack<
+			int,
+			std::unique_ptr<int>
+		>;
 
 		inline static TestFwk::mock_entry_overload_set<
-			int&(int&, int)
+			int&(int&, int),
+			int&(std::unique_ptr<int>&, std::unique_ptr<int>)
 		> store_value;
 
 		inline static TestFwk::mock_entry<void()> value_sink_is_unset;

@@ -91,11 +91,12 @@ namespace jopp2
 		using source_value_type = SinkTraits::template source_value_type<Sink>;
 
 		template<class Sink>
-		using store_value_ret_type = std::invoke_result_t<
-			decltype(SinkTraits::store_value),
-			Sink&,
-			source_value_type<Sink>
-		>;
+		using store_value_ret_type = decltype(
+			SinkTraits::store_value(
+				std::declval<Sink&>(),
+				std::declval<source_value_type<Sink>>()
+			)
+		);
 
 		value_sink_ref() = default;
 
