@@ -85,8 +85,6 @@ namespace
 			int&(std::unique_ptr<int>&, std::unique_ptr<int>)
 		> store_value;
 
-		inline static TestFwk::mock_entry<void()> value_sink_is_unset;
-
 		inline static TestFwk::mock_entry_overload_set<
 			void(std::type_identity<int>, size_t)
 		> value_sink_type_mismatch;
