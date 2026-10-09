@@ -98,54 +98,56 @@ namespace jopp2
 			)
 		);
 
+		template<class Sink>
+		class sink_wrapper
+		{
+		public:
+			explicit sink_wrapper(Sink& sink):
+				m_sink{sink}
+			{}
+
+			template<class T>
+			decltype(auto) store_value(T&& source_val) const
+			{ return SinkTraits::store_value(m_sink.get(), std::forward<T>(source_val)); }
+
+		private:
+			std::reference_wrapper<Sink> m_sink;
+		};
+
 		value_sink_ref() = default;
 
 		template<class Sink>
 		constexpr explicit value_sink_ref(Sink& sink) noexcept:
-			m_handle{&sink},
-			m_current_callback{
-				[](void* sink, source_value_type<Sink> source) -> store_value_ret_type<Sink>{
-					return SinkTraits::store_value(*static_cast<Sink*>(sink), source);
-				}
-			}
+			m_sink{sink_wrapper{sink}}
 		{}
 
 		template<class T>
 		constexpr decltype(auto) store_value(T&& val) const
 		{
-			if(m_handle == nullptr)
-			{
-				SinkTraits::value_sink_is_unset();
-				abort();
-			}
-
 			using plain_t = std::remove_cvref_t<T>;
-			auto const callback = std::get_if<store_value_callback<plain_t>>(&m_current_callback);
-			if(callback == nullptr)
+			auto const sink = std::get_if<sink_wrapper<plain_t>>(&m_sink);
+			if(sink == nullptr)
 			{
 				SinkTraits::value_sink_type_mismatch(
-					std::type_identity<plain_t>{}, m_current_callback.index()
+					std::type_identity<plain_t>{}, m_sink.index()
 				);
 				abort();
 			}
 
-			return (*callback)(m_handle, std::forward<T>(val));
+			return sink->store_value(std::forward<T>(val));
 		}
 
 	private:
-		template<class Sink>
-		using store_value_callback = store_value_ret_type<Sink> (*)(
-			void*, source_value_type<Sink>
-		);
-
-		void* m_handle{nullptr};
 		map_template_param_pack_to_type_t<
 			std::variant,
-			wrap_template_param_pack_elements_t<
-				typename SinkTraits::supported_sink_types,
-				store_value_callback
+			append_to_template_param_pack_t<
+				wrap_template_param_pack_elements_t<
+					typename SinkTraits::supported_sink_types,
+					sink_wrapper
+				>,
+				std::monostate
 			>
-		> m_current_callback;
+		> m_sink{std::monostate{}};
 	};
 }
 
