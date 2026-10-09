@@ -1,14 +1,13 @@
 #ifndef JOPP_VALUE_SINK_REF_HPP
 #define JOPP_VALUE_SINK_REF_HPP
 
-#include "./exception.hpp"
-#include "lib/template_param_pack.hpp"
+#include "./template_param_pack.hpp"
+#include "./variant_utils.hpp"
 
 #include <cstddef>
 #include <array>
 #include <bit>
 #include <functional>
-#include <cstddef>
 
 namespace jopp2
 {
@@ -83,30 +82,42 @@ namespace jopp2
 		{ std::bit_cast<std::array<char, sizeof(T)>>(obj) };
 	};
 
+	template<class T>
+	struct source_value_type_tag
+	{ using type = T; };
+
+	template<class T>
+	using source_value_type_tag_t = source_value_type_tag<T>::type;
+
+	template<class T>
+	struct sink_type_tag
+	{ using type = T; };
+
+	struct value_sink_ref_unset_tag
+	{
+		using sink_type = value_sink_ref_unset_tag;
+	};
+
+	template<class T>
+	using sink_type_tag_t = sink_type_tag<T>::type;
+
 	template<class SinkTraits>
 	class value_sink_ref
 	{
 	public:
 		template<class Sink>
-		using source_value_type = SinkTraits::template source_value_type<Sink>;
-
-		template<class Sink>
-		using store_value_ret_type = decltype(
-			SinkTraits::store_value(
-				std::declval<Sink&>(),
-				std::declval<source_value_type<Sink>>()
-			)
-		);
-
-		template<class Sink>
 		class sink_wrapper
 		{
 		public:
+			using sink_type = Sink;
+
 			explicit sink_wrapper(Sink& sink):
 				m_sink{sink}
 			{}
-
 			template<class T>
+			requires requires(T&& source_val, Sink& s){
+				{SinkTraits::store_value(s, std::forward<T>(source_val))};
+			}
 			decltype(auto) store_value(T&& source_val) const
 			{ return SinkTraits::store_value(m_sink.get(), std::forward<T>(source_val)); }
 
@@ -124,17 +135,28 @@ namespace jopp2
 		template<class T>
 		constexpr decltype(auto) store_value(T&& val) const
 		{
-			using plain_t = std::remove_cvref_t<T>;
-			auto const sink = std::get_if<sink_wrapper<plain_t>>(&m_sink);
-			if(sink == nullptr)
-			{
-				SinkTraits::value_sink_type_mismatch(
-					std::type_identity<plain_t>{}, m_sink.index()
-				);
-				abort();
-			}
-
-			return sink->store_value(std::forward<T>(val));
+			return visit_with_args(
+				m_sink,
+				[]<class SinkWrapper, class SourceValue>(SinkWrapper sink, SourceValue&& source_val) -> std::remove_cvref_t<T>& {
+					using sink_type = SinkWrapper::sink_type;
+					if constexpr(
+						requires{
+							{sink.store_value(std::forward<SourceValue>(source_val))}
+								->std::same_as<std::remove_cvref_t<T>&>;
+						}
+					)
+					{ return sink.store_value(std::forward<SourceValue>(source_val)); }
+					else
+					{
+						SinkTraits::value_sink_type_mismatch(
+							source_value_type_tag<std::remove_cvref_t<SourceValue>>{},
+							sink_type_tag<sink_type>{}
+						);
+						abort();
+					}
+				},
+				std::forward<T>(val)
+			);
 		}
 
 	private:
@@ -145,9 +167,9 @@ namespace jopp2
 					typename SinkTraits::supported_sink_types,
 					sink_wrapper
 				>,
-				std::monostate
+				value_sink_ref_unset_tag
 			>
-		> m_sink{std::monostate{}};
+		> m_sink{value_sink_ref_unset_tag{}};
 	};
 }
 
