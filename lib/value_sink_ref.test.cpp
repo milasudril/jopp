@@ -86,7 +86,8 @@ namespace
 		> store_value;
 
 		inline static TestFwk::mock_entry_overload_set<
-			void(std::type_identity<int>, size_t)
+			void(std::type_identity<int>, size_t),
+			void(std::type_identity<std::unique_ptr<int>>, size_t)
 		> value_sink_type_mismatch;
 	};
 }
@@ -124,4 +125,23 @@ TESTCASE(jopp2_value_sink_ref_store_value)
 	auto& result = sink.store_value(34);
 	EXPECT_EQ(&result, &value);
 	EXPECT_EQ(value, 34);
+}
+
+TESTCASE(jopp2_value_sink_ref_store_value_wrong_type)
+{
+	int value = 0;
+	jopp2::value_sink_ref<test_sink_traits> sink{value};
+	test_sink_traits::value_sink_type_mismatch.expect_call_with_action(
+		[](std::type_identity<std::unique_ptr<int>>, size_t index){
+			EXPECT_EQ(index, 0);
+			throw std::runtime_error{"Foo"};
+		}
+	);
+	try
+	{
+		sink.store_value(std::make_unique<int>(352));
+		abort();
+	}
+	catch(std::exception const& err)
+	{ EXPECT_EQ(err.what(), std::string_view{"Foo"}); };
 }
