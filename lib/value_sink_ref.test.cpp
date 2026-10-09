@@ -4,6 +4,7 @@
 
 #include <testfwk/testfwk.hpp>
 #include <testfwk/mock_util.hpp>
+#include <type_traits>
 
 TESTCASE(jopp2_array_union_set_and_get_values)
 {
@@ -74,30 +75,32 @@ namespace
 		template<class T>
 		using source_value_type = source_type<T>::type;
 
-		static int& store_value(int& val, int source)
-		{
-			val = source;
-			return val;
-		}
-
 		using supported_sink_types = jopp2::template_param_pack<int>;
 
-		static TestFwk::mock_entry<void()> value_sink_is_unset;
-		static TestFwk::mock_entry_overload_set<
+		inline static TestFwk::mock_entry_overload_set<
+			int&(int&, int)
+		> store_value;
+
+		inline static TestFwk::mock_entry<void()> value_sink_is_unset;
+
+		inline static TestFwk::mock_entry_overload_set<
 			void(std::type_identity<int>, size_t)
 		> value_sink_type_mismatch;
 	};
-
-	TestFwk::mock_entry<void()> test_sink_traits::value_sink_is_unset;
-	TestFwk::mock_entry_overload_set<
-		void(std::type_identity<int>, size_t)
-	> test_sink_traits::value_sink_type_mismatch;
 }
 
 TESTCASE(jopp2_value_sink_ref_store_value)
 {
 	int value = 0;
 	jopp2::value_sink_ref<test_sink_traits> sink{value};
+	test_sink_traits::store_value.expect_call_with_action(
+		[&value](int& sink, int val) -> int& {
+			EXPECT_EQ(val, 34);
+			EXPECT_EQ(&value, &sink);
+			sink = val;
+			return sink;
+		}
+	);
 	auto& result = sink.store_value(34);
 	EXPECT_EQ(&result, &value);
 	EXPECT_EQ(value, 34);
