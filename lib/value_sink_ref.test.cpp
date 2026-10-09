@@ -91,6 +91,24 @@ namespace
 	};
 }
 
+TESTCASE(jopp2_value_sink_ref_store_value_unbound_object)
+{
+	jopp2::value_sink_ref<test_sink_traits> sink{};
+	test_sink_traits::value_sink_type_mismatch.expect_call_with_action(
+		[](std::type_identity<int>, size_t index){
+			EXPECT_EQ(index, 2);
+			throw std::runtime_error{"Foo"};
+		}
+	);
+	try
+	{
+		sink.store_value(0);
+		abort();
+	}
+	catch(std::exception const& err)
+	{ EXPECT_EQ(err.what(), std::string_view{"Foo"}); };
+}
+
 TESTCASE(jopp2_value_sink_ref_store_value)
 {
 	int value = 0;
