@@ -362,6 +362,8 @@ TESTCASE(jopp2_clone_visitor_handle_key_in_container)
 	EXPECT_EQ(visitor.value_after_key(), &inserted_item);
 }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wfree-nonheap-object"
 TESTCASE(jopp2_clone_visitor_handle_key_no_container)
 {
 	test_generic_value_out output;
@@ -377,6 +379,7 @@ TESTCASE(jopp2_clone_visitor_handle_key_no_container)
 	auto& inserted_item = output.get_if<test_generic_value_out::object>()->at(55);
 	EXPECT_EQ(visitor.value_after_key(), &inserted_item);
 }
+#pragma GCC diagnostic pop
 
 TESTCASE(jopp2_clone_visitor_handle_end_of_container)
 {
