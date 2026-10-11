@@ -22,6 +22,12 @@ namespace jopp2
 	struct value_sink_ref_unset_tag
 	{
 		using sink_type = value_sink_ref_unset_tag;
+
+		constexpr bool operator==(value_sink_ref_unset_tag /*unused*/) const
+		{ return true; }
+
+		constexpr bool operator!=(value_sink_ref_unset_tag /*unused*/) const
+		{ return false; }
 	};
 
 	template<class T>
@@ -37,15 +43,25 @@ namespace jopp2
 		public:
 			using sink_type = Sink;
 
-			explicit sink_wrapper(Sink& sink):
+			constexpr explicit sink_wrapper(Sink& sink):
 				m_sink{sink}
 			{}
+
 			template<class T>
 			requires requires(T&& source_val, Sink& s){
 				{SinkTraits::store_value(s, std::forward<T>(source_val))};
 			}
-			decltype(auto) store_value(T&& source_val) const
+			constexpr decltype(auto) store_value(T&& source_val) const
 			{ return SinkTraits::store_value(m_sink.get(), std::forward<T>(source_val)); }
+
+			constexpr auto& get() const
+			{ return m_sink.get(); }
+
+			constexpr bool operator==(sink_wrapper other) const
+			{ return &m_sink.get() == &other.get(); }
+
+			constexpr bool operator!=(sink_wrapper other) const
+			{ return !(*this == other); }
 
 		private:
 			std::reference_wrapper<Sink> m_sink;
@@ -85,8 +101,21 @@ namespace jopp2
 			);
 		}
 
+		template<class T>
+		constexpr bool is_bound_to(T& other) const
+		{
+			auto const ptr = std::get_if<sink_wrapper<std::remove_cvref_t<T>>>(&m_sink);
+			return ptr != nullptr && &other == &ptr->get();
+		}
+
+		constexpr bool is_bound_to_same_as(value_sink_ref other) const
+		{ return m_sink == other.m_sink; }
+
+		constexpr operator bool() const
+		{ return std::get_if<value_sink_ref_unset_tag>(&m_sink) == nullptr; }
+
 	private:
-		map_template_param_pack_to_type_t<
+		using storage = map_template_param_pack_to_type_t<
 			std::variant,
 			append_to_template_param_pack_t<
 				wrap_template_param_pack_elements_t<
@@ -95,7 +124,8 @@ namespace jopp2
 				>,
 				value_sink_ref_unset_tag
 			>
-		> m_sink{value_sink_ref_unset_tag{}};
+		>;
+		storage m_sink{value_sink_ref_unset_tag{}};
 	};
 }
 

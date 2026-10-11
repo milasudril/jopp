@@ -5,6 +5,7 @@
 #include "./container_proxy.hpp"
 #include "./node_visitor_adaptor.hpp"
 #include "./template_param_pack.hpp"
+#include "testfwk/validation.hpp"
 
 #include <map>
 #include <testfwk/testfwk.hpp>
@@ -98,13 +99,7 @@ TESTCASE(jopp2_clone_visitor_initial_state)
 	EXPECT_EQ(contexts.size(), 1);
 	auto const& current_ctxt = contexts.back();
 	EXPECT_EQ(current_ctxt.parent_node, false);
-	EXPECT_EQ(
-		current_ctxt.output_value.is_bound_to(
-			output,
-			std::type_identity<jopp2::generic_value_update_traits<test_generic_value_out>>{}
-		),
-		true
-	);
+	EXPECT_EQ(current_ctxt.output_value.is_bound_to(output), true);
 }
 
 TESTCASE(jopp2_clone_visitor_handle_leaf_value_no_current_key)
@@ -162,18 +157,15 @@ TESTCASE(jopp2_clone_visitor_handle_begin_of_container_sequence_no_current_key)
 	EXPECT_EQ(res, jopp2::node_visitor_status::ready);
 	EXPECT_EQ(container.at_begin(), true);
 	auto const& saved_v = *output.get_if<std::vector<test_generic_value_out>>();
-	// TODO: capacity should equal vals.capacity
 	EXPECT_EQ(saved_v.empty(), true);
+	EXPECT_EQ(saved_v.capacity(), vals.capacity());
 	EXPECT_EQ(visitor.contexts().size(), 2);
 	auto const& context_after = visitor.contexts().back();
 	EXPECT_NE(&context_before, &context_after);
 	EXPECT_EQ(visitor.value_after_key(), nullptr);
 	EXPECT_EQ(context_after.parent_node.is_bound_to_same_as(context_before.output_value), true);
 	EXPECT_EQ(
-		context_after.output_value.is_bound_to(
-			*output.get_if<std::vector<test_generic_value_out>>(),
-			std::type_identity<jopp2::container_update_traits<std::vector<test_generic_value_out>>>{}
-		),
+		context_after.output_value.is_bound_to(*output.get_if<std::vector<test_generic_value_out>>()),
 		true
 	);
 }
@@ -209,10 +201,7 @@ TESTCASE(jopp2_clone_visitor_handle_begin_of_container_object_no_current_key)
 	EXPECT_EQ(visitor.value_after_key(), nullptr);
 	EXPECT_EQ(context_after.parent_node.is_bound_to_same_as(context_before.output_value), true);
 	EXPECT_EQ(
-		context_after.output_value.is_bound_to(
-			*output.get_if<test_generic_value_out::object>(),
-			std::type_identity<jopp2::container_update_traits<test_generic_value_out::object>>{}
-		),
+		context_after.output_value.is_bound_to(*output.get_if<test_generic_value_out::object>()),
 		true
 	);
 }
@@ -226,7 +215,7 @@ namespace
 		jopp2::container_proxy container{std::cref(obj)};
 		visitor.handle_begin_of_container(container, jopp2::value_visitation_context{});
 		visitor.handle_key(
-			jopp2::key_to_clone{std::forward<Key>(key)},
+			std::forward<Key>(key),
 			jopp2::value_visitation_context{}
 		);
 	}
@@ -301,20 +290,14 @@ TESTCASE(jopp2_clone_visitor_handle_begin_of_container_sequence_with_current_key
 	auto const object = output.get_if<test_generic_value_out::object>();
 	REQUIRE_NE(object, nullptr);
 	auto const& saved_v = *object->at("Hello, world").get_if<std::vector<test_generic_value_out>>();
-	// TODO: capacity should equal vals.capacity
+	EXPECT_EQ(saved_v.capacity(), vals.capacity());
 	EXPECT_EQ(saved_v.empty(), true);
 	EXPECT_EQ(visitor.contexts().size(), 3);
 	auto const& context_after = visitor.contexts().back();
 	EXPECT_NE(&context_before, &context_after);
 	EXPECT_EQ(visitor.value_after_key(), nullptr);
 	EXPECT_EQ(context_after.parent_node.is_bound_to_same_as(context_before.output_value), true);
-	EXPECT_EQ(
-		context_after.output_value.is_bound_to(
-			saved_v,
-			std::type_identity<jopp2::container_update_traits<std::vector<test_generic_value_out>>>{}
-		),
-		true
-	);
+	EXPECT_EQ(context_after.output_value.is_bound_to(saved_v), true);
 }
 
 TESTCASE(jopp2_clone_visitor_handle_begin_of_container_object_with_current_key)
@@ -352,10 +335,7 @@ TESTCASE(jopp2_clone_visitor_handle_begin_of_container_object_with_current_key)
 	EXPECT_EQ(visitor.value_after_key(), nullptr);
 	EXPECT_EQ(context_after.parent_node.is_bound_to_same_as(context_before.output_value), true);
 	EXPECT_EQ(
-		context_after.output_value.is_bound_to(
-			saved_v,
-			std::type_identity<jopp2::container_update_traits<test_generic_value_out::object>>{}
-		),
+		context_after.output_value.is_bound_to(saved_v),
 		true
 	);
 }
@@ -379,8 +359,6 @@ TESTCASE(jopp2_clone_visitor_handle_key_in_container)
 	EXPECT_EQ(visitor.value_after_key(), &inserted_item);
 }
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wfree-nonheap-object"
 TESTCASE(jopp2_clone_visitor_handle_key_no_container)
 {
 	test_generic_value_out output;
@@ -396,7 +374,6 @@ TESTCASE(jopp2_clone_visitor_handle_key_no_container)
 	auto& inserted_item = output.get_if<test_generic_value_out::object>()->at(55);
 	EXPECT_EQ(visitor.value_after_key(), &inserted_item);
 }
-#pragma GCC diagnostic pop
 
 TESTCASE(jopp2_clone_visitor_handle_end_of_container)
 {

@@ -77,6 +77,8 @@ TESTCASE(jopp2_value_sink_ref_store_value)
 {
 	int value = 0;
 	jopp2::value_sink_ref<test_sink_traits> sink{value};
+
+	EXPECT_EQ(sink.is_bound_to(value), true);
 	test_sink_traits::store_value.expect_call_with_action(
 		[&value](int& sink, int val) -> int& {
 			EXPECT_EQ(val, 34);

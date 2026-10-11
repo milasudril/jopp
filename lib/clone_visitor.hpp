@@ -2,12 +2,10 @@
 #define JOPP2_CLONE_VISITOR_HPP
 
 #include "./node_visitor_adaptor.hpp"
-#include "./generic_value_update_traits.hpp"
-#include "./container_update_traits.hpp"
-#include "./value_storage.hpp"
+#include "./value_sink_ref.hpp"
 #include "./template_param_pack.hpp"
 #include "./exception.hpp"
-#include "lib/sequence_container.hpp"
+#include "./sequence_container.hpp"
 #include <ranges>
 
 namespace jopp2
@@ -58,16 +56,14 @@ namespace jopp2
 			>
 		>;
 
-		template<class T>
-		using update_result_t = clone_visitor_update_result<GenericValueOut, T>::type;
-
-		template<class ... Args>
-		using value_storage_with_result = value_storage<update_result_t, Args...>;
-
-		using value_storage_out = map_template_param_pack_to_type_t<
-			value_storage_with_result,
-			complete_pack
+		using supported_sink_types = template_param_pack<
+			GenericValueOut,
+			typename GenericValueOut::object,
+			sequence_container_out<GenericValueOut>,
+			sequence_container_out<typename GenericValueOut::object>
 		>;
+
+		using value_storage_out = value_sink_ref<clone_visitor_2>;
 
 		struct context
 		{
@@ -83,8 +79,7 @@ namespace jopp2
 				context{
 					.parent_node = {},
 					.output_value = value_storage_out{
-						output_value,
-						std::type_identity<generic_value_update_traits<GenericValueOut>>{}
+						output_value
 					}
 				}
 			);
@@ -105,7 +100,7 @@ namespace jopp2
 				if(m_contexts.empty())
 				{ raise_internal_error("No contexts"); }
 
-				m_contexts.back().output_value.update_with(std::forward<T>(value));
+				m_contexts.back().output_value.store_value(std::forward<T>(value));
 			}
 
 			return node_visitor_status::ready;
@@ -119,9 +114,12 @@ namespace jopp2
 
 			auto& old_out = m_contexts.back().output_value;
 			using key_type = std::remove_const_t<T>;
-			m_value_after_key = old_out.update_with(
-				key_to_clone{key_type(std::from_range_t{}, key.active_range())}
-			);
+			m_value_after_key = &old_out.store_value(
+				typename objcontainer_out::value_type{
+					typename objcontainer_out::key_type{key_type{std::from_range_t{}, key.active_range()}},
+					GenericValueOut{}
+				}
+			).second;
 			key.pop_active_elements();
 			return node_visitor_status::ready;
 		}
@@ -130,7 +128,12 @@ namespace jopp2
 		node_visitor_status handle_key(T&& key, value_visitation_context const& /*unused*/)
 		{
 			auto& old_out = m_contexts.back().output_value;
-			m_value_after_key = old_out.update_with(key_to_clone{std::forward<T>(key)});
+			m_value_after_key = &old_out.store_value(
+				typename objcontainer_out::value_type{
+					typename objcontainer_out::key_type{std::forward<T>(key)},
+					GenericValueOut{}
+				}
+			).second;
 			return node_visitor_status::ready;
 		}
 
@@ -169,7 +172,7 @@ namespace jopp2
 				{ raise_internal_error("No contexts"); }
 
 				auto const old_out = m_contexts.back().output_value;
-				old_out.update_with(output_array{std::from_range_t{}, value.active_range()});
+				old_out.store_value(output_array{std::from_range_t{}, value.active_range()});
 			}
 			value.pop_active_elements();
 			return node_visitor_status::ready;
@@ -190,32 +193,6 @@ namespace jopp2
 			if constexpr (requires { c.reserve(elem_count); })
 			{ c.reserve(elem_count); }
 			return std::forward<Container>(c);
-		}
-
-		template<class T>
-		requires(
-			std::is_same_v<
-				std::remove_cvref_t<typename T::value_type>, std::remove_const_t<objcontainer_in>
-			>
-		)
-		node_visitor_status handle_begin_of_container(
-			container_proxy<T>& /*unused*/,
-			value_visitation_context const& /*unused*/
-		)
-		{
-			printf("%s not handled\n", typeid(std::remove_cvref_t<T>).name());
-			return node_visitor_status::suspended;
-		}
-
-		template<class T>
-		requires(sequence_container<std::remove_cvref_t<typename T::value_type>>)
-		node_visitor_status handle_begin_of_container(
-			container_proxy<T>& /*unused*/,
-			value_visitation_context const& /*unused*/
-		)
-		{
-			printf("%s not handled\n", typeid(std::remove_cvref_t<T>).name());
-			return node_visitor_status::suspended;
 		}
 
 		template<class T>
@@ -259,24 +236,20 @@ namespace jopp2
 					context{
 						.parent_node = old_out,
 						.output_value = value_storage_out{
-							*val_ptr->template get_if<container>(),
-							std::type_identity<container_update_traits<container>>{}
+							*val_ptr->template get_if<container>()
 						}
 					}
 				);
 			}
 			else
 			{
-				auto const ret = old_out.update_with(
+				auto& ret = old_out.store_value(
 					reserve_space_if_supported(create_container<container>(), value.total_size())
 				);
 				m_contexts.push_back(
 					context{
 						.parent_node = old_out,
-						.output_value = value_storage_out{
-							*ret->template get_if<container>(),
-							std::type_identity<container_update_traits<container>>{}
-						}
+						.output_value = value_storage_out{ret}
 					}
 				);
 			}
@@ -301,6 +274,34 @@ namespace jopp2
 
 		auto value_after_key() const
 		{ return static_cast<GenericValueOut const*>(m_value_after_key); }
+
+		template<class Source, class Sink>
+		[[noreturn]] static void value_sink_type_mismatch(
+			source_value_type_tag<Source> /*unused*/,
+			sink_type_tag<Sink> /*unused*/
+		)
+		{
+			raise_internal_error(
+				"Value sink type mismatch Source = {}, Sink = {}",
+				make_fmt_args(
+					typeid(Source).name(),
+					typeid(Sink).name()
+				)
+			);
+		}
+
+		template<class Source>
+		requires(std::is_constructible_v<GenericValueOut, Source>)
+		static auto& store_value(GenericValueOut& sink, Source&& source)
+		{
+			sink = GenericValueOut{std::forward<Source>(source)};
+			return *sink.template get_if<std::remove_cvref_t<Source>>();
+		}
+
+		template<class Source>
+		requires(std::is_same_v<std::remove_cvref_t<Source>, typename objcontainer_out::value_type>)
+		static auto& store_value(objcontainer_out& sink, Source&& src)
+		{ return *sink.insert(std::forward<Source>(src)).first; }
 
 	private:
 		std::vector<context> m_contexts;
