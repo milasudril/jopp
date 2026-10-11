@@ -298,6 +298,9 @@ TESTCASE(jopp2_clone_visitor_handle_begin_of_container_sequence_with_current_key
 	EXPECT_EQ(visitor.value_after_key(), nullptr);
 	EXPECT_EQ(context_after.parent_node.is_bound_to_same_as(context_before.output_value), true);
 	EXPECT_EQ(context_after.output_value.is_bound_to(saved_v), true);
+
+	context_after.output_value.store_value(1);
+	EXPECT_EQ(*saved_v.at(0).get_if<int>(), 1);
 }
 
 TESTCASE(jopp2_clone_visitor_handle_begin_of_container_object_with_current_key)
