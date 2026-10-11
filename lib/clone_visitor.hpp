@@ -33,7 +33,7 @@ namespace jopp2
 		using sequence_container_in = GenericValueIn::template sequence_container_type<T>;
 
 		template<class T>
-		using sequence_container_out = GenericValueIn::template sequence_container_type<T>;
+		using sequence_container_out = GenericValueOut::template sequence_container_type<T>;
 
 		template<class T>
 		using container_proxy_range = container_proxy<
@@ -58,7 +58,7 @@ namespace jopp2
 
 		using supported_sink_types = template_param_pack<
 			GenericValueOut,
-			typename GenericValueOut::object,
+			objcontainer_out,
 			sequence_container_out<GenericValueOut>,
 			sequence_container_out<typename GenericValueOut::object>
 		>;
