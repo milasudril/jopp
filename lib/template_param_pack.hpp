@@ -203,6 +203,46 @@ namespace jopp2
 
 
 	/**
+	 * \brief Filters Pack based on Pred
+	 */
+	template<auto Pred, class Pack, class Remaining>
+	struct filter_template_param_pack;
+
+	template<auto Pred, class Pack>
+	struct filter_template_param_pack<Pred, Pack, template_param_pack<>>
+	{ using type = Pack; };
+
+	template<auto Pred, class Pack, class Head, class... Tail>
+	struct filter_template_param_pack<Pred, Pack, template_param_pack<Head, Tail...>>
+	{
+		static constexpr bool keep = Pred(std::type_identity<Head>{});
+
+		using next_acc = std::conditional_t<
+			keep,
+			append_to_template_param_pack_t<Pack, Head>,
+			Pack
+		>;
+
+		using type = filter_template_param_pack<
+			Pred,
+			next_acc,
+			template_param_pack<Tail...>
+		>::type;
+	};
+
+	template<auto Pred, class PackType>
+	using filter_template_param_pack_t = filter_template_param_pack<Pred, template_param_pack<>, PackType>::type;
+
+	static_assert(
+		std::is_same_v<
+			filter_template_param_pack_t<[]<class T>(std::type_identity<T>){
+				return std::is_integral_v<T>;
+			}, template_param_pack<int, double, short, char>>,
+			template_param_pack<int, short, char>
+		>
+	);
+
+	/**
 	 * \brief Wraps each element of a template_param_pack, and wraps it inside wrapper
 	 * \tparam PackType the template_param_pack instantiation to use as source for the types
 	 * \tparam Wrapper type class template to instantiate with the types
