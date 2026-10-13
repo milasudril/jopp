@@ -207,12 +207,6 @@ namespace jopp2
 		}
 
 		template<class T>
-		requires(
-			!sequence_container<std::remove_cvref_t<typename T::value_type>> &&
-			!std::is_same_v<
-				std::remove_cvref_t<typename T::value_type>, std::remove_const_t<objcontainer_in>
-			>
-		)
 		node_visitor_status handle_begin_of_container(
 			container_proxy<T>& value,
 			value_visitation_context const& /*unused*/
@@ -320,6 +314,14 @@ namespace jopp2
 		{
 			seq_out.push_back(GenericValueOut{std::forward<Source>(src)});
 			return *seq_out.back().template get_if<std::remove_const_t<Source>>();
+		}
+
+		template<class Dest, class Source>
+		requires(!std::is_same_v<Dest, GenericValueOut> && std::is_constructible_v<Dest, Source>)
+		static auto& store_value(sequence_container_out<Dest>& seq_out, Source&& src)
+		{
+			seq_out.push_back(Dest{std::forward<Source>(src)});
+			return seq_out.back();
 		}
 
 	private:

@@ -386,6 +386,27 @@ TESTCASE(jopp2_clone_visitor_handle_key_no_container)
 }
 #pragma GCC diagnostic pop
 
+TESTCASE(jopp2_clone_visitor_handle_array_of_strings)
+{
+	test_generic_value_out output;
+	using visitor_type = jopp2::clone_visitor_2<test_generic_value_in, test_generic_value_out>;
+	visitor_type visitor{output};
+
+	std::vector<std::string> strings{
+		"Alpha_7932", "bRaVo!#48", "Charlie-99x"
+	};
+	jopp2::container_proxy container{std::cref(strings)};
+	visitor.handle_begin_of_container(container, jopp2::value_visitation_context{});
+
+	jopp2::container_proxy inner{std::cref(strings.front())};
+	auto const result = visitor.handle_simple_array(inner, jopp2::value_visitation_context{});
+	EXPECT_EQ(result, jopp2::node_visitor_status::ready);
+
+	auto const val = output.get_if<std::vector<std::string>>();
+	REQUIRE_NE(val, nullptr);
+	EXPECT_EQ(val->at(0), "Alpha_7932");
+}
+
 TESTCASE(jopp2_clone_visitor_handle_end_of_container)
 {
 	test_generic_value_out output;
