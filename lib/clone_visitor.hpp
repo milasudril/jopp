@@ -5,6 +5,7 @@
 #include "./template_param_pack.hpp"
 #include "./exception.hpp"
 #include "./sequence_container.hpp"
+#include "./node_visitor_adaptor.hpp"
 #include <ranges>
 
 namespace jopp2

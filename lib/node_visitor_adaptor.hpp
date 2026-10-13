@@ -2,7 +2,6 @@
 #define JOPP_NODE_VISITOR_ADAPTOR_HPP
 
 #include "./variant_utils.hpp"
-#include "./value_storage.hpp"
 #include "./container_proxy.hpp"
 #include "./utils.hpp"
 #include "./exception.hpp"
@@ -110,6 +109,31 @@ namespace jopp2
 		Other take_as(this Self&& self)
 		{ return Other(std::forward_like<Self>(std::forward<Self>(self).value)); }
 	};
+
+	/**
+	 * \brief Type trait to determine whether or not T should be passed by value
+	 */
+	template <class T>
+	struct pass_by_value
+	{
+		static constexpr bool is_trivial_abi = std::is_trivially_copyable_v<T> || std::is_reference_v<T>;
+
+	#ifndef __i386__
+		static constexpr bool platform_gate = (sizeof(T) <= 2*sizeof(void*));
+	#else
+		static constexpr bool platform_gate = std::is_fundamental_v<T>
+			|| std::is_pointer_v<T>
+			|| std::is_reference_v<T>
+			|| std::is_enum_v<T>;
+	#endif
+		static constexpr bool value = is_trivial_abi && platform_gate;
+	};
+
+	/**
+	 * \brief \see pass_by_value
+	 */
+	template<class T>
+	inline constexpr auto pass_by_value_v = pass_by_value<T>::value;
 
 	template<class Type, bool IsConst>
 	struct node_item

@@ -180,7 +180,7 @@ TESTCASE(jopp2_to_visit_node_result_junk_leads_to_sigabrt)
 				completed_mock
 			);
 		},
-		"jopp internal error: lib/./node_visitor_adaptor.hpp:84: Invalid return value from node visitor\n",
+		"jopp internal error: lib/./node_visitor_adaptor.hpp:83: Invalid return value from node visitor\n",
 		SIGABRT
 	);
 }
