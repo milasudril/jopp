@@ -56,12 +56,23 @@ namespace jopp2
 			>
 		>;
 
-		using supported_sink_types = template_param_pack<
-			GenericValueOut,
-			objcontainer_out,
-			sequence_container_out<GenericValueOut>,
-			sequence_container_out<typename GenericValueOut::object>
-		>;
+		using supported_sink_types =
+			append_to_template_param_pack_t<
+				filter_template_param_pack_t<
+					[]<class T>(std::type_identity<T>){
+						if constexpr(sequence_container<T>)
+						{
+							return !GenericValueOut::template is_leaf_value<T>
+								|| sequence_container<typename T::value_type>
+								|| std::is_same_v<typename T::value_type, objcontainer_out>;
+						}
+						else
+						{ return std::is_same_v<T, objcontainer_out>; }
+					},
+					typename GenericValueOut::value_template_param_pack_type
+				>,
+				GenericValueOut
+			>;
 
 		using value_storage_out = value_sink_ref<clone_visitor_2>;
 

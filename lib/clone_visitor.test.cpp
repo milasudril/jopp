@@ -57,13 +57,18 @@ namespace
 			{ leaf_value_type{std::forward<T>(x)} };
 		};
 
-		using value_type = std::variant<
+		using value_template_param_pack_type = jopp2::template_param_pack<
 			int,
 			std::string,
 			std::vector<int>,
 			std::vector<std::string>,
 			std::vector<test_generic_value_out>,
 			object
+		>;
+
+		using value_type = jopp2::map_template_param_pack_to_type_t<
+			std::variant,
+			value_template_param_pack_type
 		>;
 
 		template<class ... Args>
