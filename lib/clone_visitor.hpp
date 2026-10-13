@@ -1,7 +1,6 @@
 #ifndef JOPP2_CLONE_VISITOR_HPP
 #define JOPP2_CLONE_VISITOR_HPP
 
-#include "./node_visitor_adaptor.hpp"
 #include "./value_sink_ref.hpp"
 #include "./template_param_pack.hpp"
 #include "./exception.hpp"
@@ -10,17 +9,10 @@
 
 namespace jopp2
 {
-	template<class GenericValueOut, class Other>
-	struct clone_visitor_update_result
-	{ using type = GenericValueOut*; };
-
 	template<class GenericValueIn, class GenericValueOut>
 	class clone_visitor_2
 	{
 	public:
-		using src_value_param_pack = GenericValueIn::leaf_value_template_param_pack;
-		using src_kv_item = GenericValueIn::object::value_type;
-		using dest_kv_item = GenericValueOut::object::value_type;
 		using objcontainer_in = std::conditional_t<
 			std::is_const_v<GenericValueIn>,
 			typename GenericValueIn::object const,
@@ -30,31 +22,7 @@ namespace jopp2
 		using objcontainer_out = GenericValueOut::object;
 
 		template<class T>
-		using sequence_container_in = GenericValueIn::template sequence_container_type<T>;
-
-		template<class T>
 		using sequence_container_out = GenericValueOut::template sequence_container_type<T>;
-
-		template<class T>
-		using container_proxy_range = container_proxy<
-			sequence_container_in<T> const
-		>::active_range_type;
-
-		using complete_pack = concatenate_template_param_packs_t<
-			src_value_param_pack,
-			wrap_template_param_pack_elements_t<
-				make_template_param_pack_t<typename GenericValueIn::object::key_type>,
-				key_to_clone
-			>,
-			wrap_template_param_pack_elements_t<
-				src_value_param_pack,
-				sequence_container_in
-			>,
-			template_param_pack<
-				sequence_container_out<GenericValueOut>,
-				typename GenericValueOut::object
-			>
-		>;
 
 		using supported_sink_types =
 			append_to_template_param_pack_t<
