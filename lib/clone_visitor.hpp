@@ -117,6 +117,10 @@ namespace jopp2
 			return node_visitor_status::ready;
 		}
 
+		/**
+		 * \todo Add handling of the case when subtype id is of bounded size (not wrapped in
+		 *       container_proxy)
+		 */
 		template<class T>
 		node_visitor_status handle_subtype_id(
 			jopp2::container_proxy<T>& id,
