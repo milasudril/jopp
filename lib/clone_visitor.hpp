@@ -269,7 +269,7 @@ namespace jopp2
 
 		template<class Source>
 		requires(std::is_constructible_v<GenericValueOut, Source>)
-		static auto& store_value(GenericValueOut& sink, Source&& source)
+		static decltype(auto) store_value(GenericValueOut& sink, Source&& source)
 		{
 			sink = GenericValueOut{std::forward<Source>(source)};
 			return *sink.template get_if<std::remove_cvref_t<Source>>();
@@ -277,12 +277,12 @@ namespace jopp2
 
 		template<class Source>
 		requires(std::is_same_v<std::remove_cvref_t<Source>, typename objcontainer_out::value_type>)
-		static auto& store_value(objcontainer_out& sink, Source&& src)
+		static decltype(auto) store_value(objcontainer_out& sink, Source&& src)
 		{ return *sink.insert(std::forward<Source>(src)).first; }
 
 		template<class Source>
 		requires(std::is_constructible_v<GenericValueOut, Source>)
-		static auto& store_value(sequence_container_out<GenericValueOut>& seq_out, Source&& src)
+		static decltype(auto) store_value(sequence_container_out<GenericValueOut>& seq_out, Source&& src)
 		{
 			seq_out.push_back(GenericValueOut{std::forward<Source>(src)});
 			return *seq_out.back().template get_if<std::remove_const_t<Source>>();
@@ -290,7 +290,7 @@ namespace jopp2
 
 		template<class Dest, class Source>
 		requires(!std::is_same_v<Dest, GenericValueOut> && std::is_constructible_v<Dest, Source>)
-		static auto& store_value(sequence_container_out<Dest>& seq_out, Source&& src)
+		static decltype(auto) store_value(sequence_container_out<Dest>& seq_out, Source&& src)
 		{
 			seq_out.push_back(Dest{std::forward<Source>(src)});
 			return seq_out.back();
