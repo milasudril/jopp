@@ -4,6 +4,7 @@
 #include "./exception.hpp"
 
 #include <cstddef>
+#include <type_traits>
 #include <variant>
 #include <array>
 #include <functional>
@@ -204,7 +205,8 @@ namespace jopp2
 	template<class VariantType, class Visitor, class... VisitorArgs>
 	struct visitor_accepts_type<
 		VariantType,
-		Visitor, std::variant_size_v<VariantType>,
+		Visitor,
+		std::variant_size_v<VariantType>,
 		VisitorArgs...
 	>
 	{
@@ -229,6 +231,124 @@ namespace jopp2
 				return std::forward<Visitor>(visitor)(std::forward<T>(item), std::forward<VisitorArgs>(args)...);
 			},
 			std::forward<Variant>(to_visit)
+		);
+	}
+
+	template<class Source, class Target>
+	struct add_const_from
+	{ using type = std::conditional_t<std::is_const_v<Source>, Target const, Target>; };
+
+	template<class Source, class Target>
+	using add_const_from_t = add_const_from<Source, Target>::type;
+
+	template<class Source, class Target>
+	struct add_lref_from
+	{ using type = std::conditional_t<std::is_lvalue_reference_v<Source>, Target&, Target>; };
+
+	template<class Source, class Target>
+	using add_lref_from_t = add_lref_from<Source, Target>::type;
+
+	template<class Source, class Target>
+	struct add_rref_from
+	{ using type = std::conditional_t<std::is_reference_v<Source>, Target&&, Target>; };
+
+	template<class Source, class Target>
+	using add_rref_from_t = add_rref_from<Source, Target>::type;
+
+	template<class Source, class Target>
+	struct add_cref_from
+	{
+		using type = add_rref_from_t<
+			Source,
+			add_lref_from_t<
+				Source,
+				add_const_from_t<std::remove_reference_t<Source>, Target>>
+			>;
+	};
+
+	template <class Source, class Target>
+	using add_cref_from_t = add_cref_from<Source, Target>::type;
+
+	static_assert(std::is_same_v<add_cref_from_t<int, int>, int>);
+	static_assert(std::is_same_v<add_cref_from_t<int const, int>, int const>);
+	static_assert(std::is_same_v<add_cref_from_t<int const&, int>, int const&>);
+	static_assert(std::is_same_v<add_cref_from_t<int const&&, int>, int const&&>);
+	static_assert(std::is_same_v<add_cref_from_t<int&&, int>, int&&>);
+
+
+	template <class Result, class Callable, class... Args>
+	constexpr bool is_invokable_with_result()
+	{
+		if constexpr (std::is_invocable_v<Callable, Args...>)
+		{ return std::is_same_v<std::invoke_result_t<Callable, Args...>, Result>; }
+		else
+		{ return false;}
+	}
+
+	template<class VariantType, class Visitor, size_t Index, class... VisitorArgs>
+	struct return_type_of_first_supported_type
+	{
+		using current_type = std::variant_alternative_t<Index, std::remove_cvref_t<VariantType>>;
+		using param_type = add_cref_from_t<VariantType, current_type>;
+		static constexpr auto current_value = std::is_invocable_v<Visitor, param_type, VisitorArgs...>;
+
+		using type = std::conditional_t<
+			current_value,
+			std::invoke_result<Visitor, param_type, VisitorArgs...>,
+			return_type_of_first_supported_type<VariantType, Visitor, Index + 1, VisitorArgs...>
+		>::type;
+	};
+
+	struct overload_not_found{};
+
+	template<class VariantType, class Visitor, class... VisitorArgs>
+	struct return_type_of_first_supported_type<
+		VariantType,
+		Visitor,
+		std::variant_size_v<VariantType>,
+		VisitorArgs...
+	>
+	{
+		using type = overload_not_found;
+	};
+
+	template<class VariantType, class Visitor, class... VisitorArgs>
+	using return_type_of_first_supported_type_t = return_type_of_first_supported_type<
+		VariantType,
+		Visitor,
+		0,
+		VisitorArgs...
+	>::type;
+
+	template<class VariantType, class Visitor, class FallbackAction, class... VisitorArgs>
+	constexpr decltype(auto) visit_with_fallback_action_and_args(
+		VariantType&& to_visit,
+		Visitor&& visitor,
+		FallbackAction&& fallback,
+		VisitorArgs&&... args
+	)
+	{
+		using ret_type = return_type_of_first_supported_type_t<
+			std::remove_cvref_t<VariantType>, Visitor, VisitorArgs...
+		>;
+
+		return std::visit(
+			[&]<class T>(T&& item) -> ret_type {
+				if constexpr (is_invokable_with_result<ret_type, Visitor, T, VisitorArgs...>())
+				{
+					return std::forward<Visitor>(visitor)(
+						std::forward<T>(item), std::forward<VisitorArgs>(args)...
+					);
+				}
+				else
+				{
+					std::forward<FallbackAction>(fallback)(
+						std::forward<T>(item), std::forward<VisitorArgs>(args)...
+					);
+					abort();
+				}
+			},
+			std::forward<VariantType>(to_visit)
 		);
 	}
 

@@ -74,9 +74,62 @@ namespace jopp2
 			m_sink{sink_wrapper{sink}}
 		{}
 
+		struct do_store_value
+		{
+			template<class SinkWrapper, class SourceValue>
+			requires requires(SinkWrapper sink, SourceValue&& source_val){
+				{sink.store_value(std::forward<SourceValue>(source_val))};
+			}
+			static constexpr decltype(auto) operator()(SinkWrapper sink, SourceValue&& source_val)
+			{
+				return sink.store_value(std::forward<SourceValue>(source_val));
+			}
+		};
+
 		template<class T>
 		constexpr decltype(auto) store_value(T&& val) const
 		{
+#if 0
+			static_assert(std::is_invocable_v<do_store_value, sink_wrapper<int>, int>);
+
+			using ret_type = return_type_of_first_supported_type_t<
+				storage, do_store_value, T
+			>;
+#endif
+
+			return visit_with_fallback_action_and_args(
+				m_sink,
+				[]<class SinkWrapper, class SourceValue>(
+					SinkWrapper sink,
+					SourceValue&& source_val
+				) -> decltype(auto) requires requires(SinkWrapper sink, SourceValue&& source_val){
+				{sink.store_value(std::forward<SourceValue>(source_val))};
+			}{
+					return sink.store_value(std::forward<SourceValue>(source_val));
+				},
+				[]<class SinkWrapper, class SourceValue>(
+					SinkWrapper /*unused*/,
+					SourceValue&& /*unused*/
+				) {
+						SinkTraits::value_sink_type_mismatch(
+							source_value_type_tag<std::remove_cvref_t<SourceValue>>{},
+							sink_type_tag<typename SinkWrapper::sink_type>{}
+						);
+						abort();
+				},
+				std::forward<T>(val)
+			);
+
+#if 0
+	constexpr decltype(auto) visit_with_fallback_action_and_args(
+		VariantType&& to_visit,
+		Visitor&& visitor,
+		FallbackAction&& fallback,
+		VisitorArgs&&... args
+	)
+
+			printf("%s\n", typeid(ret_type).name());
+
 			return visit_with_args(
 				m_sink,
 				[]<class SinkWrapper, class SourceValue>(SinkWrapper sink, SourceValue&& source_val) -> std::remove_cvref_t<T>& {
@@ -87,7 +140,7 @@ namespace jopp2
 								->std::same_as<std::remove_cvref_t<T>&>;
 						}
 					)
-					{ return sink.store_value(std::forward<SourceValue>(source_val)); }
+					{ return do_store_value::operator()(sink, std::forward<SourceValue>(source_val)); }
 					else
 					{
 						SinkTraits::value_sink_type_mismatch(
@@ -99,6 +152,7 @@ namespace jopp2
 				},
 				std::forward<T>(val)
 			);
+#endif
 		}
 
 		template<class T>
