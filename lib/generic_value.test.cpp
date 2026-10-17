@@ -585,7 +585,12 @@ TESTCASE(jopp2_generic_value_insanely_deep_tree)
 	auto current = val.get_if<json_value::object>();
 	for(size_t k = 0; k != 1024ZU*256; ++k)
 	{
-		auto res = current->insert(std::pair{"foobar", json_value::object{}});
+		auto res = current->insert(
+			json_value::object::value_type{
+				"foobar",
+				json_value::object{}
+			}
+		);
 		current = res.first->second.get_if<json_value::object>();
 	}
 }
@@ -985,7 +990,7 @@ TESTCASE(jopp2_generic_value_visit_nodes)
 	while(nv.visit_nodes() != jopp2::node_visitor_status::ready){}
 	puts(output.c_str());
 
-	#if 0
+#ifdef testing
 	static constexpr auto expected_output = R"((1 of 1) {
     array_of_arrays_of_bools: (1 of 15) [
         (1 of 2) bool[
