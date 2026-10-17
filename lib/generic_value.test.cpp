@@ -640,8 +640,10 @@ namespace
 			jopp2::value_visitation_context const& /*unused*/
 		) const
 		{
+			output.get() +="[\n";
 			for([[maybe_unused]] auto const& item : value.active_range())
 			{ output.get() += "null,\n"; }
+			output.get() += "],\n";
 			value.pop_active_elements();
 			return jopp2::node_visitor_status::ready;
 		}
@@ -651,8 +653,10 @@ namespace
 			jopp2::value_visitation_context const& /*unused*/
 		) const
 		{
+			output.get() +="[\n";
 			for(auto const& item : value.active_range())
 			{ output.get() += std::format("{},\n", item == bool_wrapper::enabled? "true" : "false"); }
+			output.get() += "],\n";
 			value.pop_active_elements();
 			return jopp2::node_visitor_status::ready;
 		}
@@ -662,8 +666,10 @@ namespace
 			jopp2::value_visitation_context const& /*unused*/
 		) const
 		{
+			output.get() +="[\n";
 			for(auto const& item : value.active_range())
 			{ output.get() += std::format("{},\n", item); }
+			output.get() += "],\n";
 			value.pop_active_elements();
 			return jopp2::node_visitor_status::ready;
 		}
