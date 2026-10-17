@@ -13,18 +13,13 @@ namespace jopp2
 	 * \brief Tests whether or not T is an instantiations of C
 	 * \ingroup typetraits
 	 */
-	template <typename T, template <typename...> class C>
-	struct is_instantiation_of : std::false_type {};
-
-	template <template <typename...> class C, typename... Args>
-	struct is_instantiation_of<C<Args...>, C> : std::true_type {};
-
-	/**
-	 * \brief Helper alias for is_instantiation_of
-	 * \ingroup typetraits
-	 */
-	template <typename T, template <typename...> class C>
-	inline constexpr bool is_instantiation_of_v = is_instantiation_of<T, C>::value;
+	template <class T, template<class...> class C>
+	consteval bool is_instantiation_of()
+	{
+		return requires {
+			[]<class... Args>(const C<Args...>&) {}(std::declval<T>());
+		};
+	}
 
 	/**
 	 * \brief Adds the constness of Source to Target

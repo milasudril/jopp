@@ -374,7 +374,7 @@ namespace jopp2
 
 		template<class T, class Unused = int>
 		requires (
-			   is_instantiation_of_v<std::remove_cvref_t<T>, container_proxy>
+			   is_instantiation_of<std::remove_cvref_t<T>, container_proxy>()
 			&& is_simple_array<std::remove_cvref_t<T>>
 		)
 		visit_node_result operator()(
@@ -399,7 +399,7 @@ namespace jopp2
 		{ return to_visit_node_result(m_visitor.handle_key(item, current_context)); }
 
 		template<class T>
-		requires is_instantiation_of_v<std::remove_cvref_t<T>, container_proxy>
+		requires(is_instantiation_of<std::remove_cvref_t<T>, container_proxy>())
 		visit_node_result dispatch_key(
 			T& item,
 			value_visitation_context const& current_context
@@ -421,7 +421,7 @@ namespace jopp2
 		{ return to_visit_node_result(m_visitor.handle_subtype_id(item, current_context)); }
 
 		template<class T>
-		requires is_instantiation_of_v<std::remove_cvref_t<T>, container_proxy>
+		requires(is_instantiation_of<std::remove_cvref_t<T>, container_proxy>())
 		visit_node_result dispatch_subtype_id(
 			T& item,
 			value_visitation_context const& current_context
@@ -461,7 +461,7 @@ namespace jopp2
 
 		template<class T>
 		requires(
-			    is_instantiation_of_v<std::remove_cvref_t<T>, container_proxy>
+			    is_instantiation_of<std::remove_cvref_t<T>, container_proxy>()
 			&& !is_simple_array<typename std::remove_cvref_t<T>::container_type>
 		)
 		visit_node_result operator()(
