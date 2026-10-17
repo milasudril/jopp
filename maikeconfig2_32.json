@@ -125,7 +125,8 @@
                 "^\\.",
                 "^__",
                 "experiments",
-                "pcg-cpp"
+                "pcg-cpp",
+                "doxygen-awesome-css"
             ],
             "recursive": 1
         }

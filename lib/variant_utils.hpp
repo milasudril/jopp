@@ -2,12 +2,11 @@
 #define JOPP_VARIANT_UTILS_HPP
 
 #include "./exception.hpp"
+#include "./common_traits.hpp"
 
 #include <cstddef>
-#include <type_traits>
 #include <variant>
 #include <array>
-#include <functional>
 
 namespace jopp2
 {
@@ -232,57 +231,6 @@ namespace jopp2
 			},
 			std::forward<Variant>(to_visit)
 		);
-	}
-
-	template<class Source, class Target>
-	struct add_const_from
-	{ using type = std::conditional_t<std::is_const_v<Source>, Target const, Target>; };
-
-	template<class Source, class Target>
-	using add_const_from_t = add_const_from<Source, Target>::type;
-
-	template<class Source, class Target>
-	struct add_lref_from
-	{ using type = std::conditional_t<std::is_lvalue_reference_v<Source>, Target&, Target>; };
-
-	template<class Source, class Target>
-	using add_lref_from_t = add_lref_from<Source, Target>::type;
-
-	template<class Source, class Target>
-	struct add_rref_from
-	{ using type = std::conditional_t<std::is_reference_v<Source>, Target&&, Target>; };
-
-	template<class Source, class Target>
-	using add_rref_from_t = add_rref_from<Source, Target>::type;
-
-	template<class Source, class Target>
-	struct add_cref_from
-	{
-		using type = add_rref_from_t<
-			Source,
-			add_lref_from_t<
-				Source,
-				add_const_from_t<std::remove_reference_t<Source>, Target>>
-			>;
-	};
-
-	template <class Source, class Target>
-	using add_cref_from_t = add_cref_from<Source, Target>::type;
-
-	static_assert(std::is_same_v<add_cref_from_t<int, int>, int>);
-	static_assert(std::is_same_v<add_cref_from_t<int const, int>, int const>);
-	static_assert(std::is_same_v<add_cref_from_t<int const&, int>, int const&>);
-	static_assert(std::is_same_v<add_cref_from_t<int const&&, int>, int const&&>);
-	static_assert(std::is_same_v<add_cref_from_t<int&&, int>, int&&>);
-
-
-	template <class Result, class Callable, class... Args>
-	constexpr bool is_invokable_with_result()
-	{
-		if constexpr (std::is_invocable_v<Callable, Args...>)
-		{ return std::is_same_v<std::invoke_result_t<Callable, Args...>, Result>; }
-		else
-		{ return false;}
 	}
 
 	template<class VariantType, class Visitor, size_t Index, class... VisitorArgs>
