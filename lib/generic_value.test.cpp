@@ -601,11 +601,26 @@ namespace
 	{
 		std::reference_wrapper<std::string> output;
 
+		void do_indent(size_t count)
+		{
+			if(!m_ident_next)
+			{
+				m_ident_next = true;
+				return;
+			}
+
+			for(size_t k = 0; k != count; ++k)
+			{
+				output.get() += "    ";
+			}
+		}
+
 		jopp2::node_visitor_status handle_leaf_value(
 			std::monostate /*unused*/,
 			jopp2::value_visitation_context const& context
-		) const
+		)
 		{
+			do_indent(context.depth);
 			output.get() += std::format(
 				"({} of {}) null{}\n",
 				context.node_index + 1,
@@ -618,8 +633,9 @@ namespace
 		jopp2::node_visitor_status handle_leaf_value(
 			bool_wrapper value,
 			jopp2::value_visitation_context const& context
-		) const
+		)
 		{
+			do_indent(context.depth);
 			output.get() += std::format(
 				"({} of {}) {}{}\n",
 				context.node_index + 1,
@@ -633,8 +649,9 @@ namespace
 		jopp2::node_visitor_status handle_leaf_value(
 			double value,
 			jopp2::value_visitation_context const& context
-		) const
+		)
 		{
+			do_indent(context.depth);
 			output.get() += std::format(
 				"({} of {}) {}{}\n",
 				context.node_index + 1,
@@ -648,8 +665,9 @@ namespace
 		jopp2::node_visitor_status handle_simple_array(
 			jopp2::container_proxy<std::string const>& value,
 			jopp2::value_visitation_context const& context
-		) const
+		)
 		{
+			do_indent(context.depth);
 			output.get() +=std::format(
 				"({} of {}) ",
 				context.node_index + 1,
@@ -666,19 +684,25 @@ namespace
 		jopp2::node_visitor_status handle_simple_array(
 			jopp2::container_proxy<std::vector<std::monostate> const>& value,
 			jopp2::value_visitation_context const& context
-		) const
+		)
 		{
+			do_indent(context.depth);
 			output.get() +=std::format(
 				"({} of {}) [\n",
 				context.node_index + 1,
 				std::max(context.parent_container_size, 1ZU)
 			);
-			bool first = true;
+			auto k = 1ZU;
 			for([[maybe_unused]] auto const& item : value.active_range())
 			{
-				output.get() += std::format("{}null", first? "":",\n");
-				first = false;
+				do_indent(context.depth + 1);
+				output.get() += std::format(
+					"null{}",
+					k == value.active_range().size()? "\n": ",\n"
+				);
+				++k;
 			}
+			do_indent(context.depth);
 			output.get() += std::format("]{}\n", context.is_last_node()?"" : ",");
 			value.pop_active_elements();
 			return jopp2::node_visitor_status::ready;
@@ -687,23 +711,26 @@ namespace
 		jopp2::node_visitor_status handle_simple_array(
 			jopp2::container_proxy<std::vector<bool_wrapper> const>& value,
 			jopp2::value_visitation_context const& context
-		) const
+		)
 		{
+			do_indent(context.depth);
 			output.get() +=std::format(
 				"({} of {}) [\n",
 				context.node_index + 1,
 				std::max(context.parent_container_size, 1ZU)
 			);
-			bool first = true;
+			auto k = 1ZU;
 			for(auto const& item : value.active_range())
 			{
+				do_indent(context.depth + 1);
 				output.get() += std::format(
 					"{}{}",
-					first?"":",\n",
-					item == bool_wrapper::enabled? "true" : "false"
+					item == bool_wrapper::enabled? "true" : "false",
+					k == value.active_range().size()? "\n": ",\n"
 				);
-				first = false;
+				++k;
 			}
+			do_indent(context.depth);
 			output.get() += std::format("]{}\n", context.is_last_node()?"" : ",");
 			value.pop_active_elements();
 			return jopp2::node_visitor_status::ready;
@@ -712,19 +739,26 @@ namespace
 		jopp2::node_visitor_status handle_simple_array(
 			jopp2::container_proxy<std::vector<double> const>& value,
 			jopp2::value_visitation_context const& context
-		) const
+		)
 		{
+			do_indent(context.depth);
 			output.get() +=std::format(
 				"({} of {}) [\n",
 				context.node_index + 1,
 				std::max(context.parent_container_size, 1ZU)
 			);
-			bool first = true;
+			auto k = 1ZU;
 			for(auto const& item : value.active_range())
 			{
-				output.get() += std::format("{}{}", first?"":",\n", item);
-				first = false;
+				do_indent(context.depth + 1);
+				output.get() += std::format(
+					"{}{}",
+					item,
+					k == value.active_range().size()? "\n": ",\n"
+				);
+				++k;
 			}
+			do_indent(context.depth);
 			output.get() += std::format("]{}\n", context.is_last_node()?"" : ",");
 			value.pop_active_elements();
 			return jopp2::node_visitor_status::ready;
@@ -733,9 +767,10 @@ namespace
 		jopp2::node_visitor_status handle_begin_of_container(
 			jopp2::container_proxy<std::vector<std::string> const>& /*unused*/,
 			jopp2::value_visitation_context const& context
-		) const
+		)
 		{
-			output.get() +=std::format(
+			do_indent(context.depth);
+			output.get() += std::format(
 				"({} of {}) [\n",
 				context.node_index + 1,
 				std::max(context.parent_container_size, 1ZU)
@@ -746,8 +781,9 @@ namespace
 		jopp2::node_visitor_status handle_end_of_container(
 			jopp2::container_proxy<std::vector<std::string> const>& /*unused*/,
 			jopp2::value_visitation_context const& context
-		) const
+		)
 		{
+			do_indent(context.depth);
 			output.get() += std::format("]{}\n", context.is_last_node()?"" : ",");
 			return jopp2::node_visitor_status::ready;
 		}
@@ -757,8 +793,9 @@ namespace
 				typename jopp2::generic_value<json_value_traits_sorted>::object const
 			>& /*unused*/,
 			jopp2::value_visitation_context const& context
-		) const
+		)
 		{
+			do_indent(context.depth);
 			output.get() +=std::format(
 				"({} of {}) {{\n",
 				context.node_index + 1,
@@ -772,9 +809,10 @@ namespace
 				typename jopp2::generic_value<json_value_traits_sorted>::object const
 			>& /*unused*/,
 			jopp2::value_visitation_context const& context
-		) const
+		)
 		{
-		output.get() += std::format("}}{}\n", context.is_last_node()?"" : ",");
+			do_indent(context.depth);
+			output.get() += std::format("}}{}\n", context.is_last_node()?"" : ",");
 			return jopp2::node_visitor_status::ready;
 		}
 
@@ -783,8 +821,9 @@ namespace
 				std::vector<jopp2::generic_value<json_value_traits_sorted>::object> const
 			>& /*unused*/,
 			jopp2::value_visitation_context const& context
-		) const
+		)
 		{
+			do_indent(context.depth);
 			output.get() +=std::format(
 				"({} of {}) [\n",
 				context.node_index + 1,
@@ -798,8 +837,9 @@ namespace
 				std::vector<jopp2::generic_value<json_value_traits_sorted>::object> const
 			>& /*unused*/,
 			jopp2::value_visitation_context const& context
-		) const
+		)
 		{
+			do_indent(context.depth);
 			output.get() += std::format("]{}\n", context.is_last_node()?"" : ",");
 			return jopp2::node_visitor_status::ready;
 		}
@@ -809,8 +849,9 @@ namespace
 				std::vector<jopp2::generic_value<json_value_traits_sorted>> const
 			>& /*unused*/,
 			jopp2::value_visitation_context const& context
-		) const
+		)
 		{
+			do_indent(context.depth);
 			output.get() +=std::format(
 				"({} of {}) [\n",
 				context.node_index + 1,
@@ -824,21 +865,24 @@ namespace
 				std::vector<jopp2::generic_value<json_value_traits_sorted>> const
 			>& /*unused*/,
 			jopp2::value_visitation_context const& context
-		) const
+		)
 		{
+			do_indent(context.depth);
 			output.get() += std::format("]{}\n", context.is_last_node()?"" : ",");
 			return jopp2::node_visitor_status::ready;
 		}
 
 		jopp2::node_visitor_status handle_key(
 			jopp2::container_proxy<std::string const>& key,
-			jopp2::value_visitation_context const& /*unused*/
-		) const
+			jopp2::value_visitation_context const& context
+		)
 		{
+			do_indent(context.depth);
 			for(auto const& item : key.active_range())
 			{ output.get() += item; }
 			output.get() += ": ";
 			key.pop_active_elements();
+			m_ident_next = false;
 			return jopp2::node_visitor_status::ready;
 		}
 
@@ -852,6 +896,8 @@ namespace
 			id.pop_active_elements();
 			return jopp2::node_visitor_status::ready;
 		}
+
+		bool m_ident_next = true;
 	};
 }
 
