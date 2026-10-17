@@ -371,7 +371,7 @@ namespace jopp2
 	auto clone(GenericValueIn const& src)
 	{
 		GenericValueOut ret{};
-		node_visitor nv{src, clone_visitor_2<GenericValueIn, GenericValueOut>{ret}};
+		node_visitor nv{src, clone_visitor<GenericValueIn, GenericValueOut>{ret}};
 		nv.visit_nodes();
 		return ret;
 	}

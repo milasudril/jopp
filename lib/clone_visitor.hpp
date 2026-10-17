@@ -10,7 +10,7 @@
 namespace jopp2
 {
 	template<class GenericValueIn, class GenericValueOut>
-	class clone_visitor_2
+	class clone_visitor
 	{
 	public:
 		using objcontainer_in = std::conditional_t<
@@ -42,7 +42,7 @@ namespace jopp2
 				GenericValueOut
 			>;
 
-		using value_storage_out = value_sink_ref<clone_visitor_2>;
+		using value_storage_out = value_sink_ref<clone_visitor>;
 
 		struct context
 		{
@@ -50,7 +50,7 @@ namespace jopp2
 			value_storage_out output_value;
 		};
 
-		explicit clone_visitor_2(GenericValueOut& output_value)
+		explicit clone_visitor(GenericValueOut& output_value)
 		{
 			output_value = GenericValueOut{};
 			m_contexts.reserve(1024);

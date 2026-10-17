@@ -95,7 +95,7 @@ namespace
 TESTCASE(jopp2_clone_visitor_initial_state)
 {
 	test_generic_value_out output{"This is a test"};
-	using visitor_type = jopp2::clone_visitor_2<test_generic_value_in, test_generic_value_out>;
+	using visitor_type = jopp2::clone_visitor<test_generic_value_in, test_generic_value_out>;
 	visitor_type visitor{output};
 
 	EXPECT_EQ(*output.get_if<int>(), 0);
@@ -110,7 +110,7 @@ TESTCASE(jopp2_clone_visitor_initial_state)
 TESTCASE(jopp2_clone_visitor_handle_leaf_value_no_current_key)
 {
 	test_generic_value_out output{"Hello, World"};
-	using visitor_type = jopp2::clone_visitor_2<test_generic_value_in, test_generic_value_out>;
+	using visitor_type = jopp2::clone_visitor<test_generic_value_in, test_generic_value_out>;
 	visitor_type visitor{output};
 
 	auto const& context_before = visitor.contexts().back();
@@ -126,7 +126,7 @@ TESTCASE(jopp2_clone_visitor_handle_leaf_value_no_current_key)
 TESTCASE(jopp2_clone_visitor_handle_simple_array_no_current_key)
 {
 	test_generic_value_out output;
-	using visitor_type = jopp2::clone_visitor_2<test_generic_value_in, test_generic_value_out>;
+	using visitor_type = jopp2::clone_visitor<test_generic_value_in, test_generic_value_out>;
 	visitor_type visitor{output};
 
 	std::vector vals{1, 2, 3};
@@ -147,7 +147,7 @@ TESTCASE(jopp2_clone_visitor_handle_simple_array_no_current_key)
 TESTCASE(jopp2_clone_visitor_handle_begin_of_container_sequence_no_current_key)
 {
 	test_generic_value_out output;
-	using visitor_type = jopp2::clone_visitor_2<test_generic_value_in, test_generic_value_out>;
+	using visitor_type = jopp2::clone_visitor<test_generic_value_in, test_generic_value_out>;
 	visitor_type visitor{output};
 
 	std::vector vals{
@@ -178,7 +178,7 @@ TESTCASE(jopp2_clone_visitor_handle_begin_of_container_sequence_no_current_key)
 TESTCASE(jopp2_clone_visitor_handle_begin_of_container_object_no_current_key)
 {
 	test_generic_value_out output;
-	using visitor_type = jopp2::clone_visitor_2<test_generic_value_in, test_generic_value_out>;
+	using visitor_type = jopp2::clone_visitor<test_generic_value_in, test_generic_value_out>;
 	visitor_type visitor{output};
 
 	test_generic_value_in::object obj{
@@ -229,7 +229,7 @@ namespace
 TESTCASE(jopp2_clone_visitor_handle_leaf_value_with_current_key)
 {
 	test_generic_value_out value_out;
-	using visitor_type = jopp2::clone_visitor_2<test_generic_value_in, test_generic_value_out>;
+	using visitor_type = jopp2::clone_visitor<test_generic_value_in, test_generic_value_out>;
 	visitor_type visitor{value_out};
 	set_current_key(visitor, std::string{"Hello, world"});
 
@@ -251,7 +251,7 @@ TESTCASE(jopp2_clone_visitor_handle_leaf_value_with_current_key)
 TESTCASE(jopp2_clone_visitor_handle_simple_array_with_current_key)
 {
 	test_generic_value_out output;
-	using visitor_type = jopp2::clone_visitor_2<test_generic_value_in, test_generic_value_out>;
+	using visitor_type = jopp2::clone_visitor<test_generic_value_in, test_generic_value_out>;
 	visitor_type visitor{output};
 	set_current_key(visitor, std::string{"Hello, world"});
 
@@ -276,7 +276,7 @@ TESTCASE(jopp2_clone_visitor_handle_simple_array_with_current_key)
 TESTCASE(jopp2_clone_visitor_handle_begin_of_container_sequence_with_current_key)
 {
 	test_generic_value_out output;
-	using visitor_type = jopp2::clone_visitor_2<test_generic_value_in, test_generic_value_out>;
+	using visitor_type = jopp2::clone_visitor<test_generic_value_in, test_generic_value_out>;
 	visitor_type visitor{output};
 	set_current_key(visitor, std::string{"Hello, world"});
 
@@ -311,7 +311,7 @@ TESTCASE(jopp2_clone_visitor_handle_begin_of_container_sequence_with_current_key
 TESTCASE(jopp2_clone_visitor_handle_begin_of_container_object_with_current_key)
 {
 	test_generic_value_out output;
-	using visitor_type = jopp2::clone_visitor_2<test_generic_value_in, test_generic_value_out>;
+	using visitor_type = jopp2::clone_visitor<test_generic_value_in, test_generic_value_out>;
 	visitor_type visitor{output};
 	set_current_key(visitor, std::string{"Hello, world"});
 
@@ -351,7 +351,7 @@ TESTCASE(jopp2_clone_visitor_handle_begin_of_container_object_with_current_key)
 TESTCASE(jopp2_clone_visitor_handle_key_in_container)
 {
 	test_generic_value_out output;
-	using visitor_type = jopp2::clone_visitor_2<test_generic_value_in, test_generic_value_out>;
+	using visitor_type = jopp2::clone_visitor<test_generic_value_in, test_generic_value_out>;
 	visitor_type visitor{output};
 
 	test_generic_value_in::object obj;
@@ -372,7 +372,7 @@ TESTCASE(jopp2_clone_visitor_handle_key_in_container)
 TESTCASE(jopp2_clone_visitor_handle_key_no_container)
 {
 	test_generic_value_out output;
-	using visitor_type = jopp2::clone_visitor_2<test_generic_value_in, test_generic_value_out>;
+	using visitor_type = jopp2::clone_visitor<test_generic_value_in, test_generic_value_out>;
 	visitor_type visitor{output};
 
 	test_generic_value_in::object obj;
@@ -389,7 +389,7 @@ TESTCASE(jopp2_clone_visitor_handle_key_no_container)
 TESTCASE(jopp2_clone_visitor_handle_array_of_strings)
 {
 	test_generic_value_out output;
-	using visitor_type = jopp2::clone_visitor_2<test_generic_value_in, test_generic_value_out>;
+	using visitor_type = jopp2::clone_visitor<test_generic_value_in, test_generic_value_out>;
 	visitor_type visitor{output};
 
 	std::vector<std::string> strings{
@@ -410,7 +410,7 @@ TESTCASE(jopp2_clone_visitor_handle_array_of_strings)
 TESTCASE(jopp2_clone_visitor_handle_end_of_container)
 {
 	test_generic_value_out output;
-	using visitor_type = jopp2::clone_visitor_2<test_generic_value_in, test_generic_value_out>;
+	using visitor_type = jopp2::clone_visitor<test_generic_value_in, test_generic_value_out>;
 	visitor_type visitor{output};
 
 	EXPECT_EQ(visitor.contexts().empty(), false);
