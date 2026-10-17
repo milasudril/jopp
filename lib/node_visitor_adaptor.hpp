@@ -3,7 +3,7 @@
 
 #include "./variant_utils.hpp"
 #include "./container_proxy.hpp"
-#include "./utils.hpp"
+#include "./common_traits.hpp"
 #include "./exception.hpp"
 
 #include <type_traits>
@@ -83,8 +83,6 @@ namespace jopp2
 				raise_internal_error("Invalid return value from node visitor");
 		}
 	}
-
-	using jopp::instance_of;
 
 	template<class T>
 	struct key_to_clone
@@ -375,8 +373,10 @@ namespace jopp2
 		}
 
 		template<class T, class Unused = int>
-		requires instance_of<std::remove_cvref_t<T>, container_proxy>
-		&& (is_simple_array<std::remove_cvref_t<T>>)
+		requires (
+			   is_instantiation_of_v<std::remove_cvref_t<T>, container_proxy>
+			&& is_simple_array<std::remove_cvref_t<T>>
+		)
 		visit_node_result operator()(
 			T& item,
 			value_visitation_context const& current_context,
@@ -399,7 +399,7 @@ namespace jopp2
 		{ return to_visit_node_result(m_visitor.handle_key(item, current_context)); }
 
 		template<class T>
-		requires instance_of<std::remove_cvref_t<T>, container_proxy>
+		requires is_instantiation_of_v<std::remove_cvref_t<T>, container_proxy>
 		visit_node_result dispatch_key(
 			T& item,
 			value_visitation_context const& current_context
@@ -421,7 +421,7 @@ namespace jopp2
 		{ return to_visit_node_result(m_visitor.handle_subtype_id(item, current_context)); }
 
 		template<class T>
-		requires instance_of<std::remove_cvref_t<T>, container_proxy>
+		requires is_instantiation_of_v<std::remove_cvref_t<T>, container_proxy>
 		visit_node_result dispatch_subtype_id(
 			T& item,
 			value_visitation_context const& current_context
@@ -460,8 +460,10 @@ namespace jopp2
 		}
 
 		template<class T>
-		requires instance_of<std::remove_cvref_t<T>, container_proxy>
-		&& (!is_simple_array<typename std::remove_cvref_t<T>::container_type>)
+		requires(
+			    is_instantiation_of_v<std::remove_cvref_t<T>, container_proxy>
+			&& !is_simple_array<typename std::remove_cvref_t<T>::container_type>
+		)
 		visit_node_result operator()(
 			T& obj,
 			value_visitation_context const& current_context,
