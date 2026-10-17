@@ -697,7 +697,9 @@ namespace
 			{
 				do_indent(context.depth + 1);
 				output.get() += std::format(
-					"null{}",
+					"({} of {}) null{}",
+					k,
+					value.active_range().size(),
 					k == value.active_range().size()? "\n": ",\n"
 				);
 				++k;
@@ -724,7 +726,9 @@ namespace
 			{
 				do_indent(context.depth + 1);
 				output.get() += std::format(
-					"{}{}",
+					"({} of {}) {}{}",
+					k,
+					value.active_range().size(),
 					item == bool_wrapper::enabled? "true" : "false",
 					k == value.active_range().size()? "\n": ",\n"
 				);
@@ -752,7 +756,9 @@ namespace
 			{
 				do_indent(context.depth + 1);
 				output.get() += std::format(
-					"{}{}",
+					"({} of {}) {}{}",
+					k,
+					value.active_range().size(),
 					item,
 					k == value.active_range().size()? "\n": ",\n"
 				);
@@ -1101,128 +1107,124 @@ TESTCASE(jopp2_generic_value_visit_nodes)
 	std::string output;
 	jopp2::node_visitor nv{result, test_node_visitor{output}};
 	while(nv.visit_nodes() != jopp2::node_visitor_status::ready){}
-	puts(output.c_str());
 
-#ifdef testing
 	static constexpr auto expected_output = R"((1 of 1) {
     array_of_arrays_of_bools: (1 of 15) [
-        (1 of 2) bool[
+        (1 of 2) [
             (1 of 2) true,
             (2 of 2) false
         ],
-        (2 of 2) bool[
+        (2 of 2) [
             (1 of 3) false,
             (2 of 3) true,
             (3 of 3) true
         ]
     ],
     array_of_arrays_of_nulls: (2 of 15) [
-        (1 of 2) null[
+        (1 of 2) [
             (1 of 2) null,
             (2 of 2) null
         ],
-        (2 of 2) null[
+        (2 of 2) [
             (1 of 1) null
         ]
     ],
     array_of_arrays_of_numbers: (3 of 15) [
-        (1 of 2) fd[
+        (1 of 2) [
             (1 of 3) 1,
             (2 of 3) 2,
             (3 of 3) 3
         ],
-        (2 of 2) fd[
+        (2 of 2) [
             (1 of 2) 4.5,
             (2 of 2) 5.5
         ]
     ],
     array_of_arrays_of_objects: (4 of 15) [
-        (1 of 2) obj[
+        (1 of 2) [
             (1 of 2) {
-                id: (1 of 2) sd1,
-                status: (2 of 2) str(active)
+                id: (1 of 2) 1,
+                status: (2 of 2) active
             },
             (2 of 2) {
-                id: (1 of 2) sd2,
-                status: (2 of 2) str(pending)
+                id: (1 of 2) 2,
+                status: (2 of 2) pending
             }
         ],
-        (2 of 2) obj[
+        (2 of 2) [
             (1 of 1) {
-                id: (1 of 2) sd3,
-                status: (2 of 2) str(completed)
+                id: (1 of 2) 3,
+                status: (2 of 2) completed
             }
         ]
     ],
     array_of_arrays_of_strings: (5 of 15) [
-        (1 of 2) str[
+        (1 of 2) [
             (1 of 2) apple,
             (2 of 2) banana
         ],
-        (2 of 2) str[
+        (2 of 2) [
             (1 of 2) cherry,
             (2 of 2) date
         ]
     ],
-    array_of_bools: (6 of 15) bool[
+    array_of_bools: (6 of 15) [
         (1 of 3) true,
         (2 of 3) false,
         (3 of 3) true
     ],
     array_of_heterogenous_arrays: (7 of 15) [
         (1 of 2) [
-            (1 of 4) sd1,
-            (2 of 4) str(two),
+            (1 of 4) 1,
+            (2 of 4) two,
             (3 of 4) true,
             (4 of 4) null
         ],
         (2 of 2) [
             (1 of 3) false,
-            (2 of 3) sd3.14,
+            (2 of 3) 3.14,
             (3 of 3) {
-                key: (1 of 1) str(value)
+                key: (1 of 1) value
             }
         ]
     ],
-    array_of_nulls: (8 of 15) null[
+    array_of_nulls: (8 of 15) [
         (1 of 3) null,
         (2 of 3) null,
         (3 of 3) null
     ],
-    array_of_objects: (9 of 15) obj[
+    array_of_objects: (9 of 15) [
         (1 of 2) {
-            item: (1 of 2) str(A),
-            value: (2 of 2) sd100
+            item: (1 of 2) A,
+            value: (2 of 2) 100
         },
         (2 of 2) {
-            item: (1 of 2) str(B),
-            value: (2 of 2) sd200
+            item: (1 of 2) B,
+            value: (2 of 2) 200
         }
     ],
-    array_of_strings: (10 of 15) str[
+    array_of_strings: (10 of 15) [
         (1 of 3) test 1,
         (2 of 3) test 2,
         (3 of 3) test 3
     ],
     bool: (11 of 15) true,
     heterogenous_arrays: (12 of 15) [
-        (1 of 5) str(text),
-        (2 of 5) sd123,
+        (1 of 5) text,
+        (2 of 5) 123,
         (3 of 5) false,
         (4 of 5) null,
         (5 of 5) {
-            nested: (1 of 1) str(object)
+            nested: (1 of 1) object
         }
     ],
-    number: (13 of 15) sd42,
+    number: (13 of 15) 42,
     object: (14 of 15) {
         is_dummy: (1 of 2) true,
-        sample_key: (2 of 2) str(sample_value)
+        sample_key: (2 of 2) sample_value
     },
-    string_value: (15 of 15) str(lorem ipsum)
+    string_value: (15 of 15) lorem ipsum
 }
 )";
-
 	EXPECT_EQ(output, expected_output);
-#endif
 }
