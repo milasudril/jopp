@@ -679,7 +679,7 @@ namespace
 				output.get() += std::format("{}null", first? "":",\n");
 				first = false;
 			}
-			output.get() += std::format("\n]{}\n", context.is_last_node()?"" : ",");
+			output.get() += std::format("]{}\n", context.is_last_node()?"" : ",");
 			value.pop_active_elements();
 			return jopp2::node_visitor_status::ready;
 		}
@@ -704,7 +704,7 @@ namespace
 				);
 				first = false;
 			}
-			output.get() += std::format("\n]{}\n", context.is_last_node()?"" : ",");
+			output.get() += std::format("]{}\n", context.is_last_node()?"" : ",");
 			value.pop_active_elements();
 			return jopp2::node_visitor_status::ready;
 		}
@@ -725,7 +725,7 @@ namespace
 				output.get() += std::format("{}{}", first?"":",\n", item);
 				first = false;
 			}
-			output.get() += std::format("\n]{}\n", context.is_last_node()?"" : ",");
+			output.get() += std::format("]{}\n", context.is_last_node()?"" : ",");
 			value.pop_active_elements();
 			return jopp2::node_visitor_status::ready;
 		}
@@ -748,7 +748,7 @@ namespace
 			jopp2::value_visitation_context const& context
 		) const
 		{
-			output.get() += std::format("\n]{}\n", context.is_last_node()?"" : ",");
+			output.get() += std::format("]{}\n", context.is_last_node()?"" : ",");
 			return jopp2::node_visitor_status::ready;
 		}
 
@@ -774,7 +774,7 @@ namespace
 			jopp2::value_visitation_context const& context
 		) const
 		{
-		output.get() += std::format("\n}}{}\n", context.is_last_node()?"" : ",");
+		output.get() += std::format("}}{}\n", context.is_last_node()?"" : ",");
 			return jopp2::node_visitor_status::ready;
 		}
 
@@ -800,7 +800,7 @@ namespace
 			jopp2::value_visitation_context const& context
 		) const
 		{
-			output.get() += std::format("\n]{}\n", context.is_last_node()?"" : ",");
+			output.get() += std::format("]{}\n", context.is_last_node()?"" : ",");
 			return jopp2::node_visitor_status::ready;
 		}
 
@@ -826,7 +826,7 @@ namespace
 			jopp2::value_visitation_context const& context
 		) const
 		{
-			output.get() += std::format("\n]{}\n", context.is_last_node()?"" : ",");
+			output.get() += std::format("]{}\n", context.is_last_node()?"" : ",");
 			return jopp2::node_visitor_status::ready;
 		}
 
