@@ -363,6 +363,18 @@ namespace jopp2
 		}
 
 		template<class T, class Unused = int>
+		requires(generic_value_t::template is_leaf_value<std::remove_cvref_t<T>>)
+		visit_node_result operator()(
+			std::reference_wrapper<T> value,
+			value_visitation_context const& current_context,
+			Unused&& /*unused*/ = Unused{}
+		)
+		{
+			return to_visit_node_result(
+				m_visitor.handle_leaf_value(value.get(), current_context));
+		}
+
+		template<class T, class Unused = int>
 		requires instance_of<std::remove_cvref_t<T>, container_proxy>
 		&& (is_simple_array<std::remove_cvref_t<T>>)
 		visit_node_result operator()(

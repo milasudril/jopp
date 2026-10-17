@@ -39,7 +39,8 @@
                             "-Wconversion",
                             "-Wsign-conversion",
                             "-Wno-maybe-uninitialized",
-                            "-Wno-error=maybe-uninitialized"
+                            "-Wno-error=maybe-uninitialized",
+                            "-ftemplate-backtrace-limit=0"
                         ],
                         "iquote": [
                           "."
@@ -68,7 +69,9 @@
                             "-Wconversion",
                             "-Wsign-conversion",
                             "-Wno-maybe-uninitialized",
-                            "-Wno-error=maybe-uninitialized"
+                            "-Wno-error=maybe-uninitialized",
+                            "-ftemplate-backtrace-limit=0"
+
                         ],
                         "iquote": [
                           "."

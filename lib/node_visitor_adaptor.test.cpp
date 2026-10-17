@@ -13,6 +13,11 @@
 
 namespace
 {
+	struct a_big_thing
+	{
+		std::array<char, 64> data;
+	};
+
 	template<class KeyType = std::string>
 	struct test_generic_value
 	{
@@ -20,8 +25,10 @@ namespace
 
 		using value_type = std::variant<
 			int,
+			a_big_thing,
 			std::string,
 			std::vector<int>,
+			std::vector<a_big_thing>,
 			std::vector<std::string>,
 			std::vector<test_generic_value>,
 			object
@@ -31,7 +38,9 @@ namespace
 		using sequence_container_type = std::vector<T>;
 
 		template<class T>
-		static constexpr auto is_leaf_value = std::is_same_v<T, int> || std::is_same_v<T, std::string>;
+		static constexpr auto is_leaf_value = std::is_same_v<T, int>
+			|| std::is_same_v<T, std::string>
+			|| std::is_same_v<T, a_big_thing>;
 
 		template<class Self>
 		auto&& get_value(this Self&& self)
@@ -51,7 +60,10 @@ namespace
 			test_value{val}
 		{}
 
-		TestFwk::mock_entry<jopp2::node_visitor_status(int, jopp2::value_visitation_context)>
+		TestFwk::mock_entry_overload_set<
+			jopp2::node_visitor_status(int, jopp2::value_visitation_context),
+			jopp2::node_visitor_status(a_big_thing const&, jopp2::value_visitation_context)
+		>
 			handle_leaf_value;
 
 		TestFwk::mock_entry_overload_set<
@@ -60,7 +72,15 @@ namespace
 				jopp2::value_visitation_context const&
 			),
 			jopp2::node_visitor_status(
+				jopp2::container_proxy<std::vector<a_big_thing>>&,
+				jopp2::value_visitation_context const&
+			),
+			jopp2::node_visitor_status(
 				jopp2::container_proxy<std::string>&,
+				jopp2::value_visitation_context const&
+			),
+			jopp2::node_visitor_status(
+				jopp2::container_proxy<std::vector<a_big_thing> const>&,
 				jopp2::value_visitation_context const&
 			),
 			jopp2::node_visitor_status(

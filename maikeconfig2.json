@@ -38,7 +38,8 @@
                             "-Wsign-conversion",
                             "-Wno-maybe-uninitialized",
                             "-Wswitch-enum",
-                            "-Wno-error=maybe-uninitialized"
+                            "-Wno-error=maybe-uninitialized",
+                            "-ftemplate-backtrace-limit=0"
                         ],
                         "iquote": [
                           "."
@@ -66,7 +67,8 @@
                             "-Wsign-conversion",
                             "-Wno-maybe-uninitialized",
                             "-Wno-error=maybe-uninitialized",
-                            "-Wswitch-enum"
+                            "-Wswitch-enum",
+                            "-ftemplate-backtrace-limit=0"
                         ],
                         "iquote": [
                           "."

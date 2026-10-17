@@ -618,7 +618,6 @@ TESTCASE(jopp2_generic_value_insanely_deep_tree)
 
 TESTCASE(jopp2_generic_value_visit_nodes)
 {
-#if 0
 	using json_value = jopp2::generic_value<json_value_traits>;
 
 	static_assert(json_value::is_leaf_value<double>);
@@ -814,6 +813,7 @@ TESTCASE(jopp2_generic_value_visit_nodes)
 	using json_value_sorted = jopp2::generic_value<json_value_traits_sorted>;
 
 	auto result = clone<json_value_sorted>(value);
+	#if 0
 	std::string output;
 	visit_nodes(result, std::in_place_type_t<test_node_visitor>{}, output);
 	static constexpr auto expected_output = R"((1 of 1) {
