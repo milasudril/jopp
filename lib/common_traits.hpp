@@ -107,7 +107,7 @@ namespace jopp2
 	 * \ingroup typetraits
 	 */
 	template <class Result, class Callable, class... Args>
-	constexpr bool is_invokable_with_result()
+	consteval bool is_invokable_with_result()
 	{
 		if constexpr (std::is_invocable_v<Callable, Args...>)
 		{ return std::is_same_v<std::invoke_result_t<Callable, Args...>, Result>; }
