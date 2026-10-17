@@ -5,7 +5,6 @@
 #include "./container_proxy.hpp"
 #include "./node_visitor_adaptor.hpp"
 #include "./template_param_pack.hpp"
-#include "testfwk/validation.hpp"
 
 #include <map>
 #include <testfwk/testfwk.hpp>
