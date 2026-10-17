@@ -19,10 +19,10 @@ namespace jopp2
 		constexpr bool operator!=(value_visitation_context const&) const = default;
 
 		constexpr bool is_last_node() const
-		{ return node_index == parent_container_size; }
+		{ return node_index + 1 == parent_container_size; }
 
 		size_t node_index{};
-		size_t parent_container_size{};
+		size_t parent_container_size{1};
 		size_t depth{};
 	};
 
