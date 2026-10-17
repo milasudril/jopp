@@ -4,7 +4,7 @@
 #include <type_traits>
 
 /**
- * \defgroup typetraits (Common type traits)
+ * \defgroup typetraits Common type traits
  */
 
 namespace jopp2
