@@ -1,4 +1,126 @@
-html{
+html
+{
 	--font-family: "Andika", sans-serif;
 	--font-mono-family: "Cascadia Code Roman", monospace;
+}
+
+html
+{
+	--primary-color: #CF4E00;
+	--primary-dark-color: #973700;
+	--primary-light-color: #FB9265;
+	--on-primary-color: #FFFFFF;
+
+	--bug-color: #E40000;
+	--bug-color-dark: #A70000;
+	--bug-color-darker: #A70000;
+
+	--warning-color: #B66E00;
+	--warning-color-dark: #844E00;
+	--warning-color-darker: #844E00;
+
+	--todo-color: #B66E00;
+	--todo-color-dark: #844E00;
+	--todo-color-darker: #844E00;
+
+	--deprecated-color: #B66E00;
+	--deprecated-color-dark: #844E00;
+	--deprecated-color-darker: #844E00;
+
+	--invariant-color: #00A700;
+	--invariant-color-dark: #007A00;
+	--invariant-color-darker: #007A00;
+
+	--note-color: #00A700;
+	--note-color-dark: #007A00;
+	--note-color-darker: #007A00;
+
+	--page-background-color: #FFFFFF;
+	--page-foreground-color: #2F4153;
+	--page-secondary-foreground-color: #6F7E8E;
+	--separator-color: #FB9265;
+	--odd-color: #F79700;
+	--fragment-linenumber-color: #6F7E8E;
+}
+
+body.dark-mode
+{
+	--primary-color: #CF4E00;
+	--primary-dark-color: #FB9265;
+	--primary-light-color: #973700;
+	--on-primary-color: #FFFFFF;
+
+	--bug-color: #E40000;
+	--bug-color-dark: #FF8C8C;
+	--bug-color-darker: #A70000;
+
+	--warning-color: #B66E00;
+	--warning-color-dark: #F79700;
+	--warning-color-darker: #844E00;
+
+	--todo-color: #B66E00;
+	--todo-color-dark: #F79700;
+	--todo-color-darker: #844E00;
+
+	--deprecated-color: #B66E00;
+	--deprecated-color-dark: #F79700;
+	--deprecated-color-darker: #844E00;
+
+	--invariant-color: #00A700;
+	--invariant-color-dark: #00E400;
+	--invariant-color-darker: #007A00;
+
+	--note-color: #00A700;
+	--note-color-dark: #00E400;
+	--note-color-darker: #007A00;
+
+	--page-background-color: #121212;
+	--page-foreground-color: #E0E0E0;
+	--page-secondary-foreground-color: #A0A0A0;
+	--separator-color: #844E00;
+	--odd-color: #1E1E1E;
+	--fragment-linenumber-color: #A0A0A0;
+}
+
+/* 3. Dark Mode Variables (If using OS preference without the JS toggle) */
+@media (prefers-color-scheme: dark)
+{
+	html:not(.light-mode)
+	{
+		--primary-color: #CF4E00;
+		--primary-dark-color: #FB9265;
+		--primary-light-color: #973700;
+		--on-primary-color: #FFFFFF;
+
+		--bug-color: #E40000;
+		--bug-color-dark: #FF8C8C;
+		--bug-color-darker: #A70000;
+
+		--warning-color: #B66E00;
+		--warning-color-dark: #F79700;
+		--warning-color-darker: #844E00;
+
+		--todo-color: #B66E00;
+		--todo-color-dark: #F79700;
+		--todo-color-darker: #844E00;
+
+		--deprecated-color: #B66E00;
+		--deprecated-color-dark: #F79700;
+		--deprecated-color-darker: #844E00;
+
+		--invariant-color: #00A700;
+		--invariant-color-dark: #00E400;
+		--invariant-color-darker: #007A00;
+
+		--note-color: #00A700;
+		--note-color-dark: #00E400;
+		--note-color-darker: #007A00;
+
+		--page-background-color: #121212;
+		--page-foreground-color: #E0E0E0;
+		--page-secondary-foreground-color: #A0A0A0;
+		--separator-color: #844E00;
+		--odd-color: #1E1E1E;
+		--fragment-linenumber-color: #A0A0A0;
+	}
 }
