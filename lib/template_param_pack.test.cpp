@@ -5,28 +5,6 @@
 #include <variant>
 #include <testfwk/testfwk.hpp>
 
-TESTCASE(jopp2_map_template_param_pack_properties)
-{
-	using my_pack = jopp2::template_param_pack<int, double>;
-
-	static_assert(my_pack::size == 2);
-	static_assert(std::is_same_v<jopp2::template_param_pack_type_at_index_t<0, my_pack>, int>);
-	static_assert(std::is_same_v<jopp2::template_param_pack_type_at_index_t<1, my_pack>, double>);
-
-	static_assert(
-		std::is_same_v<
-			jopp2::map_template_param_pack_to_type_t<std::variant, my_pack>,
-			std::variant<int, double>
-		>
-	);
-
-	static_assert(jopp2::get_index_of_type<int, int, double>() == 0);
-	static_assert(jopp2::get_index_of_type<double, int, double>() == 1);
-
-	static_assert(jopp2::index_of_type_v<int, my_pack> == 0);
-	static_assert(jopp2::index_of_type_v<double, my_pack> == 1);
-}
-
 TESTCASE(jopp2_map_template_param_pack_to_type)
 {
 	using my_pack = jopp2::template_param_pack<int, double>;

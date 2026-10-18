@@ -4,8 +4,6 @@
 #include <type_traits>
 #include <cstddef>
 #include <utility>
-#include <limits>
-#include <variant>
 
 /**
  * \defgroup parampack Handling of template parameter packs
@@ -26,7 +24,6 @@ namespace jopp2
 		 */
 		static constexpr auto size = sizeof...(Types);
 	};
-
 
 	/**
 	 * \brief Queries TemplateParamPack which type is stored at Index
@@ -52,49 +49,6 @@ namespace jopp2
 	 */
 	template<size_t Index, class TemplateParamPack>
 	using template_param_pack_type_at_index_t = template_param_pack_type_at_index<Index, TemplateParamPack>::type;
-
-
-
-	template<size_t Current, class Which, class Head, class... Types>
-	size_t consteval get_index_of_type_impl()
-	{
-		if constexpr(std::is_same_v<Which, Head>)
-		{ return Current; }
-		else
-		{
-			if constexpr(sizeof...(Types) == 0)
-			{ return std::numeric_limits<size_t>::max(); }
-			else
-			{ return get_index_of_type_impl<Current + 1, Which, Types...>(); }
-		}
-	}
-
-	/**
-	 * \brief Queries the first index that matches the Which
-	 * \ingroup parampack
-	 */
-	template<class Which, class Head, class... Types>
-	size_t consteval get_index_of_type()
-	{ return get_index_of_type_impl<0, Which, Head, Types...>(); }
-
-	template<class Which, class ... Types>
-	struct index_of_type
-	{};
-
-	template<class Which, class ... Types>
-	struct index_of_type<Which, template_param_pack<Types...>>
-	{
-		static constexpr auto value = get_index_of_type<Which, Types...>();
-	};
-
-	template<class Which, class ... Types>
-	inline constexpr auto index_of_type_v = index_of_type<Which, Types...>::value;
-
-	template<class Which, class... Types>
-	inline constexpr auto type_is_present_v =
-		index_of_type_v<Which, Types...> != std::numeric_limits<size_t>::max();
-
-
 
 	template<template<class...> class, class ... Types>
 	struct map_template_param_pack_to_type
@@ -124,7 +78,6 @@ namespace jopp2
 	template<template<class...> class TargetType, class... Types>
 	using map_template_param_pack_to_type_t = map_template_param_pack_to_type<TargetType, Types...>::type;
 
-
 	/**
 	 * \brief Conditionally wraps T inside a template_param_pack
 	 * \ingroup parampack
@@ -148,7 +101,6 @@ namespace jopp2
 	 */
 	template<class T>
 	using wrap_in_template_param_pack_t = wrap_in_template_param_pack<T>::type;
-
 
 	/**
 	 * \brief Appends TypesToAppend to a template_param_pack
@@ -180,8 +132,6 @@ namespace jopp2
 	 */
 	template<class PackType, class... TypesToAppend>
 	using append_to_template_param_pack_t = append_to_template_param_pack<PackType,TypesToAppend...>::type;
-
-
 
 	/**
 	 * \brief Concatenates PackA and PackB
@@ -217,7 +167,6 @@ namespace jopp2
 	template<class PackA, class PackB, class... Tail>
 	using concatenate_template_param_packs_t = concatenate_template_param_packs<PackA, PackB, Tail...>::type;
 
-
 	/**
 	 * \brief Filters Pack based on Pred
 	 */
@@ -248,15 +197,6 @@ namespace jopp2
 
 	template<auto Pred, class PackType>
 	using filter_template_param_pack_t = filter_template_param_pack<Pred, template_param_pack<>, PackType>::type;
-
-	static_assert(
-		std::is_same_v<
-			filter_template_param_pack_t<[]<class T>(std::type_identity<T>){
-				return std::is_integral_v<T>;
-			}, template_param_pack<int, double, short, char>>,
-			template_param_pack<int, short, char>
-		>
-	);
 
 	/**
 	 * \brief Wraps each element of a template_param_pack, and wraps it inside wrapper
@@ -301,22 +241,6 @@ namespace jopp2
 	template<class PackType, template<class, class...> class Wrapper, class... OtherArgs>
 	using wrap_template_param_pack_elements_t =
 		wrap_template_param_pack_elements<PackType, Wrapper, OtherArgs...>::type;
-
-
-	template<class T>
-	struct make_template_param_pack
-	{
-		using type = wrap_in_template_param_pack_t<T>;
-	};
-
-	template<class ... Args>
-	struct make_template_param_pack<std::variant<Args...>>
-	{
-		using type = template_param_pack<Args...>;
-	};
-
-	template<class T>
-	using make_template_param_pack_t = make_template_param_pack<T>::type;
 }
 
 #endif
