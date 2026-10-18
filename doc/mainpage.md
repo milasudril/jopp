@@ -1,6 +1,9 @@
-# jopp
+# Jopp
 
-[TOC]
+## Compoent diagram
 
-Lorem ipsum
+\startuml "Jopp components"
+package common_traits
+package template_param_pack
+\enduml
 

@@ -905,7 +905,7 @@ EXTERNAL_PAGES         = YES
 HIDE_UNDOC_RELATIONS   = YES
 
 
-HAVE_DOT               = NO
+HAVE_DOT               = YES
 
 
 DOT_NUM_THREADS        = 0
@@ -974,7 +974,7 @@ DIRECTORY_GRAPH        = YES
 DIR_GRAPH_MAX_DEPTH    = 1
 
 
-DOT_IMAGE_FORMAT       = png
+DOT_IMAGE_FORMAT       = svg
 
 
 INTERACTIVE_SVG        = NO
@@ -992,13 +992,13 @@ DIA_PATH               =
 DIAFILE_DIRS           =
 
 
-PLANTUML_JAR_PATH      =
+PLANTUML_JAR_PATH      = /usr/share/plantuml/plantuml.jar
 
 
-PLANTUML_CFG_FILE      =
+PLANTUML_CFG_FILE      = doc/doxygen_uml.cfg
 
 
-PLANTUML_INCLUDE_PATH  =
+PLANTUML_INCLUDE_PATH  = doc
 
 
 PLANTUMLFILE_DIRS      =
@@ -1035,3 +1035,5 @@ MSCGEN_TOOL            =
 
 
 MSCFILE_DIRS           =
+
+ALIASES += "startuml=@startuml\n<style file=\"doxygen-awesome-css/doxygen-awesome.css\">\n<style file=\"doxygen-awesome-css/custom.css\">\n"
