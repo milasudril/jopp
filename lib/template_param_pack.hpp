@@ -6,7 +6,7 @@
 #include <utility>
 
 /**
- * \defgroup parampack Handling of template parameter packs
+ * \defgroup parampack Template parameter pack support
  * \brief Contains helpers for managing template parameter packs
  */
 
@@ -26,10 +26,10 @@ namespace jopp2
 	};
 
 	/**
-	 * \brief Queries TemplateParamPack which type is stored at Index
+	 * \brief Queries the template_param_pack `Pack` which type is stored at `Index`
 	 * \ingroup parampack
 	 */
-	template<size_t Index, class TemplateParamPack>
+	template<size_t Index, class Pack>
 	struct template_param_pack_type_at_index
 	{};
 
@@ -47,15 +47,15 @@ namespace jopp2
 	 * \brief Helper type for using template_param_pack_type_at_index
 	 * \ingroup parampack
 	 */
-	template<size_t Index, class TemplateParamPack>
-	using template_param_pack_type_at_index_t = template_param_pack_type_at_index<Index, TemplateParamPack>::type;
+	template<size_t Index, class Pack>
+	using template_param_pack_type_at_index_t = template_param_pack_type_at_index<Index, Pack>::type;
 
 	template<template<class...> class, class ... Types>
 	struct map_template_param_pack_to_type
 	{};
 
 	/**
-	 * \brief Maps a template parameter pack to a type that accepts multiple class template arguments
+	 * \brief Maps a template_param_pack to a type that accepts multiple class template arguments
 	 * \ingroup parampack
 	 *
 	 * map_template_param_pack_to_type can be used like so:
@@ -79,9 +79,9 @@ namespace jopp2
 	using map_template_param_pack_to_type_t = map_template_param_pack_to_type<TargetType, Types...>::type;
 
 	/**
-	 * \brief Conditionally wraps T inside a template_param_pack
+	 * \brief Conditionally wraps `T` inside a template_param_pack
 	 * \ingroup parampack
-	 * \returns template_param_pack<T> if T is not already a a template_param_pack, otherwise it is
+	 * \returns template_param_pack<T> if `T` is not already a a template_param_pack, otherwise it is
 	 *          the identity function
 	 */
 	template<class T>
@@ -103,10 +103,10 @@ namespace jopp2
 	using wrap_in_template_param_pack_t = wrap_in_template_param_pack<T>::type;
 
 	/**
-	 * \brief Appends TypesToAppend to a template_param_pack
+	 * \brief Appends `TypesToAppend` to the template_param_pack `Pack`
 	 * \ingroup parampack
 	 */
-	template<class PackType, class... TypesToAppend>
+	template<class Pack, class... TypesToAppend>
 	struct append_to_template_param_pack
 	{
 	private:
@@ -115,14 +115,14 @@ namespace jopp2
 		{
 			return std::type_identity<
 				template_param_pack<
-					template_param_pack_type_at_index_t<I, PackType>...,
+					template_param_pack_type_at_index_t<I, Pack>...,
 					TypesToAppend...
 				>
 			>{};
 		}
 	public:
 		using type = decltype(
-			resolve_type(std::make_index_sequence<PackType::size>{})
+			resolve_type(std::make_index_sequence<Pack::size>{})
 		)::type;
 	};
 
@@ -130,11 +130,11 @@ namespace jopp2
 	 * \brief Helper type for using append_to_template_param_pack
 	 * \ingroup parampack
 	 */
-	template<class PackType, class... TypesToAppend>
-	using append_to_template_param_pack_t = append_to_template_param_pack<PackType,TypesToAppend...>::type;
+	template<class Pack, class... TypesToAppend>
+	using append_to_template_param_pack_t = append_to_template_param_pack<Pack,TypesToAppend...>::type;
 
 	/**
-	 * \brief Concatenates PackA and PackB
+	 * \brief Concatenates `PackA` and `PackB`
 	 * \ingroup parampack
 	 */
 	template<class PackA, class PackB, class... Tail>
@@ -142,7 +142,7 @@ namespace jopp2
 	{
 	private:
 		template<size_t... I>
-		static consteval auto resolve_type(std::index_sequence<I...>)
+		static consteval auto resolve_type(std::index_sequence<I...> /*unused*/)
 		{
 			using next_type = append_to_template_param_pack_t<
 				PackA,
@@ -168,7 +168,22 @@ namespace jopp2
 	using concatenate_template_param_packs_t = concatenate_template_param_packs<PackA, PackB, Tail...>::type;
 
 	/**
-	 * \brief Filters Pack based on Pred
+	 * \brief Filters `Pack` based on `Pred`
+	 * \ingroup parampack
+	 *
+	 * filter_template_param_pack can be used like so
+	 *
+	 * ```
+	 * using my_pack = template_param_pack<int, std::string, double>;
+	 * using my_filtered_pack = filter_template_param_pack_t<
+	 * 	[]<class T>(std::type_identity<T>){
+	 *		return std::is_trivially_copyable_v<T>;
+	 * 	},
+	 *  my_pack
+	 * >;
+	 * ```
+	 * `my_filtered_pack` is now `template_param_pack<ind, double>`
+	 *
 	 */
 	template<auto Pred, class Pack, class Remaining>
 	struct filter_template_param_pack;
@@ -195,15 +210,16 @@ namespace jopp2
 		>::type;
 	};
 
-	template<auto Pred, class PackType>
-	using filter_template_param_pack_t = filter_template_param_pack<Pred, template_param_pack<>, PackType>::type;
+	/**
+	 * \brief Helper type for using filter_template_param_pack
+	 * \ingroup parampack
+	 */
+	template<auto Pred, class Pack>
+	using filter_template_param_pack_t = filter_template_param_pack<Pred, template_param_pack<>, Pack>::type;
 
 	/**
-	 * \brief Wraps each element of a template_param_pack, and wraps it inside wrapper
+	 * \brief Wraps each element of the template_param_pack `Pack`, and wraps it inside `Wrapper`
 	 * \ingroup parampack
-	 * \tparam PackType the template_param_pack instantiation to use as source for the types
-	 * \tparam Wrapper type class template to instantiate with the types
-	 * \tparam OtherArgs other arguments to pass to wrapper
 	 *
 	 * wrap_template_param_pack_elements can be used like so
 	 *
@@ -212,9 +228,9 @@ namespace jopp2
 	 * using my_other_pack = wrap_template_param_pack_elements_t<my_pack, std::pair, int>;
 	 * ```
 	 *
-	 * Now my_other_pack is `template_param_pack<std::pair<int, int>, std::pair<double, int>>`
+	 * Now, `my_other_pack` is `template_param_pack<std::pair<int, int>, std::pair<double, int>>`
 	 */
-	template<class PackType, template<class, class...> class Wrapper, class... OtherArgs>
+	template<class Pack, template<class, class...> class Wrapper, class... OtherArgs>
 	struct wrap_template_param_pack_elements
 	{
 	private:
@@ -223,14 +239,14 @@ namespace jopp2
 		{
 			return std::type_identity<
 				template_param_pack<
-					Wrapper<template_param_pack_type_at_index_t<I, PackType>, OtherArgs...>...
+					Wrapper<template_param_pack_type_at_index_t<I, Pack>, OtherArgs...>...
 				>
 			>{};
 		}
 
 	public:
 		using type = decltype(
-			resolve_type(std::make_index_sequence<PackType::size>{})
+			resolve_type(std::make_index_sequence<Pack::size>{})
 		)::type;
 	};
 
@@ -238,9 +254,9 @@ namespace jopp2
 	 * \brief Helper type for using wrap_template_param_pack_elements
 	 * \ingroup parampack
 	 */
-	template<class PackType, template<class, class...> class Wrapper, class... OtherArgs>
+	template<class Pack, template<class, class...> class Wrapper, class... OtherArgs>
 	using wrap_template_param_pack_elements_t =
-		wrap_template_param_pack_elements<PackType, Wrapper, OtherArgs...>::type;
+		wrap_template_param_pack_elements<Pack, Wrapper, OtherArgs...>::type;
 }
 
 #endif

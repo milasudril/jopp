@@ -5,12 +5,13 @@
 
 /**
  * \defgroup typetraits Common type traits
+ * \brief Contains type traits commonly used in the implementation
  */
 
 namespace jopp2
 {
 	/**
-	 * \brief Tests whether or not T is an instantiations of C
+	 * \brief Tests whether or not `T` is an instantiations of `C`
 	 * \ingroup typetraits
 	 */
 	template <class T, template<class...> class C>
@@ -22,7 +23,7 @@ namespace jopp2
 	}
 
 	/**
-	 * \brief Adds the constness of Source to Target
+	 * \brief Adds the constness of `Source` to `Target`
 	 * \ingroup typetraits
 	 */
 	template<class Source, class Target>
@@ -37,7 +38,7 @@ namespace jopp2
 	using add_const_from_t = add_const_from<Source, Target>::type;
 
 	/**
-	 * \brief Adds the lref property of Source to Target
+	 * \brief Adds the lref property of `Source` to `Target`
 	 * \ingroup typetraits
 	 */
 	template<class Source, class Target>
@@ -52,7 +53,7 @@ namespace jopp2
 	using add_lref_from_t = add_lref_from<Source, Target>::type;
 
 	/**
-	 * \brief Adds the rref property of Source to Target
+	 * \brief Adds the rref property of `Source` to `Target`
 	 * \ingroup typetraits
 	 */
 	template<class Source, class Target>
@@ -67,7 +68,7 @@ namespace jopp2
 	using add_rref_from_t = add_rref_from<Source, Target>::type;
 
 	/**
-	 * \brief Adds the constness and ref property of Source to Target
+	 * \brief Adds the constness and ref property of `Source` to `Target`
 	 * \ingroup typetraits
 	 */
 	template<class Source, class Target>
@@ -96,9 +97,9 @@ namespace jopp2
 
 
 	/**
-	 * \brief Tests whether or not calling Callable with Args returns result
-	 * \return True if it will return Result, otherwise false, including the case when Callable cannot
-	 * be invoked with Args at all.
+	 * \brief Tests whether or not calling `Callable` with `Args...` returns a `Result`
+	 * \return True if it will return `Result`, otherwise false, including the case when
+	 *         `Callable` cannot be invoked with `Args...`.
 	 * \ingroup typetraits
 	 */
 	template <class Result, class Callable, class... Args>
