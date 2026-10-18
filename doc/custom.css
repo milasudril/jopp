@@ -4,161 +4,28 @@ html
 	--font-mono-family: "Cascadia Code Roman", monospace;
 }
 
-/*
-					 Dark    Mid     Light
-Analog1    #A70000 #E40000 #FF8C8C
-Primary    #973700 #CF4E00 #FB9265
-Analog2    #844E00 #B66E00 #F79700
-Complement #007A00 #00A700 #00E400
-*/
+
+/*TODO: Set theme colors*/
 
 :root
 {
-	--primary-color-mid: #CF4E00;
-	--primary-color-dark: #973700;
-	--primary-color-light: #FB9265;
+	/* Use for background color of navigation, header, footer */
+	--primary-color-dark: #0084AC;
+	--primary-color-mid: #51B2BB;
+	--primary-color-light: #9BECC1;
 
-	--analog-color-a-mid: #E40000;
-	--analog-color-a-dark: #A70000;
-	--analog-color-a-light: #FF8C8C;
+	/* Use for background (table row alt 1)*/
+	--analog-color-a-dark: #008B00;
+	--analog-color-a-mid: #00BE00;
+	--analog-color-a-light: #4CFF4C;
 
-	--analog-color-b-mid: #B66E00;
-	--analog-color-b-dark: #844E00;
-	--analog-color-b-light: #F79700;
+	/* Use for background (table row alt 2)*/
+	--analog-color-b-dark: #007DEB;
+	--analog-color-b-mid: #71A4FF;
+	--analog-color-b-light: #C8D8FF;
 
-	--complement-color-mid: #00A700;
-	--complement-color-dark: #007A00;
-	--complement-color-light: #FB9265;
-}
-
-html
-{
-	--primary-color: var(--complement-color-mid);
-	--primary-dark-color: var(--complement-color-dark);
-	--primary-light-color: var(--complement-color-light);
-	--on-primary-color: #000000;
-
-	--bug-color: #E40000;
-	--bug-color-dark: #A70000;
-	--bug-color-darker: #A70000;
-
-	--warning-color: #B66E00;
-	--warning-color-dark: #844E00;
-	--warning-color-darker: #844E00;
-
-	--todo-color: #B66E00;
-	--todo-color-dark: #844E00;
-	--todo-color-darker: #844E00;
-
-	--deprecated-color: #B66E00;
-	--deprecated-color-dark: #844E00;
-	--deprecated-color-darker: #844E00;
-
-	--invariant-color: #00A700;
-	--invariant-color-dark: #007A00;
-	--invariant-color-darker: #007A00;
-
-	--note-color: #00A700;
-	--note-color-dark: #007A00;
-	--note-color-darker: #007A00;
-
-	--page-background-color: #ffffff;
-	--page-foreground-color: #000000;
-	--page-secondary-foreground-color: var(--analog-color-a-light);
-	--separator-color: #FB9265;
- 	--odd-color: var(--analog-color-b-light);
-	--fragment-linenumber-color: #6F7E8E;
-	--side-nav-background: var(--primary-color-light);
-}
-
-body.dark-mode
-{
-	--primary-color: #CF4E00;
-	--primary-dark-color: #FB9265;
-	--primary-light-color: #973700;
-	--on-primary-color: #FFFFFF;
-
-	--bug-color: #E40000;
-	--bug-color-dark: #FF8C8C;
-	--bug-color-darker: #A70000;
-
-	--warning-color: #B66E00;
-	--warning-color-dark: #F79700;
-	--warning-color-darker: #844E00;
-
-	--todo-color: #B66E00;
-	--todo-color-dark: #F79700;
-	--todo-color-darker: #844E00;
-
-	--deprecated-color: #B66E00;
-	--deprecated-color-dark: #F79700;
-	--deprecated-color-darker: #844E00;
-
-	--invariant-color: #00A700;
-	--invariant-color-dark: #00E400;
-	--invariant-color-darker: #007A00;
-
-	--note-color: #00A700;
-	--note-color-dark: #00E400;
-	--note-color-darker: #007A00;
-
-	--page-background-color: #121212;
-	--page-foreground-color: #E0E0E0;
-	--page-secondary-foreground-color: #A0A0A0;
-	--separator-color: #844E00;
-	--odd-color: #1E1E1E;
-	--fragment-linenumber-color: #A0A0A0;
-}
-
-/* 3. Dark Mode Variables (If using OS preference without the JS toggle) */
-@media (prefers-color-scheme: dark)
-{
-	html:not(.light-mode)
-	{
-		--primary-color: #CF4E00;
-		--primary-dark-color: #FB9265;
-		--primary-light-color: #973700;
-		--on-primary-color: #FFFFFF;
-
-		--bug-color: #E40000;
-		--bug-color-dark: #FF8C8C;
-		--bug-color-darker: #A70000;
-
-		--warning-color: #B66E00;
-		--warning-color-dark: #F79700;
-		--warning-color-darker: #844E00;
-
-		--todo-color: #B66E00;
-		--todo-color-dark: #F79700;
-		--todo-color-darker: #844E00;
-
-		--deprecated-color: #B66E00;
-		--deprecated-color-dark: #F79700;
-		--deprecated-color-darker: #844E00;
-
-		--invariant-color: #00A700;
-		--invariant-color-dark: #00E400;
-		--invariant-color-darker: #007A00;
-
-		--note-color: #00A700;
-		--note-color-dark: #00E400;
-		--note-color-darker: #007A00;
-
-		--page-background-color: #121212;
-		--page-foreground-color: #E0E0E0;
-		--page-secondary-foreground-color: #A0A0A0;
-		--separator-color: #844E00;
-		--odd-color: #1E1E1E;
-		--fragment-linenumber-color: #A0A0A0;
-	}
-}
-
-.directory tr.odd
-{
-	background-color: var(--odd-color) !important;
-}
-
-table.directory tr.even
-{
-	background-color: var(--analog-color-a-light) !important;
+	/* Use for link colors and certain highlights*/
+	--complement-color-dark: #C8D8FF;
+	--complement-color-mid: #FF2626;
+	--complement-color-light: #FFBDBD;
 }
