@@ -1,42 +1,59 @@
 # Jopp
 
-## Syntax
+## The file format
 
-The following is a summary of the jopp syntax
+A Jopp document stores values of different types
 
-```ebnf
-message = [value_type_id], value ;
-value_type_id = (number_type_id , [array_begin_marker])
-	| hash_type_id
-	| string_begin_tag
-	| object_begin_tag ;
+* Numeric tuple
+* String
+* Boolean
+* Byte array
+* Object
+* Generic
 
-number_type_id = { signedness_flag | floatness_flag | size_category | tuple_size_category } ;
-signedness_flag = "s" | "u" ;
-floatness_flag = "f" | "i" ;
-size_category = "a" | "b" | "c" | "d" ;
-tuple_size_category = "x" | "y" | "z" | "w" ;
+as well as a corresponding array type for each of these types.
 
-object_begin_tag = [subtype_begin_id_marker, subtype_id_name], object_begin_marker
-subtype_id_begin_marker = "!" ;
-subtype_id_name = { digit | ascii_letter | "_" | "-" | "." | ":" } ;
-object_begin_marker = "{" ;
+### Numeric tuple
 
-string_begin_tag = {"str(" | '"'} ;
+A numeric tuple stores a fixed number of numeric values of a certain type. If no type prefix is
+given, a single double-precision float is stored. Otherwise, the type prefix denotes
 
-hash_type_id = "#", size_category, {array_begin_marker | "x"} ;
+* The size of the stored numbers
+* The number of elements in the tuple
+* Whether or not the numbers are floats or integers
+* Whether or not the numbers are signed or unsigned
 
-array_begin_marker = "[" ;
-```
+An implementation shall store decoded floating point values according to ISO 60559.
 
-### Size categories
+The size is encoded by a category letter
 
-| Category | Number of bytes (number) | Number of bytes (hash) |
-|----------|--------------------------|------------------------|
-| a        | 1                        | 4                      |
-| b        | 2                        | 8                      |
-| c        | 4                        | 16                     |
-| d        | 8                        | 32                     |
+| Category | Number size in bytes | Example C data type |
+|----------|----------------------|---------------------|
+| a        | 1                    | int8_t              |
+| b        | 2                    | int16_t             |
+| c        | 4                    | int32_t             |
+| d        | 8                    | int64_t             |
+
+
+The number elements in the tuple uses category letters x-w
+
+| Category | Number of elements in the tuple |
+|----------|---------------------------------|
+| x        | 1                               |
+| y        | 2                               |
+| z        | 3                               |
+| w        | 4                               |
+
+Float and integers are differentiated by the letters `f` and `i` respectively. Signed/unsigned are
+differentiated by the letters `s` and `u`.
+
+Following the scheme above gives that the letter *combination* for the default type is `dxfs`.
+Since it is the combination that defines the type, the order does not matter.
+
+Not all combinations are possible. The type encoding scheme is orthogonal for easier extensibility.
+A floating point value is always signed, and never one byte. While there exists both unsigned floats
+and 8-bit floats, there is, at the time of writing, no standard for these. Therefore, types such as
+`axfs`, `axfu`, `bxfu`, `cxfu`, and `dxfu` are unsupported.
 
 
 ## Compoent diagram
