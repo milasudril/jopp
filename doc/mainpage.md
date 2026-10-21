@@ -59,7 +59,8 @@ and 8-bit floats, there is, at the time of writing, no standard for these. There
 A string can either be serialized as specified by ISO 21778, or according to the rule
 
 ```ebnf
-String = `s(` any byte except NUL `)'
+String = "s(" , legal_character,  ")" ;
+legal_character = ? Any byte except null ?
 ```
 
 Any character except `(` `\` and `)` are treated literally. A `(` will increment a counter. `)`
