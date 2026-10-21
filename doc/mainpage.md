@@ -15,7 +15,7 @@ as well as a corresponding array type for each of these types.
 
 ### Numeric tuple
 
-A numeric tuple stores a fixed number of numeric values of a certain type. Numbers are paresed
+A `Numeric tuple` stores a fixed number of numeric values of a certain type. Numbers are paresed
 according to the rules of `std::from_chars` as specified by ISO 14882. Optionally, a type prefix
 can be specified. If no type prefix is given, a single double-precision float is stored. Otherwise,
 the type prefix denotes
@@ -56,7 +56,7 @@ and 8-bit floats, there is, at the time of writing, no standard for these. There
 
 ### String
 
-A string can either be serialized as specified by ISO 21778, or according to the rule
+A `String` can either be serialized as specified by ISO 21778, or according to the rule
 
 ```ebnf
 String = "s(" , legal_character,  ")" ;
@@ -67,6 +67,31 @@ Any character except `(` `\` and `)` are treated literally. A `(` will increment
 decrements the same counter. The string ends when the counter reaches zero. If `(` or `)`is preceded
 by `\`, this `\` is discarded and the counter is not updated. A `\` that is not followed
 by `(` or `)` is treated literally.
+
+
+### Boolean
+
+A `Boolean` is either `true` or `false`
+
+
+### Byte array
+
+A `Byte array` is a sequence of opaque bytes. A byte array begins with `#` followed by an optional size category.
+
+| Category | Number of bytes |
+|----------|-----------------|
+| a        | 4               |
+| b        | 8               |
+| c        | 16              |
+| d        | 32              |
+
+The bytes are written in hexadecimal, with the most significant nibble first, within parenthesis. As an example, below is a UUID:
+
+```
+#c(bdcc6aa823bb4fc3b4ee42820a233ca2)
+```
+
+It is an error if the size category is different from the number of bytes before the closing parenthesis. If no size category is given, the length is arbitrary.
 
 
 ## Compoent diagram
