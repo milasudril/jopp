@@ -15,15 +15,15 @@ as well as a corresponding array type for each of these types.
 
 ### Numeric tuple
 
-A numeric tuple stores a fixed number of numeric values of a certain type. If no type prefix is
-given, a single double-precision float is stored. Otherwise, the type prefix denotes
+A numeric tuple stores a fixed number of numeric values of a certain type. Numbers are paresed
+according to the rules of `std::from_chars` as specified by ISO 14882. Optionally, a type prefix
+can be specified. If no type prefix is given, a single double-precision float is stored. Otherwise,
+the type prefix denotes
 
 * The size of the stored numbers
 * The number of elements in the tuple
 * Whether or not the numbers are floats or integers
 * Whether or not the numbers are signed or unsigned
-
-An implementation shall store decoded floating point values according to ISO 60559.
 
 The size is encoded by a category letter
 
@@ -33,7 +33,6 @@ The size is encoded by a category letter
 | b        | 2                    | int16_t             |
 | c        | 4                    | int32_t             |
 | d        | 8                    | int64_t             |
-
 
 The number elements in the tuple uses category letters x-w
 
@@ -54,6 +53,19 @@ Not all combinations are possible. The type encoding scheme is orthogonal for ea
 A floating point value is always signed, and never one byte. While there exists both unsigned floats
 and 8-bit floats, there is, at the time of writing, no standard for these. Therefore, types such as
 `axfs`, `axfu`, `bxfu`, `cxfu`, and `dxfu` are unsupported.
+
+### String
+
+A string can either be serialized as specified by ISO 21778, or according to the rule
+
+```ebnf
+String = `s(` any byte except NUL `)'
+```
+
+Any character except `(` `\` and `)` are treated literally. A `(` will increment a counter. `)`
+decrements the same counter. The string ends when the counter reaches zero. If `(` or `)`is preceded
+by `\`, this `\` is discarded and the counter is not updated. A `\` that is not followed
+by `(` or `)` is treated literally.
 
 
 ## Compoent diagram
