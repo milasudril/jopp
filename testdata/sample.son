@@ -1,0 +1,99 @@
+sample{
+	"page":whatwg:html:html{
+		"lang": "en",
+		"": [
+			whatwg:html:head{
+				"": [
+					whatwg:html:meta{
+						"charset":"UTF-8"
+					},
+					whatwg:html:meta{
+						"name": "viewport",
+						"content": "width=device-width, initial-scale=1.0"
+					},
+					whatwg:html:title{
+						"":["Document"]
+					}
+				]
+			},
+			whatwg:html:body{
+				"": [
+					whatwg:html:p{
+						"": ["This is a short HTML skeleton containing a single paragraph."]
+					}
+				]
+			}
+		]
+	},
+	"files":[
+		os:direntry{
+			"name": "/usr/share/backgrounds/linuxmint-vanessa/aaronphs_indonesia.jpg",
+			"size": ui 4683814,
+			"mode": ubi 420,
+			"md5": #c c5ef99933ea012eb423883f1c2547f35
+		},
+		os:direntry{
+			"name": "/usr/share/backgrounds/linuxmint-vanessa/aburden_frozen.jpg",
+			"size": ui 2522575,
+			"mode": ubi 420,
+			"md5": #c 999212ecc0b64e15cf8406fd9aff6b4a
+		},
+		os:direntry{
+			"name": "/usr/share/backgrounds/linuxmint-vanessa/calinstan_winding_road.jpg",
+			"size": ui 4964665,
+			"mode": ubi 420,
+			"md5": #c b15709b18cfe20769fce407eae03a867
+		},
+		os:direntry{
+			"name": "/usr/share/backgrounds/linuxmint-vanessa/constantin_blue_lines.jpg",
+			"size": ui 431690,
+			"mode": ubi 420,
+			"md5": #c 5f92d333de2b9c26283b0a28422e4bfb
+		}
+	],
+	"cube":meshobj{
+		"vertices": cz[
+			-1.0 -1.0 -1.0,
+			1.0 -1.0 -1.0,
+			1.0  1.0 -1.0,
+			-1.0  1.0 -1.0,
+			-1.0 -1.0  1.0,
+			1.0 -1.0  1.0,
+			1.0  1.0  1.0,
+			-1.0  1.0  1.0
+		],
+		"faces": iuz[
+			4 5 6,
+			4 6 7,
+			1 0 3,
+			1 3 2,
+			0 4 7,
+			0 7 3,
+			5 1 2,
+			5 2 6,
+			3 7 6,
+			3 6 2,
+			4 0 1,
+			4 1 5
+		]
+	},
+	"products":[
+		northwind:product{
+			"ProductID": iu 1,
+			"ProductName": "Chais",
+			"SupplierID": ui 1,
+			"CategoryID": ui 1,
+			"Unit": "10 boxes x 20 bags",
+			"Price": 18.0,
+		},
+		northwind:product{
+			"ProductID": iu 2,
+			"ProductName": "Chang",
+			"SupplierID": ui 1,
+			"CategoryID": ui 1,
+			"Unit": "24 -12 oz bottles",
+			"Price": 19.0
+		},
+	]
+}
+
